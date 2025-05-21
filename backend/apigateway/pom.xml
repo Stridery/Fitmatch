@@ -8,7 +8,7 @@
 		<version>3.3.11</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.apigateway</groupId>
+	<groupId>com.fitmatch</groupId>
 	<artifactId>apigateway</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>apigateway</name>

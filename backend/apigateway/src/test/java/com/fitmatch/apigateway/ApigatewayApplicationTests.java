@@ -1,4 +1,4 @@
-package com.apigateway.apigateway;
+package com.fitmatch.apigateway;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
