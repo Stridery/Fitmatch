@@ -7,8 +7,8 @@ import lombok.Data;
 @Data
 public class ConfirmRegisterRequest {
 
-    @NotBlank
-    @Email
+    @Email(message = "Please enter a valid email address")
+    @NotBlank(message = "Email cannot be blank")
     private String email;
 
     @NotBlank

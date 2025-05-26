@@ -39,19 +39,6 @@ public class JwtService {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
-     
-    public String generateTokenWithEmail(String email) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + 10 * 60 * 1000); // 10分钟有效
-    
-        return Jwts.builder()
-                .setSubject(email)
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .claim("type", "register") // 可选：标注 token 用途
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
-    }
     
 
     // 解析 JWT，返回 userId
@@ -65,7 +52,7 @@ public class JwtService {
 
             return UUID.fromString(claims.getSubject());
         } catch (JwtException e) {
-            throw new RuntimeException("无效的 token", e);
+            throw new RuntimeException("Invalid token", e);
         }
     }
 

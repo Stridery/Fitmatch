@@ -70,15 +70,21 @@ public class EmailService {
     /**
      * 实际发送邮件
      */
-    public void sendCodeEmail(String email, String code) {
-        String subject = "【FitMatch】注册验证码";
-        String body = String.format("""
-            您正在注册 FitMatch 账号，您的验证码是：
+    public void sendCodeEmail(String email, String code, int flag) {
+        String subject = flag == 0 ? "【FitMatch】Registration Validation Code" : "【FitMatch】Reset Password Validation Code";
+        String body = flag == 0 ? String.format("""
+        You are registering a FitMatch account. Your verification code is:
 
-            %s
+        %s
 
-            请在 5 分钟内完成验证。如非本人操作，请忽略本邮件。
-            """, code);
+        Please complete the verification within 5 minutes. If this wasn’t you, please ignore this email.
+        """, code) : String.format("""
+        You are resetting the password for your FitMatch account. Your verification code is:
+
+        %s
+
+        Please complete the verification within 5 minutes. If this wasn’t you, please ignore this email.
+        """, code);
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(senderAddress);  // ✅ 发件人必须和 spring.mail.username 一致
@@ -97,7 +103,19 @@ public class EmailService {
             String json = objectMapper.writeValueAsString(request);
             redisTemplate.opsForValue().set("register:data:" + email, json, 10, TimeUnit.MINUTES);
         } catch (Exception e) {
-            throw new RuntimeException("注册信息保存失败", e);
+            throw new RuntimeException("Failed to save registration information", e);
+        }
+    }
+
+    /**
+     * 保存注册请求信息到 Redis（序列化为 JSON）
+     */
+    public void saveResetPasswordRequest(String email, RegisterRequest request) {
+        try {
+            String json = objectMapper.writeValueAsString(request);
+            redisTemplate.opsForValue().set("register:data:" + email, json, 10, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save registration information", e);
         }
     }
 
@@ -110,7 +128,7 @@ public class EmailService {
             if (json == null) return null;
             return objectMapper.readValue(json, RegisterRequest.class);
         } catch (Exception e) {
-            throw new RuntimeException("注册信息读取失败", e);
+            throw new RuntimeException("Failed to read registration information", e);
         }
     }
 

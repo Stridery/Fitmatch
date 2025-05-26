@@ -2,11 +2,17 @@ package com.fitmatch.authservice.service;
 
 import com.fitmatch.authservice.dto.LoginRequest;
 import com.fitmatch.authservice.dto.RegisterRequest;
+import com.fitmatch.authservice.dto.ResetPasswordRequest;
 import com.fitmatch.authservice.entity.User;
 import com.fitmatch.authservice.exception.ConflictException;
 import com.fitmatch.authservice.repository.UserRepository;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
 import com.fitmatch.authservice.repository.OAuthAccountRepository;
 import lombok.RequiredArgsConstructor;
+
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,7 +36,7 @@ public class AuthService {
         // 是否已注册
         if (userRepository.findByEmail(email).isPresent() ||
             oauthAccountRepository.findByEmail(email).isPresent()) {
-            throw new ConflictException("该邮箱已注册，请直接登录");
+            throw new ConflictException("This email is already registered. Please log in directly");
         }
 
         // 生成验证码 + 保存
@@ -38,7 +44,7 @@ public class AuthService {
         emailService.saveCode(email, code);
 
         // 发送邮件
-        emailService.sendCodeEmail(email, code);
+        emailService.sendCodeEmail(email, code, 0);
 
         // 临时保存注册请求数据
         emailService.saveRegisterRequest(email, request);
@@ -51,13 +57,13 @@ public class AuthService {
     public String confirmRegister(String email, String code) {
         // 校验验证码
         if (!emailService.verifyCode(email, code)) {
-            throw new ConflictException("验证码错误或已过期");
+            throw new ConflictException("Validation code incorrect or expired");
         }
 
         // 读取注册信息
         RegisterRequest request = emailService.loadRegisterRequest(email);
         if (request == null) {
-            throw new ConflictException("注册信息已过期，请重新注册");
+            throw new ConflictException("Registration information expired, please register again");
         }
 
         // 创建用户
@@ -81,11 +87,44 @@ public class AuthService {
 
     public String login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-            .orElseThrow(() -> new ConflictException("用户不存在"));
+            .orElseThrow(() -> new ConflictException("User does not exist"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new ConflictException("密码错误");
+            throw new ConflictException("Password incorrect");
         }
+
+        // 登录成功，返回 JWT token
+        return jwtService.generateToken(user.getId());
+    }
+
+    public void forgotPassword(@Email(message = "Please enter a valid email address") @NotBlank(message = "Email cannot be blank") String email){
+        if (userRepository.findByEmail(email).isPresent()) {
+            // 生成验证码 + 保存
+            String code = emailService.generate6DigitCode();
+            emailService.saveCode(email, code);
+
+            // 发送邮件
+            emailService.sendCodeEmail(email, code, 1);
+        }
+        else throw new ConflictException("User does not exist");
+    }
+
+    public String resetPassword(ResetPasswordRequest request){
+        // 校验验证码
+        if (!emailService.verifyCode(request.getEmail(), request.getCode())) {
+            throw new ConflictException("Validation code incorrect or expired");
+        }
+        User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> new ConflictException("User does not exist"));
+
+        if(passwordEncoder.matches(request.getNewpassword(), user.getPassword())){
+            throw new ConflictException("Please enter a new password different from before");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewpassword()));
+        userRepository.save(user);
+
+        // 清除缓存
+        emailService.deleteCode(request.getEmail());
 
         // 登录成功，返回 JWT token
         return jwtService.generateToken(user.getId());
