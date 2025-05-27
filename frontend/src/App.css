@@ -7,7 +7,7 @@
   
     color-scheme: light dark;
     color: #333;
-    background-color: #f9f9f9;
+    background-color: #ffffff;
   
     --primary-color: #646cff;
     --secondary-color: #535bf2;
@@ -20,7 +20,7 @@
     display: flex;
     place-items: center;
     min-height: 100vh;
-    background-color: lightgray;
+    background-color: rgb(255, 255, 255);
     color: black;
   }
   
