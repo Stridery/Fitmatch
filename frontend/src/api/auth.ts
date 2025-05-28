@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const API_BASE = "http://localhost:8080/auth"; // 改成你的实际后端地址
 
 export async function sendRegisterCode(email: string) {
@@ -44,3 +45,23 @@ export async function resetPassword(email: string, newPassword: string, code: st
   });
   return res.json();
 }
+=======
+import axios from 'axios'
+
+const BASE_URL = 'http://localhost:8080/fitmatch/auth'  // 替换为你的 Auth Service 实际地址
+
+export const register = (email: string, password: string, nickname: string, role: string) =>
+  axios.post(`${BASE_URL}/register`, { email, password, nickname, role})
+
+export const login = (email: string, password: string) =>
+  axios.post(`${BASE_URL}/login`, { email, password })
+
+export const confirmRegister = (email: string, code: string) =>
+  axios.post(`${BASE_URL}/verify`, { email, code })
+
+export const forgotPassword = (email: string) =>
+  axios.post(`${BASE_URL}/forgot-password`, { email })
+
+export const resetPassword = (email: string, code: string, newPassword: string) =>
+  axios.post(`${BASE_URL}/reset-password`, { email, code, newPassword })
+>>>>>>> cc59d295ca9eb6aafe04b3d70dbab4282dfbd8ba
