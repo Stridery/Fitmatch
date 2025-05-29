@@ -114,3 +114,9 @@
   cursor: pointer;
   text-decoration: underline;
 }
+
+.error-msg {
+  color: red;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import "../styles/Login.css";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 
 // src/pages/Login.tsx
 import { login } from "../api/auth";
@@ -10,20 +11,26 @@ function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [codeSent, setCodeSent] = useState(false);
+  const [error, setError] = useState<string>('');
 
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const result = await login(email, password);
-      localStorage.setItem("token", result.token);
+      localStorage.setItem("token", result.data.token);
       navigate("/dashboard");
-    } catch {
-      alert("Login failed.");
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response) {
+          // 后端返回的错误信息
+          const errMsg = error.response.data?.message || "Login failed.";
+          setError(errMsg); // 显示在页面上
+        } else {
+          setError("Login failed.");
+        }
     }
-  };
+    }
+
 
   return (
     <div className="login-wrapper">
@@ -52,6 +59,8 @@ function Login() {
             onChange={e => setPassword(e.target.value)}
             required
           />
+
+          {error && <p className="error-msg">{error}</p>}
 
           <button type="submit" className="login-btn">Log In</button>
 

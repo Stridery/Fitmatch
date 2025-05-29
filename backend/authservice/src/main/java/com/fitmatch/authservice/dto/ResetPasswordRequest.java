@@ -15,7 +15,7 @@ public class ResetPasswordRequest {
     @NotBlank
     private String code;
 
-    @NotBlank(message = "Please enter a valid email address")
+    @NotBlank(message = "Password Cannot be blank")
     @Size(min = 8, max = 32, message = "Password must be between 8 and 32 characters long")
     @Pattern(
         regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&()_+=-]{8,}$",

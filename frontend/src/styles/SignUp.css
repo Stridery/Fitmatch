@@ -83,4 +83,37 @@
     cursor: pointer;
     text-decoration: underline;
   }
-  
+
+  .role-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.role-button {
+  flex: 1;
+  padding: 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #333;
+}
+
+.role-button:hover {
+  background-color: #f0f0f0;
+}
+
+.role-button.selected {
+  background-color: #646cff;
+  color: white;
+  border-color: #646cff;
+}
+
+.error-msg {
+  color: red;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
