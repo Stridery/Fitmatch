@@ -8,10 +8,10 @@
 
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    //"allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
-    "noEmit": true,
+    //"noEmit": true,
 
     /* Linting */
     "strict": true,
@@ -19,7 +19,11 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    /* ✅ 修复关键点 */
+    "composite": true,   // ← 必须添加
+    "noEmit": false      // ← 必须允许输出（即使不输出）
   },
   "include": ["vite.config.ts"]
 }

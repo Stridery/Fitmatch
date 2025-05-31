@@ -1,9 +1,12 @@
 // src/pages/ResetPassword.tsx
 import { useState, useEffect} from "react";
 import { useNavigate } from "react-router-dom";
-import '../styles/ResetPwd.css';
 import { forgotPassword, resetPassword } from "../api/auth";
 import axios from 'axios';
+
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 
 function ResetPassword() {
   const [email, setEmail] = useState('');
@@ -75,43 +78,80 @@ function ResetPassword() {
   }, [cooldown]);
 
   return (
-    <div className="reset-container">
-      <form className="reset-form" onSubmit={handleSubmit}>
-        <h2>Reset Password</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <form
+        className="w-full max-w-md bg-white p-6 rounded-lg shadow space-y-4"
+        onSubmit={handleSubmit}
+      >
+        <h2 className="text-2xl font-bold text-center text-gray-800">Reset Password</h2>
 
-        <label>Email</label>
-        <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+        <Label className="block text-sm font-medium text-gray-700">Email</Label>
+        <Input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
 
-        <div className="code-group">
-          <input
+        <div className="flex items-center gap-2">
+          <Input
             type="text"
             placeholder="Verification Code"
             value={code}
-            onChange={e => setCode(e.target.value)}
+            onChange={(e) => setCode(e.target.value)}
             required
+            className="flex-grow px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <button
+          <Button
             type="button"
             onClick={handleSendCode}
-            className="send-code-button"
             disabled={isSending || cooldown > 0}
-            style={{ backgroundColor: isSending || cooldown > 0 ? '#ccc' : '' }}
+            className={`px-4 py-2 rounded-md text-sm text-white transition ${
+              isSending || cooldown > 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
-          {cooldown > 0 ? `Resend in ${cooldown}s` : (codeSent ? "Resend Code" : "Send Code")}
-        </button>
+            {cooldown > 0 ? `Resend in ${cooldown}s` : codeSent ? "Resend Code" : "Send Code"}
+          </Button>
         </div>
 
-        <label>New Password</label>
-        <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+        <Label className="block text-sm font-medium text-gray-700">New Password</Label>
+        <Input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          required
+          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
 
-        <label>Confirm New Password</label>
-        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+        <Label className="block text-sm font-medium text-gray-700">Confirm New Password</Label>
+        <Input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
 
-        {error && <p className="error-msg">{error}</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button type="submit" className="submit-button">Reset Password</button>
-        <p className="redirect-link">
-          Remember your password? <span onClick={() => navigate('/login')}>Log In</span>
+        <Button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
+        >
+          Reset Password
+        </Button>
+
+        <p className="text-sm text-center text-gray-600">
+          Remember your password?{" "}
+          <span
+            className="text-blue-600 cursor-pointer hover:underline"
+            onClick={() => navigate("/login")}
+          >
+            Log In
+          </span>
         </p>
       </form>
     </div>

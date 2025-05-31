@@ -1,11 +1,15 @@
 
 import { useState } from "react";
-import "../styles/Login.css";
+//import "../styles/Login.css";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 
 // src/pages/Login.tsx
 import { login } from "../api/auth";
+
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 
 function Login() {
   const navigate = useNavigate();
@@ -33,40 +37,71 @@ function Login() {
 
 
   return (
-    <div className="login-wrapper">
-      <div className="login-left">
-        <div className="brand-logo">FITMATCH</div>
-        <p className="brand-text">Where coaches and students connect</p>
+    <div className="flex h-screen">
+      <div className="w-1/2 bg-gray-100 flex flex-col items-center justify-center">
+        <div className="text-4xl font-bold text-blue-600 mb-2">FITMATCH</div>
+        <p className="text-gray-500 text-center px-4">Where coaches and students connect</p>
       </div>
-      <div className="login-right">
-        <form className="login-form" onSubmit={handleLogin}>
-          <h2 onClick={() => navigate("/dashboard")}>Log In (click to dashboard for testing)</h2>
+      <div className="w-1/2 flex items-center justify-center">
+        <form
+          onSubmit={handleLogin}
+          className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md"
+        >
+          <h2
+            className="text-2xl font-semibold text-center cursor-pointer"
+            onClick={() => navigate("/dashboard")}
+          >
+            Log In (click to dashboard for testing)
+          </h2>
 
-          <label>Email</label>
-          <input
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-          <label>Password</label>
-          <input
-            type="password"
-            placeholder="********"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="********"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-          {error && <p className="error-msg">{error}</p>}
+          {error && <p className="text-red-600 text-sm">{error}</p>}
 
-          <button type="submit" className="login-btn">Log In</button>
+          <Button type="submit" className="w-full">
+            Log In
+          </Button>
 
-          <div className="login-footer">
-            <span onClick={() => navigate("/signup")}>Don't have an account? Sign Up</span>
-            <span onClick={() => navigate("/resetPwd")}>Forgot Password?</span>
+          <div className="text-sm text-center text-gray-500 space-y-1 mt-4">
+            <div>
+              Don't have an account?{" "}
+              <span
+                onClick={() => navigate("/signup")}
+                className="text-blue-600 cursor-pointer hover:underline"
+              >
+                Sign Up
+              </span>
+            </div>
+            <div>
+              <span
+                onClick={() => navigate("/resetPwd")}
+                className="text-blue-600 cursor-pointer hover:underline"
+              >
+                Forgot Password?
+              </span>
+            </div>
           </div>
         </form>
       </div>
