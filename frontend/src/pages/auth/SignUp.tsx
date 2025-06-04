@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { register, confirmRegister } from '../api/auth'
+import { register, confirmRegister } from '../../api/auth'
 
 function SignUp() {
   const navigate = useNavigate();

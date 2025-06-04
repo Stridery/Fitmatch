@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 
 // src/pages/Login.tsx
-import { login } from "../api/auth";
+import { login } from "../../api/auth";
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"

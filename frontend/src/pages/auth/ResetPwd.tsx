@@ -1,7 +1,7 @@
 // src/pages/ResetPassword.tsx
 import { useState, useEffect} from "react";
 import { useNavigate } from "react-router-dom";
-import { forgotPassword, resetPassword } from "../api/auth";
+import { forgotPassword, resetPassword } from "../../api/auth";
 import axios from 'axios';
 
 import { Input } from "@/components/ui/input"

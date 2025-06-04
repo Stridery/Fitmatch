@@ -1,11 +1,11 @@
-import Login from "./pages/Login";
-import Dashboard from './pages/Dashboard';
+import Login from "./pages/auth/Login";
+import Dashboard from './pages/dashboard/Dashboard';
 import './App.css';
 import { Route, Routes } from 'react-router-dom';
-import SignUp from './pages/SignUp';
-import ResetPassword from './pages/ResetPwd';
+import SignUp from './pages/auth/SignUp';
+import ResetPassword from './pages/auth/ResetPwd';
 import MainPage from './pages/Main';
-import ProfilePage from './pages/Profile';
+import ProfilePage from './pages/user/Profile';
 
 
 console.log("Rendering App...");
