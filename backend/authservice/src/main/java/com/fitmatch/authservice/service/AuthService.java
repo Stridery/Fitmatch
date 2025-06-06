@@ -82,7 +82,7 @@ public class AuthService {
         emailService.deleteRegisterRequest(email);
 
         // 自动登录：生成 JWT
-        return jwtService.generateToken(user.getId());
+        return jwtService.generateToken(user.getId(), user.getNickname(), user.getRole());
     }
 
     public String login(LoginRequest request) {
@@ -94,7 +94,7 @@ public class AuthService {
         }
 
         // 登录成功，返回 JWT token
-        return jwtService.generateToken(user.getId());
+        return jwtService.generateToken(user.getId(), user.getNickname(), user.getRole());
     }
 
     public void forgotPassword(@Email(message = "Please enter a valid email address") @NotBlank(message = "Email cannot be blank") String email){
@@ -127,6 +127,6 @@ public class AuthService {
         emailService.deleteCode(request.getEmail());
 
         // 登录成功，返回 JWT token
-        return jwtService.generateToken(user.getId());
+        return jwtService.generateToken(user.getId(), user.getNickname(), user.getRole());
     }
 }
