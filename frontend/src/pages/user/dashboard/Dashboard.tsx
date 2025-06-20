@@ -1,11 +1,10 @@
 // src/components/Dashboard.tsx
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Outlet } from "react-router-dom"
 
 import { Sidebar } from "./Sidebar"
 import { UserHeader } from "./UserHeader"  
-import { StatsGrid } from "./StatsGrid"
-import { parseJwt, isTokenExpired } from "../../utils/jwt"
+import { parseJwt, isTokenExpired } from "../../../utils/Jwt"
 
 function Dashboard() {
   const navigate = useNavigate()
@@ -32,17 +31,12 @@ function Dashboard() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar currentPage="Dashboard" />
+      <Sidebar/>
       
       <main className="flex-1 p-6 overflow-auto">
         {/* 顶部欢迎栏 */}
         <UserHeader username={nickname} />
-
-        <StatsGrid />
-        <div className="mt-6">
-          {/* Placeholder for StatsGrid, Chart, etc */}
-          <p className="text-gray-500">Dashboard content goes here...</p>
-        </div>
+        <Outlet />
       </main>
     </div>
   )

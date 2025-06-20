@@ -4,6 +4,7 @@ import com.fitmatch.authservice.dto.ConfirmRegisterRequest;
 import com.fitmatch.authservice.dto.LoginRequest;
 import com.fitmatch.authservice.dto.RegisterRequest;
 import com.fitmatch.authservice.dto.ResetPasswordRequest;
+import com.fitmatch.authservice.dto.LoginResponse;
 import com.fitmatch.authservice.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,17 +27,17 @@ public class AuthController {
     }
 
     @PostMapping("/confirm-register")
-    public ResponseEntity<?> confirmRegister(
+    public ResponseEntity<LoginResponse> confirmRegister(
             @Valid @RequestBody ConfirmRegisterRequest request) {
 
-        String token = authService.confirmRegister(request.getEmail(), request.getCode());
-        return ResponseEntity.ok(Map.of("token", token));
+        LoginResponse response = authService.confirmRegister(request.getEmail(), request.getCode());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid LoginRequest request) {
-        String token = authService.login(request);
-        return ResponseEntity.ok(Map.of("token", token));
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/forgot-password")
@@ -47,8 +48,8 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        String token = authService.resetPassword(request);
-        return ResponseEntity.ok(Map.of("token", token));
+    public ResponseEntity<LoginResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        LoginResponse response = authService.resetPassword(request);
+        return ResponseEntity.ok(response);
     }
 }

@@ -21,7 +21,4 @@ public class RegisterRequest {
     private String password;
 
     private String nickname;
-
-    @NotBlank
-    private String role;
 }

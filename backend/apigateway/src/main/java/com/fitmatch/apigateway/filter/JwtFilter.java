@@ -37,13 +37,11 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
 
             // 如果合法，提取用户信息并添加到 Header
             String userId = jwtService.extractUserId(token);
-            String role = jwtService.extractRole(token);
 
             return chain.filter(
                 exchange.mutate()
                         .request(builder -> builder
                                 .header("X-User-Id", userId)
-                                .header("X-User-Role", role)
                         )
                         .build()
             );

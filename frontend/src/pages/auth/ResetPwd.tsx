@@ -58,7 +58,7 @@ function ResetPassword() {
       const res = await resetPassword(email, code, newPassword);
       localStorage.setItem("token", res.data.token);
       alert("Password reset successful!");
-      navigate("/dashboard");
+      navigate("/");
     } catch (error: any) {
       if (axios.isAxiosError(error) && error.response) {
           // 后端返回的错误信息

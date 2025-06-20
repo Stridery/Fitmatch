@@ -31,7 +31,7 @@ function SignUp() {
     setCodeSent(true)
 
     try {
-      await register(email, password, nickname, role)
+      await register(email, password, nickname)
       alert("Verification code sent to your email, valid for 5 minutes.")
     } catch (error: any) {
       if (axios.isAxiosError(error) && error.response) {
@@ -127,8 +127,8 @@ function SignUp() {
             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-
-        {/* Role Select */}
+        
+        {/* Role Select 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Select your role</label>
           <div className="flex gap-2">
@@ -157,6 +157,7 @@ function SignUp() {
           </button>
           </div>
         </div>
+        */}
 
         {/* Verification Code */}
         <div className="flex items-center gap-2">

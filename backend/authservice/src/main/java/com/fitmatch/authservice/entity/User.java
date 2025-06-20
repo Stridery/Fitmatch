@@ -34,14 +34,14 @@ public class User {
     @Column
     private String nickname;
 
-    @Column
-    private String role; // STUDENT or COACH
-
     @Builder.Default
     private Boolean emailVerified = false;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @Builder.Default
+    private boolean profile_completed = false;
 
     // === OAuth 关联表（多对一）===
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

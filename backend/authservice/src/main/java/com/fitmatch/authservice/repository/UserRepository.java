@@ -12,5 +12,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
 
     // 按角色查找（可选）
-    Optional<User> findByIdAndRole(UUID id, String role);
+    Optional<User> findById(UUID id);
 }

@@ -35,10 +35,6 @@ public class JwtService {
         return getClaims(token).getSubject(); // subject 存 userId
     }
 
-    public String extractRole(String token) {
-        return (String) getClaims(token).get("role"); // role 自定义字段
-    }
-
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }

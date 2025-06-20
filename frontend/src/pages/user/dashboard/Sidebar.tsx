@@ -1,19 +1,17 @@
 import React from "react"
-import { cn } from "@/lib/utils" // 用于 className 合并，如果你用到了 shadcn 的 cn 函数
+import { Link, useLocation } from "react-router-dom"
+import { cn } from "@/lib/utils"
 
 const navItems = [
-  { label: "Schedule", icon: "📅" },
-  { label: "Messages", icon: "💬" },
-  { label: "Posts", icon: "📝" },
-  { label: "Settings", icon: "⚙️" },
+  { label: "Schedule", icon: "📅", path: "/dashboard/schedule" },
+  { label: "Messages", icon: "💬", path: "/dashboard/messages" },
+  { label: "Posts", icon: "📝", path: "/dashboard/posts" },
+  { label: "Settings", icon: "⚙️", path: "/dashboard/settings" },
 ]
 
-interface SidebarProps {
-  currentPage?: string
-  onNavigate?: (page: string) => void
-}
+export function Sidebar() {
+  const location = useLocation()
 
-export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   return (
     <aside className="w-64 bg-gray-900 text-white h-full flex flex-col p-6 space-y-8">
       <div className="text-2xl font-bold tracking-tight">🏋️ FitMatch</div>
@@ -22,17 +20,17 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       </div>
       <nav className="flex flex-col space-y-2">
         {navItems.map((item) => (
-          <button
+          <Link
             key={item.label}
-            onClick={() => onNavigate?.(item.label)}
+            to={item.path}
             className={cn(
               "flex items-center px-4 py-2 rounded-md hover:bg-gray-800 transition-colors",
-              currentPage === item.label && "bg-gray-800 font-semibold"
+              location.pathname === item.path && "bg-gray-800 font-semibold"
             )}
           >
             <span className="mr-2 text-lg">{item.icon}</span>
             {item.label}
-          </button>
+          </Link>
         ))}
       </nav>
     </aside>

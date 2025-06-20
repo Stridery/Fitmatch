@@ -1,6 +1,7 @@
 package com.fitmatch.authservice.service;
 
 import com.fitmatch.authservice.dto.LoginRequest;
+import com.fitmatch.authservice.dto.LoginResponse;
 import com.fitmatch.authservice.dto.RegisterRequest;
 import com.fitmatch.authservice.dto.ResetPasswordRequest;
 import com.fitmatch.authservice.entity.User;
@@ -13,7 +14,11 @@ import jakarta.validation.constraints.NotBlank;
 import com.fitmatch.authservice.repository.OAuthAccountRepository;
 import lombok.RequiredArgsConstructor;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +31,7 @@ public class AuthService {
     private final EmailService emailService;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final StringRedisTemplate redisTemplate;
 
     /**
      * 注册第一步：发送验证码并保存注册信息到 Redis
@@ -54,7 +60,7 @@ public class AuthService {
     /**
      * 注册第二步：用户提交验证码，验证并完成注册
      */
-    public String confirmRegister(String email, String code) {
+    public LoginResponse confirmRegister(String email, String code) {
         // 校验验证码
         if (!emailService.verifyCode(email, code)) {
             throw new ConflictException("Validation code incorrect or expired");
@@ -71,7 +77,6 @@ public class AuthService {
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
-                .role(request.getRole().toUpperCase())
                 .emailVerified(true)
                 .build();
 
@@ -80,21 +85,25 @@ public class AuthService {
         // 清除缓存
         emailService.deleteCode(email);
         emailService.deleteRegisterRequest(email);
+        
+        String redisKey = "profile_completed:" + user.getId();
+        redisTemplate.opsForValue().set(redisKey, String.valueOf(user.isProfile_completed()), 60, TimeUnit.MINUTES);
 
         // 自动登录：生成 JWT
-        return jwtService.generateToken(user.getId(), user.getNickname(), user.getRole());
+        return new LoginResponse(jwtService.generateToken(user.getId()), user.isProfile_completed());
     }
 
-    public String login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new ConflictException("User does not exist"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new ConflictException("Password incorrect");
         }
+        String redisKey = "profile_completed:" + user.getId();
+        redisTemplate.opsForValue().set(redisKey, String.valueOf(user.isProfile_completed()), 60, TimeUnit.MINUTES);
 
-        // 登录成功，返回 JWT token
-        return jwtService.generateToken(user.getId(), user.getNickname(), user.getRole());
+        return new LoginResponse(jwtService.generateToken(user.getId()), user.isProfile_completed());
     }
 
     public void forgotPassword(@Email(message = "Please enter a valid email address") @NotBlank(message = "Email cannot be blank") String email){
@@ -109,7 +118,7 @@ public class AuthService {
         else throw new ConflictException("User does not exist");
     }
 
-    public String resetPassword(ResetPasswordRequest request){
+    public LoginResponse resetPassword(ResetPasswordRequest request){
         // 校验验证码
         if (!emailService.verifyCode(request.getEmail(), request.getCode())) {
             throw new ConflictException("Validation code incorrect or expired");
@@ -126,7 +135,10 @@ public class AuthService {
         // 清除缓存
         emailService.deleteCode(request.getEmail());
 
+        String redisKey = "profile_completed:" + user.getId();
+        redisTemplate.opsForValue().set(redisKey, String.valueOf(user.isProfile_completed()), 60, TimeUnit.MINUTES);
+
         // 登录成功，返回 JWT token
-        return jwtService.generateToken(user.getId(), user.getNickname(), user.getRole());
+        return new LoginResponse(jwtService.generateToken(user.getId()), user.isProfile_completed());
     }
 }

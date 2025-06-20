@@ -3,8 +3,8 @@ import axios from 'axios'
 
 const BASE_URL = 'http://localhost:8080/auth'  // 替换为你的 Auth Service 实际地址
 
-export const register = (email: string, password: string, nickname: string, role: string) => {
-  return axios.post(`${BASE_URL}/register`, { email, password, nickname, role})
+export const register = (email: string, password: string, nickname: string) => {
+  return axios.post(`${BASE_URL}/register`, { email, password, nickname})
 }
 
 

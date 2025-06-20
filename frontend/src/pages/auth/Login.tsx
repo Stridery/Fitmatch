@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 //import "../styles/Login.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"
 import axios from 'axios';
 
 // src/pages/Login.tsx
@@ -23,6 +23,7 @@ function Login() {
     try {
       const result = await login(email, password);
       localStorage.setItem("token", result.data.token);
+      localStorage.setItem("userId", result.data.userid)
       navigate("/dashboard");
     } catch (error: any) {
       if (axios.isAxiosError(error) && error.response) {
@@ -49,7 +50,7 @@ function Login() {
         >
           <h2
             className="text-2xl font-semibold text-center cursor-pointer"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/")}
           >
             Log In (click to dashboard for testing)
           </h2>

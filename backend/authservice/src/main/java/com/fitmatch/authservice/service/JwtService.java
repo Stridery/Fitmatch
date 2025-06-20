@@ -30,16 +30,11 @@ public class JwtService {
     }
 
     // 生成 JWT
-    public String generateToken(UUID userId, String nickname, String role) {
+    public String generateToken(UUID userId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expireDays * 86400000L); // 天 → 毫秒
 
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("nickname", nickname);
-        claims.put("role", role); // "student" or "coach"
-
         return Jwts.builder()
-                .setClaims(claims)
                 .setSubject(userId.toString())
                 .setIssuedAt(now)
                 .setExpiration(expiry)
