@@ -33,7 +33,7 @@ function MainPage() {
           Find your perfect coach or student partner and start training smarter today.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
-          <Button onClick={() => navigate("/match")} className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 shadow-md hover:shadow-lg transition duration-300">
+          <Button onClick={() => navigate("/home/match")} className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 shadow-md hover:shadow-lg transition duration-300">
             Start Matching
           </Button>
           <Button onClick={() => navigate("/about")} className="bg-white text-gray-800 border border-gray-300 px-6 py-3 rounded-xl hover:bg-gray-100 shadow-sm transition duration-300">

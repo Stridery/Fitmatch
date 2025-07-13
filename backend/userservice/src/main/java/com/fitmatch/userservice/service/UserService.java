@@ -33,12 +33,14 @@ public class UserService {
 
         UserProfile profile = optional.orElseGet(() -> {
             UserProfile newProfile = new UserProfile();
-            newProfile.setId(UUID.randomUUID());  // 手动生成 UUID，也可以靠 @GeneratedValue 自动生成
+            //newProfile.setId(UUID.randomUUID());  // 手动生成 UUID，也可以靠 @GeneratedValue 自动生成
             newProfile.setUserId(userId);
             return newProfile;
         });
 
         // 必填字段
+        profile.setNickname(request.getNickname());
+
         profile.setAvatarUrl(request.getAvatarUrl());
         profile.setIsFor(request.getIsFor());
         profile.setGender(request.getGender());
@@ -47,13 +49,19 @@ public class UserService {
         profile.setCity(request.getCity());
 
         // 选填字段
+        profile.setPhone(request.getPhone());
         profile.setMbtiType(request.getMbtiType());
         profile.setBehavioralAnswers(request.getBehavioralAnswers());
         profile.setHeightCm(request.getHeightCm());
         profile.setWeightKg(request.getWeightKg());
         profile.setCurrentTrainingFrequency(request.getCurrentTrainingFrequency());
+        profile.setIsCoach(request.isCoach());
+        profile.setIsVenue(request.isVenue());
 
         profile.setUpdatedAt(Timestamp.from(Instant.now()));
+
+        System.out.println("Saving UserProfile: " + profile);
+
 
         userProfileRepository.save(profile);
     }
@@ -81,7 +89,6 @@ public class UserService {
         } catch (IllegalArgumentException e) {
             throw new ConflictException("Invalid user ID format");
         }
-
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ConflictException("User profile not found"));
 
@@ -89,20 +96,23 @@ public class UserService {
     }
 
     private UserProfileResponse mapToResponse(UserProfile entity) {
-        return UserProfileResponse.builder()
-                .id(entity.getId())
-                .userId(entity.getUserId())
-                .isFor(entity.getIsFor())
-                .gender(entity.getGender())
-                .birthday(entity.getBirthday())
-                .country(entity.getCountry())
-                .city(entity.getCity())
-                .mbtiType(entity.getMbtiType())
-                .behavioralAnswers(entity.getBehavioralAnswers())
-                .heightCm(entity.getHeightCm())
-                .weightKg(entity.getWeightKg())
-                .currentTrainingFrequency(entity.getCurrentTrainingFrequency())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
-    }
+    return UserProfileResponse.builder()
+            .avatarUrl(entity.getAvatarUrl())
+            .nickname(entity.getNickname())
+            .phone(entity.getPhone())
+            .isFor(entity.getIsFor())
+            .gender(entity.getGender())
+            .birthday(entity.getBirthday())
+            .country(entity.getCountry())
+            .city(entity.getCity())
+            .mbtiType(entity.getMbtiType())
+            .behavioralAnswers(entity.getBehavioralAnswers())
+            .heightCm(entity.getHeightCm())
+            .weightKg(entity.getWeightKg())
+            .currentTrainingFrequency(entity.getCurrentTrainingFrequency())
+            .updatedAt(entity.getUpdatedAt())
+            .isCoach(entity.getIsCoach())
+            .isVenue(entity.getIsVenue())
+            .build();
+}
 }

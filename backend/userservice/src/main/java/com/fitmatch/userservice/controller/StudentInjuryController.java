@@ -1,6 +1,6 @@
 package com.fitmatch.userservice.controller;
 
-import com.fitmatch.userservice.dto.StudentInjuryRequest;
+import com.fitmatch.userservice.dto.StudentInjuriesRequestBatch;
 import com.fitmatch.userservice.dto.StudentInjuryResponse;
 import com.fitmatch.userservice.service.StudentInjuryService;
 import jakarta.validation.Valid;
@@ -12,51 +12,35 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/profile/injuries")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 public class StudentInjuryController {
 
     private final StudentInjuryService studentInjuryService;
 
-    // 从 Header 中读取用户 ID（由 JWT Filter 添加）
-    private UUID extractUserIdFromHeader(String userIdHeader) {
-        try {
-            return UUID.fromString(userIdHeader);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid or missing X-User-Id header");
-        }
-    }
-
-    @PostMapping
-    public ResponseEntity<StudentInjuryResponse> create(
-            @RequestHeader("X-User-Id") String userId,
-            @Valid @RequestBody StudentInjuryRequest request
+    @PostMapping("/injuries/batch")
+    public ResponseEntity<List<StudentInjuryResponse>> batchUpdate(
+            @RequestHeader("X-User-Id") String userIdStr,
+            @Valid @RequestBody StudentInjuriesRequestBatch batchRequest
     ) {
-        return ResponseEntity.ok(studentInjuryService.createInjury(request, extractUserIdFromHeader(userId)));
+        UUID userId = UUID.fromString(userIdStr);
+
+        List<StudentInjuryResponse> result = studentInjuryService.batchUpdateInjuries(
+                batchRequest.getCreated(),
+                batchRequest.getUpdated(),
+                batchRequest.getDeletedIds(),
+                userId
+        );
+
+        return ResponseEntity.ok(result);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<StudentInjuryResponse> update(
-            @PathVariable UUID id,
-            @RequestHeader("X-User-Id") String userId,
-            @Valid @RequestBody StudentInjuryRequest request
-    ) {
-        return ResponseEntity.ok(studentInjuryService.updateInjury(id, request, extractUserIdFromHeader(userId)));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @PathVariable UUID id,
-            @RequestHeader("X-User-Id") String userId
-    ) {
-        studentInjuryService.deleteInjury(id, extractUserIdFromHeader(userId));
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping
+    @GetMapping("/injuries")
     public ResponseEntity<List<StudentInjuryResponse>> getAll(
-            @RequestHeader("X-User-Id") String userId
+            @RequestHeader("X-User-Id") String userIdStr
     ) {
-        return ResponseEntity.ok(studentInjuryService.getAllInjuries(extractUserIdFromHeader(userId)));
+        UUID userId = UUID.fromString(userIdStr);
+
+        return ResponseEntity.ok(studentInjuryService.getAllInjuries(userId));
     }
 }

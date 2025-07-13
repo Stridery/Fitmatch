@@ -17,19 +17,24 @@ public class UserProfileRequest {
 
     private String avatarUrl;
 
-    @NotBlank(message = "isFor 不能为空")
+    @NotBlank(message = "Please input a nickname")
+    private String nickname;
+
+    private String phone;
+
+    @NotBlank(message = "Please choose a registranr")
     private String isFor;              // "self", "child", "other"
 
-    @NotBlank(message = "gender 不能为空")
+    @NotBlank(message = "Please choose a gender")
     private String gender;             // "M", "F", "O", "U"
 
-    @NotNull(message = "birthday 不能为空")
+    @NotNull(message = "Please input your birthday")
     private LocalDate birthday;
 
-    @NotBlank(message = "country 不能为空")
+    @NotBlank(message = "Please choose your country")
     private String country;
 
-    @NotBlank(message = "city 不能为空")
+    @NotBlank(message = "Please choose your city")
     private String city;
 
     @Min(0)  // 身高限制可根据实际需求调整
@@ -45,6 +50,10 @@ public class UserProfileRequest {
 
     private String mbtiType;           // 可选
     private Map<String, Object> behavioralAnswers; // 可选（例如 {"q1":"A", "q2":"B"}）
+
+    private boolean isCoach;
+
+    private boolean isVenue;
 
     // Getters and setters
 }

@@ -40,6 +40,11 @@ public class UserProfile {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(nullable = false)
+    private String nickname;
+
+    private String phone;
+
     @Column(name = "is_for", nullable = false)
     private String isFor;
 
@@ -71,7 +76,7 @@ public class UserProfile {
     @Column(name = "current_training_frequency")
     private String currentTrainingFrequency;
 
-    @Column(name = "behavioral_answers", columnDefinition = "jsonb")
+  @Column(name = "behavioral_answers", columnDefinition = "text")
     @Convert(converter = JsonConverter.class)
     private Map<String, Object> behavioralAnswers;
 
@@ -82,6 +87,12 @@ public class UserProfile {
     @Column(name = "updated_at")
     @UpdateTimestamp
     private Timestamp updatedAt;
+
+    @Column(nullable = false)
+    private Boolean isCoach;
+
+    @Column(nullable = false)
+    private Boolean isVenue;
 
     // Getters and setters
 }

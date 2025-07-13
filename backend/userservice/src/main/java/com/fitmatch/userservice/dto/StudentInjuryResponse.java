@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -15,14 +16,13 @@ import java.util.UUID;
 public class StudentInjuryResponse {
 
     private UUID id;
-
     private UUID userId;
 
     private String injuryType;
 
     private String customInjuryType;
 
-    private String injuryTag;
+    private List<String> injuryTag;
 
     private Boolean isVisibleToCoach;
 

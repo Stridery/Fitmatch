@@ -3,36 +3,44 @@ import Dashboard from './pages/user/dashboard/Dashboard';
 import './App.css';
 import { Route, Routes } from 'react-router-dom';
 import SignUp from './pages/auth/SignUp';
-import ResetPassword from './pages/auth/ResetPwd';
-import MatchPage from './pages/MatchPage'
+import ResetPassword from "./pages/auth/ResetPwd";
+import ForgetPassword from "./pages/auth/ForgetPwd";
+import MatchPage from './pages/MatchPage';
 import MainPage from './pages/Main';
-import HomePage from './pages/HomePage'
-import ProfilePage from './pages/user/dashboard/user_main_area/Profile'
-import CompleteProfilePage from './pages/user/CompleteProfilePage'
+import HomePage from './pages/HomePage';
+import ProfilePage from './pages/user/dashboard/user_main_area/Profile';
+import CompleteProfilePage from './pages/user/userProfile/CompleteProfilePage';
+import RequireAuth from "./components/RequireAuth";
+import { UserProvider } from "./contexts/UserContext";
 
 
-console.log("Rendering App...");
+//console.log("Rendering App...");
 
 function App() {
   return (
+    <UserProvider>
+      <Routes>
+        <Route path="/" element={<MainPage />} />
+        <Route path="/home" element={<HomePage />}> 
+          <Route index element={<MatchPage />} />
+          <Route path="match" element={<MatchPage />} />
+        </Route>
 
-    <Routes>
-      <Route path="/" element={<HomePage />} > 
-        <Route index element={<MatchPage />} />             {/* 默认显示 */}
-        <Route path="/match" element={<MatchPage />} />
-      </Route>
-      <Route path="/main" element={<MainPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />}>
-        {/* 默认子路由 */}
-        <Route index element={<ProfilePage />} />
-        <Route path="profile" element={<ProfilePage />} />
-      </Route>
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/resetPwd" element={<ResetPassword />} />
-      <Route path="/complete-profile" element={<CompleteProfilePage />} />
-    </Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/forgetPwd" element={<ForgetPassword />} />
+        <Route path="/resetPassword" element={<ResetPassword />} />
+        <Route path="/complete-profile" element={<CompleteProfilePage />} />
+        <Route element={<RequireAuth requireProfile = {false}/>}>
+          <Route path="/dashboard" element={<Dashboard />}>
+            <Route index element={<ProfilePage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
+          
+        </Route>
+      </Routes>
+    </UserProvider>
   );
 }
 
-export default App
+export default App;

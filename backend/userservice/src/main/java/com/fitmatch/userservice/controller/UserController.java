@@ -1,40 +1,46 @@
 package com.fitmatch.userservice.controller;
 
-import com.fitmatch.userservice.dto.*;
+import com.fitmatch.userservice.dto.UserProfileRequest;
+import com.fitmatch.userservice.dto.UserProfileResponse;
 import com.fitmatch.userservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import java.util.Map;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/users")
 @RequiredArgsConstructor
-public class UserController{
+public class UserController {
 
     private final UserService userService;
 
-    @PostMapping("/set-profile")
-    public ResponseEntity<?> saveOrUpdateProfile(@RequestBody @Valid UserProfileRequest request, 
-                                            @RequestHeader("X-User-Id") String userId){
+    @PostMapping("/me")
+    public ResponseEntity<?> saveOrUpdateProfile(
+            @RequestBody @Valid UserProfileRequest request,
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        System.out.println(userId);
         userService.saveOrUpdateProfile(request, userId);
         return ResponseEntity.ok(Map.of("message", "Profile Saved"));
     }
 
-    @DeleteMapping("/delete-profile")
-    public ResponseEntity<Void> deleteUserProfile(@RequestHeader("X-User-Id") String userIdStr) {
-        userService.deleteUserProfile(userIdStr);
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteUserProfile(
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        userService.deleteUserProfile(userId);
         return ResponseEntity.noContent().build();
     }
 
-    // UserController.java
-    @GetMapping("/get-profile")
-    public ResponseEntity<UserProfileResponse> getUserProfile(@RequestHeader("X-User-Id") String userIdStr) {
-        UserProfileResponse profile = userService.getUserProfile(userIdStr);
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getUserProfile(
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        System.out.println(userId);
+        UserProfileResponse profile = userService.getUserProfile(userId);
         return ResponseEntity.ok(profile);
     }
 }

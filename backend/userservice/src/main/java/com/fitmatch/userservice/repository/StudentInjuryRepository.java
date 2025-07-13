@@ -10,4 +10,8 @@ import java.util.UUID;
 public interface StudentInjuryRepository extends JpaRepository<StudentInjury, UUID> {
     List<StudentInjury> findByUserId(UUID userId);
     Optional<StudentInjury> findByIdAndUserId(UUID id, UUID userId);
+
+    void deleteAllByIdInAndUserId(List<UUID> ids, UUID userId);
+
+    List<StudentInjury> findAllByIdInAndUserId(List<UUID> ids, UUID userId);
 }

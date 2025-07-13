@@ -1,11 +1,15 @@
-// src/utils/Jwt.ts
+type JwtPayload = {
+  sub?: string;
+  exp?: number;
+  [key: string]: any;
+};
 
 /**
  * 安全解析 JWT 的 payload 部分
  * @param token JWT 字符串
  * @returns 解析出的 payload 对象 或 null（格式错误）
  */
-export function parseJwt(token: string): any | null {
+export function parseJwt(token: string): JwtPayload | null {
   try {
     const base64Url = token.split('.')[1];
     if (!base64Url) return null;
@@ -33,8 +37,18 @@ export function parseJwt(token: string): any | null {
  */
 export function isTokenExpired(token: string): boolean {
   const payload = parseJwt(token);
-  if (!payload || !payload.exp) return true;
+  if (!payload?.exp) return true;
 
-  const expiryTimeMs = payload.exp; 
-  return Date.now() > expiryTimeMs;
+  const nowInSec = Date.now() / 1000;
+  return nowInSec > payload.exp;
+}
+
+/**
+ * 从 JWT 中提取 userId
+ * @param token JWT 字符串
+ * @returns userId 或 null
+ */
+export function getUserIdFromToken(token: string): string | null {
+  const payload = parseJwt(token);
+  return payload?.sub ?? null;
 }

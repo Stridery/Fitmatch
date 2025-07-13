@@ -1,5 +1,6 @@
 package com.fitmatch.userservice.entity;
 
+import com.fitmatch.userservice.converter.JsonListConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -35,8 +37,9 @@ public class StudentInjury {
     @Column(name = "custom_injury_type")
     private String customInjuryType;
 
-    @Column(name = "injury_tag")
-    private String injuryTag;
+    @Column(name = "injury_tag", columnDefinition = "jsonb")
+    @Convert(converter = JsonListConverter.class)
+    private List<String> injuryTag;
 
     @Builder.Default
     @Column(name = "is_visible_to_coach", nullable = false)
@@ -50,7 +53,4 @@ public class StudentInjury {
     @Column(name = "updated_at")
     private Timestamp updatedAt;
 
-
-    // Getters & Setters
 }
-

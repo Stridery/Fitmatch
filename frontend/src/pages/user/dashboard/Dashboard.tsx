@@ -4,29 +4,14 @@ import { useNavigate, Outlet } from "react-router-dom"
 
 import { Sidebar } from "./Sidebar"
 import { UserHeader } from "./UserHeader"  
-import { parseJwt, isTokenExpired } from "../../../utils/Jwt"
+import { useUser } from "@/contexts/UserContext";
 
 function Dashboard() {
-  const navigate = useNavigate()
-  const [nickname, setNickname] = useState("")
+  const { user, loading } = useUser();
 
+  if (loading) return <p>Loading…</p>;
+  if (!user) return <p>Please login</p>;
 
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-
-    // 没有 token 或者过期，跳转登录页
-    
-    // 解析 token 获取 nickname
-    if(token){
-      const payload = parseJwt(token)
-      setNickname(payload.nickname)
-    }
-    else{
-      navigate("/login")
-    }
-    
-    
-  }, [navigate])
 
 
   return (
@@ -35,7 +20,7 @@ function Dashboard() {
       
       <main className="flex-1 p-6 overflow-auto">
         {/* 顶部欢迎栏 */}
-        <UserHeader username={nickname} />
+        <UserHeader username={user.profile?.nickname || ""} />
         <Outlet />
       </main>
     </div>

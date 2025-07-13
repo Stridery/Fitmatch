@@ -1,37 +1,46 @@
 package com.fitmatch.userservice.converter;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import org.postgresql.util.PGobject;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-@Converter
-public class JsonConverter implements AttributeConverter<Map<String, Object>, String> {
+@Converter(autoApply = false)
+public class JsonConverter implements AttributeConverter<Map<String, Object>, PGobject> {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public String convertToDatabaseColumn(Map<String, Object> attribute) {
-        if (attribute == null || attribute.isEmpty()) return null;
+    public PGobject convertToDatabaseColumn(Map<String, Object> attribute) {
+        if (attribute == null || attribute.isEmpty()) {
+            return null;
+        }
+
         try {
-            return objectMapper.writeValueAsString(attribute);
-        } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("JSON 转换失败", e);
+            PGobject pgObject = new PGobject();
+            pgObject.setType("jsonb"); // 👈 告诉 Postgres 这是 jsonb
+            pgObject.setValue(objectMapper.writeValueAsString(attribute));
+            return pgObject;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to convert Map to PGobject", e);
         }
     }
 
     @Override
-    public Map<String, Object> convertToEntityAttribute(String dbData) {
-        if (dbData == null || dbData.isEmpty()) return new HashMap<>();
+    public Map<String, Object> convertToEntityAttribute(PGobject dbData) {
+        if (dbData == null || dbData.getValue() == null) {
+            return new HashMap<>();
+        }
+
         try {
-            return objectMapper.readValue(dbData, Map.class);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("JSON 解析失败", e);
+            return objectMapper.readValue(dbData.getValue(), Map.class);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to convert PGobject to Map", e);
         }
     }
 }

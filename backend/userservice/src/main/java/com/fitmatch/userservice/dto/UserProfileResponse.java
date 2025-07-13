@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.util.Map;
 import java.util.UUID;
 
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -13,6 +14,10 @@ import java.util.UUID;
 public class UserProfileResponse {
     private UUID id;
     private UUID userId;
+
+    private String avatarUrl;
+    private String nickname;
+    private String phone;
     private String isFor;
     private String gender;
     private LocalDate birthday;
@@ -24,4 +29,6 @@ public class UserProfileResponse {
     private Integer weightKg;
     private String currentTrainingFrequency;
     private Timestamp updatedAt;
+    private Boolean isCoach;
+    private Boolean isVenue;
 }
