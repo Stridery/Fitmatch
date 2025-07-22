@@ -12,6 +12,7 @@ import ProfilePage from './pages/user/dashboard/user_main_area/Profile';
 import CompleteProfilePage from './pages/user/userProfile/CompleteProfilePage';
 import RequireAuth from "./components/RequireAuth";
 import { UserProvider } from "./contexts/UserContext";
+import CoachApplicationForm from "./pages/coach/CoachApplicationForm";
 
 
 //console.log("Rendering App...");
@@ -37,6 +38,10 @@ function App() {
             <Route path="profile" element={<ProfilePage />} />
           </Route>
           
+        </Route>
+
+        <Route element={<RequireAuth requireProfile = {false}/>}>
+          <Route path="/coach-application" element={<CoachApplicationForm />}/>
         </Route>
       </Routes>
     </UserProvider>
