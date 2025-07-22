@@ -10,13 +10,16 @@
     "useDefineForClassFields": true,
     "module": "ESNext",
     "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": false,
     "strict": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     },
-
+    "outDir": "./dist",
+    "rootDir": "./src",
     "types": ["node"]
   },
   "include": ["src"]

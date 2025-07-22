@@ -17,7 +17,8 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": false,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
@@ -31,6 +32,8 @@
     "paths": {
       "@/*": ["src/*"]
     },
+    "outDir": "./dist",
+    "rootDir": "./src",
 
     "types": ["node"]
   },

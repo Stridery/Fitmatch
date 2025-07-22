@@ -198,7 +198,6 @@ const CompleteProfilePage = () => {
             <BasicInfo
               profile={profile}
               setProfile={setProfile}
-              avatarFile={avatarFile}
               setAvatarFile={setAvatarFile}
             />
           )}

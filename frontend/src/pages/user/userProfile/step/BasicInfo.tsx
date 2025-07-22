@@ -53,14 +53,12 @@ type Props = {
     // isCoach and isVenue are handled by backend logic, not part of the form
   }
   setProfile: (val: any) => void
-  avatarFile: File | null
   setAvatarFile: (file: File | null) => void
 }
 
 const BasicInfo: React.FC<Props> = ({
   profile,
   setProfile,
-  avatarFile,
   setAvatarFile,
 }) => {
   const [countryPopoverOpen, setCountryPopoverOpen] = useState(false)

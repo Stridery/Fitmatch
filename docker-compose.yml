@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+
+  apigateway:
+    build: ./backend/apigateway
+    ports:
+      - "8080:8080"
+
+  userservice:
+    build: ./backend/userservice
+    ports:
+      - "8081:8081"
+
+networks:
+  fitmatch-net:
+    driver: bridge
