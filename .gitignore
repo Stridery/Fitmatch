@@ -1,1 +1,22 @@
 .vscode/*
+
+# 忽略所有 node_modules
+**/node_modules/
+
+# 忽略日志
+*.log
+logs/
+npm-debug.log*
+
+# 忽略本地环境文件
+.env
+*.env
+
+# 忽略构建产物
+dist/
+build/
+
+# 如果用 Vite / Next / React
+.vite/
+.next/
+out/

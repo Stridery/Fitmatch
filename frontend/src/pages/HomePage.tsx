@@ -6,22 +6,10 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useNavigate, Link, Outlet } from "react-router-dom";
+import { useNavigate, Outlet } from "react-router-dom";
 
-interface Coach {
-  id: number;
-  name: string;
-  rating: number;
-  price: string;
-  location: string;
-  image: string;
-  tag: string;
-}
 
-interface Category {
-  name: string;
-  coaches: Coach[];
-}
+
 
 interface User {
   name: string;
@@ -29,30 +17,10 @@ interface User {
 }
 
 export default function HomePage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [sports, setSports] = useState<{ id: number; name: string }[]>([]);
-  const [location, setLocation] = useState("");
-  const [sport, setSport] = useState("");
-  const [gender, setGender] = useState("any");
   const [user, setUser] = useState<User | null>(null); // 登录用户状态
   const navigate = useNavigate();
 
-  const inputStyle =
-    "h-10 px-3 py-2 border border-input rounded-md text-foreground bg-white hover:border-hover hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-200";
-
-  useEffect(() => {
-    fetch("/api/sports")
-      .then((res) => res.json())
-      .then((data) => setSports(data))
-      .catch((err) => console.error("加载运动项目失败", err));
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/coach/popular")
-      .then((res) => res.json())
-      .then((data) => setCategories(data.categories))
-      .catch((err) => console.error("加载热门教练失败", err));
-  }, []);
+  
 
   useEffect(() => {
 
@@ -119,10 +87,10 @@ export default function HomePage() {
         {/* ✅ 顶部菜单栏 */}
         <nav className="w-full border-t border-gray-200 bg-white">
           <div className="flex justify-center gap-10 px-4 py-2 text-sm font-medium text-gray-600">
-            <button onClick={() => navigate("/match")} className="text-gray-600 hover:text-blue-600">
+            <button onClick={() => navigate("/home/match")} className="text-gray-600 hover:text-blue-600">
               Match Coaches
             </button>
-            <button onClick={() => navigate("/chat")} className="text-gray-600 hover:text-blue-600">
+            <button onClick={() => navigate("/home/chat")} className="text-gray-600 hover:text-blue-600">
               Messages
             </button>
             <button onClick={() => navigate("/community")} className="text-gray-600 hover:text-blue-600">
