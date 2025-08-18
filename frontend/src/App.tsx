@@ -10,7 +10,7 @@ import MainPage from './pages/Main';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/user/dashboard/user_main_area/Profile';
 import CompleteProfilePage from './pages/user/userProfile/CompleteProfilePage';
-import CommunityPage from './community/CommunityPage';
+import CommunityPage from './pages/community/CommunityPage';
 import RequireAuth from "./components/RequireAuth";
 import { UserProvider } from "./contexts/UserContext";
 import CoachApplicationForm from "./pages/coach/CoachApplicationForm";
