@@ -10,7 +10,7 @@ import MainPage from './pages/Main';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/user/dashboard/user_main_area/Profile';
 import CompleteProfilePage from './pages/user/userProfile/CompleteProfilePage';
-import ChatPage from './pages/ChatPage';
+import CommunityPage from './community/CommunityPage';
 import RequireAuth from "./components/RequireAuth";
 import { UserProvider } from "./contexts/UserContext";
 import CoachApplicationForm from "./pages/coach/CoachApplicationForm";
@@ -26,7 +26,7 @@ function App() {
         <Route path="/home" element={<HomePage />}> 
           <Route index element={<MatchPage />} />
           <Route path="match" element={<MatchPage />} />
-          <Route path="chat" element={<ChatPage />} />
+          <Route path="community" element={<CommunityPage />} />
         </Route>
 
         <Route path="/login" element={<Login />} />
