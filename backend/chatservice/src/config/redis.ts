@@ -91,4 +91,23 @@ export async function closeRedis(): Promise<void> {
 //   return { pub, sub };
 // }
 
+/**
+ * 为 Socket.IO 适配器创建独立的发布/订阅客户端
+ */
+export function createRedisPubSubClients(): { pub: Redis; sub: Redis } {
+  if (REDIS_URL) {
+    return {
+      pub: new Redis(REDIS_URL, baseOptions),
+      sub: new Redis(REDIS_URL, baseOptions),
+    };
+  }
+  const common = {
+    host: REDIS_HOST,
+    port: REDIS_PORT,
+    ...(REDIS_PASSWORD && { password: REDIS_PASSWORD }),
+    ...baseOptions,
+  } as const;
+  return { pub: new Redis(common), sub: new Redis(common) };
+}
+
 export default redis;
