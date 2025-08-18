@@ -90,12 +90,7 @@ export default function HomePage() {
             <button onClick={() => navigate("/home/match")} className="text-gray-600 hover:text-blue-600">
               Match Coaches
             </button>
-            <button onClick={() => navigate("/home/chat")} className="text-gray-600 hover:text-blue-600">
-              Messages
-            </button>
-            <button onClick={() => navigate("/community")} className="text-gray-600 hover:text-blue-600">
-              Community
-            </button>
+            <button onClick={() => navigate("/home/community")} className="text-gray-600 hover:text-blue-600">Community</button>
           </div>
         </nav>
       </header>
