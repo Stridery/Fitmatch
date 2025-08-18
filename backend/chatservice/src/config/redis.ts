@@ -13,22 +13,45 @@ const REDIS_PASSWORD = process.env.REDIS_PASSWORD || undefined;
 const baseOptions = {
   lazyConnect: false,           // 创建后立即连接
   enableReadyCheck: true,       // 就绪检查（PING）
-  maxRetriesPerRequest: null,   // 重要：避免在请求队列层级报错被吃掉
+  maxRetriesPerRequest: null,   // 避免请求队列层级报错被吃掉
   reconnectOnError: (err: Error) => {
     const msg = err.message || '';
-    // 常见 READONLY（主从切换）、ETIMEDOUT 等尝试重连
-    if (msg.includes('READONLY') || msg.includes('ETIMEDOUT') || msg.includes('ECONNRESET')) {
+    if (
+      msg.includes('READONLY') ||
+      msg.includes('ETIMEDOUT') ||
+      msg.includes('ECONNRESET')
+    ) {
       return true;
     }
     return false;
   },
   retryStrategy: (times: number) => {
-    // 线性回退 + 上限（20s）
-    const delay = Math.min(times * 500, 20_000);
+    const delay = Math.min(times * 500, 20_000); // 线性回退 + 上限20s
     return delay;
   },
 } as const;
 
+/**
+ * 通用注册函数：给任意 Redis 客户端绑定日志/错误处理
+ */
+function attachRedisLogs(client: Redis, label: string) {
+  client.on('error', (err) => {
+    console.error(`❌ Redis (${label}) error:`, err);
+  });
+  client.on('connect', () => {
+    console.log(`✅ Redis (${label}) connected`);
+  });
+  client.on('ready', () => {
+    console.log(`🚀 Redis (${label}) ready`);
+  });
+  client.on('end', () => {
+    console.warn(`⚠️ Redis (${label}) connection closed`);
+  });
+}
+
+/**
+ * 主 Redis 客户端
+ */
 const redis = REDIS_URL
   ? new Redis(REDIS_URL, baseOptions)
   : new Redis({
@@ -38,21 +61,7 @@ const redis = REDIS_URL
       ...baseOptions,
     });
 
-redis.on('connect', () => {
-  console.log('✅ Redis connected');
-});
-
-redis.on('ready', () => {
-  console.log('🚀 Redis is ready to use');
-});
-
-redis.on('error', (err) => {
-  console.error('❌ Redis error:', err);
-});
-
-redis.on('end', () => {
-  console.warn('⚠️ Redis connection closed');
-});
+attachRedisLogs(redis, 'main');
 
 /**
  * 健康探测：PING 一下
@@ -67,47 +76,45 @@ export async function pingRedis(): Promise<boolean> {
 }
 
 /**
- * 优雅关停
+ * 优雅关停主连接
  */
 export async function closeRedis(): Promise<void> {
   try {
-    await redis.quit(); // 优雅退出（与 .disconnect() 相比会发 QUIT）
-    console.log('🛑 Redis connection closed');
+    await redis.quit(); // 优雅退出（发送 QUIT）
+    console.log('🛑 Redis (main) closed');
   } catch (err) {
-    console.error('❌ Error closing Redis connection:', err);
-    // 避免卡死：发生错误时强制断开
-    try { redis.disconnect(); } catch {}
+    console.error('❌ Error closing Redis (main):', err);
+    try {
+      redis.disconnect();
+    } catch {}
   }
 }
 
 /**
- * 如果之后你要用 socket.io-redis-adapter，可以用这个工厂创建 pub/sub 客户端：
- */
-// import { createClient } from 'redis' // 如果使用 node-redis v4
-// export async function createRedisPubSub() {
-//   const pub = createClient({ url: REDIS_URL });
-//   const sub = pub.duplicate();
-//   await pub.connect(); await sub.connect();
-//   return { pub, sub };
-// }
-
-/**
- * 为 Socket.IO 适配器创建独立的发布/订阅客户端
+ * 为 Socket.IO 或 pub/sub 创建独立的客户端
  */
 export function createRedisPubSubClients(): { pub: Redis; sub: Redis } {
+  let pub: Redis;
+  let sub: Redis;
+
   if (REDIS_URL) {
-    return {
-      pub: new Redis(REDIS_URL, baseOptions),
-      sub: new Redis(REDIS_URL, baseOptions),
-    };
+    pub = new Redis(REDIS_URL, baseOptions);
+    sub = new Redis(REDIS_URL, baseOptions);
+  } else {
+    const common = {
+      host: REDIS_HOST,
+      port: REDIS_PORT,
+      ...(REDIS_PASSWORD && { password: REDIS_PASSWORD }),
+      ...baseOptions,
+    } as const;
+    pub = new Redis(common);
+    sub = new Redis(common);
   }
-  const common = {
-    host: REDIS_HOST,
-    port: REDIS_PORT,
-    ...(REDIS_PASSWORD && { password: REDIS_PASSWORD }),
-    ...baseOptions,
-  } as const;
-  return { pub: new Redis(common), sub: new Redis(common) };
+
+  attachRedisLogs(pub, 'pub');
+  attachRedisLogs(sub, 'sub');
+
+  return { pub, sub };
 }
 
 export default redis;
