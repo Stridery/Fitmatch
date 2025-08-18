@@ -3,9 +3,10 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
 
 import connectDB, { getDBState, closeDB } from './config/db.js';
-import redis, { pingRedis, closeRedis } from './config/redis.js';
+import redis, { pingRedis, closeRedis, createRedisPubSubClients } from './config/redis.js';
 import { setupSocketServer } from './socket/index.js';
 
 dotenv.config();
@@ -51,6 +52,15 @@ async function main() {
       credentials: true,
     },
   });
+
+  // 集群化：使用 Redis 适配器广播跨实例事件
+  try {
+    const { pub, sub } = createRedisPubSubClients();
+    io.adapter(createAdapter(pub as any, sub as any));
+    console.log('🔗 Socket.IO Redis adapter enabled');
+  } catch (e) {
+    console.warn('⚠️ Failed to enable Socket.IO Redis adapter:', e);
+  }
 
   // 装载 Socket 实时逻辑（其中包含 Redis presence + Mongo 兜底）
   setupSocketServer(io);

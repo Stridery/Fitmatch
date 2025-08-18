@@ -9,8 +9,8 @@ interface JWTPayload { userId?: string; sub?: string; iat?: number; exp?: number
 interface SocketWithAuth extends Socket { data: { userId: string }; }
 interface SendPayload { toUserId: string; message: string; clientMsgId?: string; }
 
-const userSockets = new Map<string, Set<string>>(); // 多设备支持
-
+const userSockets = new Map<string, Set<string>>(); // 多设备支持（本机内存）
+function roomOf(userId: string) { return `user:${userId}`; }
 
 
 function mask(str: string, show = 6) {
@@ -47,17 +47,19 @@ function unbindSocket(userId: string, socketId: string) {
   set.delete(socketId);
   if (set.size === 0) userSockets.delete(userId);
 }
-function targetsOf(userId: string) {
-  return Array.from(userSockets.get(userId) ?? []);
-}
+// 本地目标查询保留用于日志；跨实例以房间为准
+function targetsOf(userId: string) { return Array.from(userSockets.get(userId) ?? []); }
 
-// —— 简单每用户速率限制（内存版，后续可换 Redis INCR/EXPIRE）——
-const rateMap = new Map<string, { c: number; t: number }>();
-function isRateLimited(userId: string, limit = 10): boolean {
-  const now = Date.now();
-  const rec = rateMap.get(userId);
-  if (!rec || now - rec.t > 60_000) { rateMap.set(userId, { c: 1, t: now }); return false; }
-  rec.c += 1; return rec.c > limit;
+// —— 每用户速率限制（Redis 版，60 秒窗口）——
+async function isRateLimited(userId: string, limit = 20): Promise<boolean> {
+  const key = `ratelimit:${userId}`;
+  const tx = redis.multi();
+  tx.incr(key);
+  tx.expire(key, 60);
+  const [countRes] = (await tx.exec()) ?? [];
+  const count = Array.isArray(countRes) ? Number(countRes[1]) : Number(countRes);
+  if (!Number.isFinite(count)) return false;
+  return count > limit;
 }
 
 export function setupSocketServer(io: Server) {
@@ -82,17 +84,32 @@ export function setupSocketServer(io: Server) {
     const userId = socket.data.userId;
     bindSocket(userId, socket.id);
     console.log('✅ User connected:', userId, socket.id);
+    // 加入以用户为维度的房间，便于跨实例广播
+    await socket.join(roomOf(userId));
 
-    // 拉取并清空离线消息队列
+    // 标记在线与心跳
+    try {
+      await redis.hset(`user:${userId}`, { online: 1, lastOnlineAt: Date.now() });
+    } catch {}
+    const heartbeat = setInterval(async () => {
+      try { await redis.hset(`user:${userId}`, { online: 1, lastOnlineAt: Date.now() }); } catch {}
+    }, 30_000);
+
+    // 拉取并清空离线消息队列（原子）
     try {
       const key = `offline:${userId}`;
-      const list = await redis.lrange(key, 0, -1);
-      if (list.length) {
-        for (const raw of list) {
-          try { socket.emit('privateMessage', JSON.parse(raw)); } catch {}
+      const tmp = `offline:${userId}:tmp:${crypto.randomUUID()}`;
+      // RENAME 为 O(1) 且原子，将列表转移到临时键，避免并发重复投递
+      const moved = await redis.rename(key, tmp).then(() => true).catch(() => false);
+      if (moved) {
+        let delivered = 0;
+        while (true) {
+          const raw = await redis.lpop(tmp);
+          if (!raw) break;
+          try { socket.emit('privateMessage', JSON.parse(raw)); delivered += 1; } catch {}
         }
-        await redis.del(key);
-        console.log(`📬 Delivered ${list.length} offline messages to ${userId}`);
+        await redis.del(tmp);
+        if (delivered) console.log(`📬 Delivered ${delivered} offline messages to ${userId}`);
       }
     } catch (e) {
       console.error('❌ Offline delivery error:', e);
@@ -101,7 +118,7 @@ export function setupSocketServer(io: Server) {
     // 发送私信（幂等）
     socket.on('privateMessage', async (data: SendPayload) => {
       try {
-        if (isRateLimited(userId)) {
+        if (await isRateLimited(userId)) {
           socket.emit('error', { code: 'RATE_LIMIT', message: 'Too many messages. Please slow down.' });
           return;
         }
@@ -111,8 +128,11 @@ export function setupSocketServer(io: Server) {
         if (!content) { socket.emit('error', { code: 'EMPTY', message: 'Message cannot be empty' }); return; }
         if (content.length > 1000) { socket.emit('error', { code: 'TOO_LONG', message: 'Message too long' }); return; }
 
-        const onlineTargets = targetsOf(toUserId);
-        const status: MessageStatus = onlineTargets.length ? 'delivered' : 'sent';
+        // 跨实例查询房间内是否有人在线
+        const room = roomOf(toUserId);
+        const sockets = await io.in(room).fetchSockets();
+        const isOnline = sockets.length > 0;
+        const status: MessageStatus = isOnline ? 'delivered' : 'sent';
 
         // 幂等写库
         const { doc, created } = await createMessageIdempotent({
@@ -134,11 +154,14 @@ export function setupSocketServer(io: Server) {
           clientMsgId: data.clientMsgId
         };
 
-        // 在线设备群发；不在线则入离线队列
-        if (onlineTargets.length) {
-          for (const sid of onlineTargets) io.to(sid).emit('privateMessage', payload);
+        // 在线设备群发；不在线则入离线队列（并限制长度）
+        if (isOnline) {
+          io.to(room).emit('privateMessage', payload);
         } else {
-          await redis.rpush(`offline:${toUserId}`, JSON.stringify(payload));
+          const key = `offline:${toUserId}`;
+          await redis.rpush(key, JSON.stringify(payload));
+          // 将离线队列长度限制在 1000
+          await redis.ltrim(key, -1000, -1);
           console.log(`📦 Stored offline message for ${toUserId}`);
         }
 
@@ -162,7 +185,7 @@ export function setupSocketServer(io: Server) {
 
         await Message.updateMany({ _id: { $in: ids }, toUserId: userId }, { $set: { status: 'read' } });
 
-        // 按发送者分组通知
+        // 按发送者分组通知（按房间广播）
         const bySender = new Map<string, string[]>();
         for (const m of msgs) {
           const arr = bySender.get(m.fromUserId as any) ?? [];
@@ -170,18 +193,22 @@ export function setupSocketServer(io: Server) {
           bySender.set(m.fromUserId as any, arr);
         }
         for (const [senderId, msgIds] of bySender) {
-          for (const sid of targetsOf(senderId)) {
-            io.to(sid).emit('messageRead', { messageIds: msgIds, readBy: userId });
-          }
+          io.to(roomOf(senderId)).emit('messageRead', { messageIds: msgIds, readBy: userId });
         }
       } catch (e) {
         console.error('❌ markAsRead error:', e);
       }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       unbindSocket(userId, socket.id);
       console.log('❌ User disconnected:', userId, socket.id);
+      // 记录最后在线时间
+      try {
+        await redis.hset(`user:${userId}`, { online: 0, lastOnlineAt: Date.now() });
+      } catch {}
+      clearInterval(heartbeat);
+      try { await socket.leave(roomOf(userId)); } catch {}
     });
   });
 }
