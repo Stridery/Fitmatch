@@ -6,6 +6,7 @@ const navItems = [
   { label: "Schedule", icon: "📅", path: "/dashboard/schedule" },
   { label: "Messages", icon: "💬", path: "/dashboard/messages" },
   { label: "Posts", icon: "📝", path: "/dashboard/posts" },
+  { label: "Coach Center", icon: "🎓", path: "/coach" },
   { label: "Settings", icon: "⚙️", path: "/dashboard/settings" },
 ]
 

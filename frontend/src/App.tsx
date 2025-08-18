@@ -14,6 +14,9 @@ import ChatPage from './pages/ChatPage';
 import RequireAuth from "./components/RequireAuth";
 import { UserProvider } from "./contexts/UserContext";
 import CoachApplicationForm from "./pages/coach/CoachApplicationForm";
+import CoachDashboard from './pages/coach/CoachDashboard';
+import SportEditor from './pages/coach/SportEditor';
+import CourseEditor from './pages/coach/CourseEditor';
 
 
 //console.log("Rendering App...");
@@ -42,8 +45,12 @@ function App() {
           
         </Route>
 
-        <Route element={<RequireAuth requireProfile = {false}/>}>
+        <Route element={<RequireAuth requireProfile = {false}/>}> 
           <Route path="/coach-application" element={<CoachApplicationForm />}/>
+          <Route path="/coach" element={<CoachDashboard />} />
+          <Route path="/coach/sports/new" element={<SportEditor />} />
+          <Route path="/coach/sports/:id/edit" element={<SportEditor />} />
+          <Route path="/coach/sports/:id/course" element={<CourseEditor />} />
         </Route>
       </Routes>
     </UserProvider>
