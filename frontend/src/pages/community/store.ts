@@ -99,13 +99,13 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 			auth: { userId },
 		});
 
-		socket.on("connect_error", (err) => {
+		socket.on("connect_error", (err: any) => {
 			console.error("Socket connect error", err.message);
 		});
 
 		socket.on("message:new", (msg: MessageItem) => {
 			const { selectedConversationId } = get();
-			set((state) => {
+			set((state: CommunityState) => {
 				const existing = state.messages[msg.conversationId] || [];
 				const updated = [...existing, msg];
 				return { messages: { ...state.messages, [msg.conversationId]: updated } };
@@ -119,22 +119,22 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 	},
 
 	fetchConversations: async () => {
-		set((s) => ({ loading: { ...s.loading, conversations: true }, errors: { ...s.errors, conversations: undefined } }));
+		set((s: CommunityState) => ({ loading: { ...s.loading, conversations: true }, errors: { ...s.errors, conversations: undefined } }));
 		try {
 			const list = await api.listConversations();
-			set((s) => ({ conversations: list, loading: { ...s.loading, conversations: false } }));
+			set((s: CommunityState) => ({ conversations: list, loading: { ...s.loading, conversations: false } }));
 		} catch (e: any) {
-			set((s) => ({ loading: { ...s.loading, conversations: false }, errors: { ...s.errors, conversations: e?.message || "Failed to load" } }));
+			set((s: CommunityState) => ({ loading: { ...s.loading, conversations: false }, errors: { ...s.errors, conversations: e?.message || "Failed to load" } }));
 		}
 	},
 
 	fetchContacts: async () => {
-		set((s) => ({ loading: { ...s.loading, contacts: true }, errors: { ...s.errors, contacts: undefined } }));
+		set((s: CommunityState) => ({ loading: { ...s.loading, contacts: true }, errors: { ...s.errors, contacts: undefined } }));
 		try {
 			const list = await api.listContacts();
-			set((s) => ({ contacts: list, loading: { ...s.loading, contacts: false } }));
+			set((s: CommunityState) => ({ contacts: list, loading: { ...s.loading, contacts: false } }));
 		} catch (e: any) {
-			set((s) => ({ loading: { ...s.loading, contacts: false }, errors: { ...s.errors, contacts: e?.message || "Failed to load" } }));
+			set((s: CommunityState) => ({ loading: { ...s.loading, contacts: false }, errors: { ...s.errors, contacts: e?.message || "Failed to load" } }));
 		}
 	},
 
@@ -143,21 +143,21 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 	},
 
 	fetchMessageHistory: async (conversationId: string) => {
-		set((s) => ({ loading: { ...s.loading, messages: true }, errors: { ...s.errors, messages: undefined } }));
+		set((s: CommunityState) => ({ loading: { ...s.loading, messages: true }, errors: { ...s.errors, messages: undefined } }));
 		try {
 			const list = await api.getMessages(conversationId);
-			set((s) => ({
+			set((s: CommunityState) => ({
 				messages: { ...s.messages, [conversationId]: list },
 				loading: { ...s.loading, messages: false },
 			}));
 		} catch (e: any) {
-			set((s) => ({ loading: { ...s.loading, messages: false }, errors: { ...s.errors, messages: e?.message || "Failed to load" } }));
+			set((s: CommunityState) => ({ loading: { ...s.loading, messages: false }, errors: { ...s.errors, messages: e?.message || "Failed to load" } }));
 		}
 	},
 
 	startConversationWithUser: async (user: CommunityUser) => {
 		const convo = await api.ensureConversationWith(user.id);
-		set((s) => ({ currentTab: "messages", selectedConversationId: convo.id, conversations: s.conversations.some(c => c.id === convo.id) ? s.conversations : [convo, ...s.conversations] }));
+		set((s: CommunityState) => ({ currentTab: "messages", selectedConversationId: convo.id, conversations: s.conversations.some(c => c.id === convo.id) ? s.conversations : [convo, ...s.conversations] }));
 	},
 
 	sendMessage: ({ conversationId, content }) => {
@@ -179,7 +179,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 			isMine: true,
 		};
 
-		set((state) => {
+		set((state: CommunityState) => {
 			const existing = state.messages[conversationId] || [];
 			return { messages: { ...state.messages, [conversationId]: [...existing, optimistic] } };
 		});
