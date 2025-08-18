@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { io, Socket } from "socket.io-client";
-import { createMockApi } from "./stubApi";
+import { api } from "./api";
 
 export type TabKey = "messages" | "contacts" | "posts";
 
@@ -67,7 +67,7 @@ interface CommunityState {
 	sendMessage: (params: { conversationId: string; content: string }) => void;
 }
 
-const { api } = createMockApi();
+// Using real API module; functions are placeholders to be implemented later.
 
 export const useCommunityStore = create<CommunityState>((set, get) => ({
 	currentTab: "messages",
@@ -89,6 +89,10 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 		if (socket && socket.connected) return;
 
 		const url = (import.meta as any).env?.VITE_CHAT_WS_URL || "";
+		if (!url) {
+			console.warn("VITE_CHAT_WS_URL is not set; skipping socket connection");
+			return;
+		}
 		socket = io(url, {
 			transports: ["websocket"],
 			autoConnect: true,
@@ -152,12 +156,8 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 	},
 
 	startConversationWithUser: async (user: CommunityUser) => {
-		try {
-			const convo = await api.ensureConversationWith(user.id);
-			set((s) => ({ currentTab: "messages", selectedConversationId: convo.id, conversations: s.conversations.some(c => c.id === convo.id) ? s.conversations : [convo, ...s.conversations] }));
-		} catch (e) {
-			// No-op basic error handling here
-		}
+		const convo = await api.ensureConversationWith(user.id);
+		set((s) => ({ currentTab: "messages", selectedConversationId: convo.id, conversations: s.conversations.some(c => c.id === convo.id) ? s.conversations : [convo, ...s.conversations] }));
 	},
 
 	sendMessage: ({ conversationId, content }) => {
