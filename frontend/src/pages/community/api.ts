@@ -11,14 +11,15 @@ export const api = {
     return [];
   },
 
-  async getMessages(_conversationId: string): Promise<MessageItem[]> {
+  async getMessages(conversationId: string): Promise<MessageItem[]> {
     // TODO: implement with Supabase or your HTTP API
+    void conversationId; // referenced to satisfy linter until implemented
     return [];
   },
 
-  async ensureConversationWith(_userId: string): Promise<ConversationSummary> {
+  async ensureConversationWith(userId: string): Promise<ConversationSummary> {
     // TODO: implement with Supabase or your HTTP API
-    throw new Error("ensureConversationWith not implemented");
+    throw new Error(`ensureConversationWith not implemented for user ${userId}`);
   },
 } as const;
 
