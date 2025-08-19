@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCommunityStore } from "../store";
 
 export function ChatWindow() {
   const selectedConversationId = useCommunityStore((s) => s.selectedConversationId);
-  const currentConversation = useCommunityStore((s) => s.currentConversation);
+  const conversations = useCommunityStore((s) => s.conversations);
   const messages = useCommunityStore((s) => s.messages[selectedConversationId ?? ""] ?? []);
   const fetchMessageHistory = useCommunityStore((s) => s.fetchMessageHistory);
   const sendMessage = useCommunityStore((s) => s.sendMessage);
@@ -20,6 +20,13 @@ export function ChatWindow() {
       fetchMessageHistory(selectedConversationId);
     }
   }, [fetchMessageHistory, selectedConversationId]);
+
+  const currentConversation = useMemo(() => {
+    if (!selectedConversationId) return null;
+    return (
+      conversations.find((c) => c.id === selectedConversationId) || null
+    );
+  }, [conversations, selectedConversationId]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
