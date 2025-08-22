@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { useUser } from "@/contexts/UserContext"
+import { useNavigate } from "react-router-dom"
 
 interface UserHeaderProps {
   username?: string
@@ -15,6 +17,18 @@ interface UserHeaderProps {
 }
 
 export function UserHeader({ username = "Alex", avatarUrl }: UserHeaderProps) {
+  const { logout } = useUser()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      navigate("/login")
+    } catch (e) {
+      // no-op: errors already logged in context
+    }
+  }
+
   return (
     <header className="flex justify-between items-center w-full mb-6">
       <h1 className="text-2xl font-semibold">Welcome back, {username}!</h1>
@@ -31,9 +45,9 @@ export function UserHeader({ username = "Alex", avatarUrl }: UserHeaderProps) {
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Profile</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>Profile</DropdownMenuItem>
           <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Logout</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

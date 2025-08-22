@@ -21,3 +21,14 @@ export async function getSupabaseUser() {
     email: data.user.email!,
   };
 }
+
+/**
+ * 退出登录
+ */
+export async function logout() {
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error("Failed to sign out:", error);
+    throw error;
+  }
+}

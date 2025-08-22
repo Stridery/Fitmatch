@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -7,29 +7,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate, Outlet } from "react-router-dom";
-
-
-
-
-interface User {
-  name: string;
-  avatar: string;
-}
+import { useUser } from "@/contexts/UserContext";
 
 export default function HomePage() {
-  const [user, setUser] = useState<User | null>(null); // 登录用户状态
   const navigate = useNavigate();
-
-  
+  const { user, logout } = useUser();
 
   useEffect(() => {
-
-    // 实际登录接口
-    fetch("/api/me", { credentials: "include" })
-       .then((res) => res.ok ? res.json() : null)
-       .then((data) => setUser(data))
-       .catch(() => setUser(null));
+    // 可以在这里做一些首页加载逻辑
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (e) {
+      // already logged
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900 w-full">
@@ -48,11 +43,10 @@ export default function HomePage() {
             <DropdownMenuTrigger asChild>
               <button className="focus:outline-none bg-transparent hover:bg-transparent p-0">
                 <Avatar className="w-8 h-8 border bg-transparent">
-                  {user?.avatar ? (
-                    <AvatarImage src={user.avatar} alt={user.name} />
+                  {user?.profile?.avatarUrl ? (
+                    <AvatarImage src={user.profile.avatarUrl} alt={user.email} />
                   ) : (
-                    <AvatarFallback className="bg-gray-200 text-gray-500">
-                      ?
+                    <AvatarFallback className="bg-gray-200 text-gray-500">?
                     </AvatarFallback>
                   )}
                 </Avatar>
@@ -61,26 +55,29 @@ export default function HomePage() {
 
             {/* ✅ 登录后才显示下拉菜单内容 */}
             <DropdownMenuContent className="w-48 mt-2" align="end">
-            {user ? (
-              <>
-                <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                  Personal Dashboard
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/become-coach")}>
-                  Become a Coach
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/manage-venue")}>
-                  Manage a Venue
-                </DropdownMenuItem>
-              </>
-            ) : (
-              <>
-                <DropdownMenuItem onClick={() => navigate("/login")}>
-                  Register/Login
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
+              {user ? (
+                <>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                    Personal Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/coach-application")}>
+                    Become a Coach
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/manage-venue")}>
+                    Manage a Venue
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Logout
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem onClick={() => navigate("/login")}>
+                    Register/Login
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
