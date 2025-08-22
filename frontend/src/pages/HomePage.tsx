@@ -7,7 +7,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate, Outlet } from "react-router-dom";
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { logout } from "@/api/auth";
 
 
 
@@ -19,9 +20,9 @@ interface User {
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null); // 登录用户状态
   const navigate = useNavigate();
-
+  const [logoutOpen, setLogoutOpen] = useState(false);
   
-
+  
   useEffect(() => {
 
     // 实际登录接口
@@ -72,6 +73,9 @@ export default function HomePage() {
                 <DropdownMenuItem onClick={() => navigate("/manage-venue")}>
                   Manage a Venue
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLogoutOpen(true)}>
+                  Logout
+                </DropdownMenuItem>
               </>
             ) : (
               <>
@@ -99,6 +103,34 @@ export default function HomePage() {
       <main className="px-6 pt-10">
         <Outlet />
       </main>
+
+      {/* ✅ Logout 确认弹窗 */}
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Logout</DialogTitle>
+          </DialogHeader>
+          <DialogFooter>
+            <div className="flex w-full justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded-md border border-gray-300 bg-white text-black"
+                onClick={() => setLogoutOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded-md bg-blue-300 text-white"
+                onClick={async () => {
+                  await logout();
+                  setLogoutOpen(false);
+                }}
+              >
+                Confirm Logout
+              </button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
