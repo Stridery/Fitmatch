@@ -1,21 +1,34 @@
-version: '3.8'
-
 services:
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
     ports:
-      - "80:80"
+      - "80:80"                        # http://localhost
+    depends_on:
+      - api-gateway
+      - chat-service
+      - user-service                   # 前端依赖网关/聊天/用户
 
-  apigateway:
-    build: ./backend/apigateway
-    ports:
-      - "8080:8080"
+  api-gateway:
+    build:
+      context: ./backend/apigateway    # 你的网关目录名无连字符，这里用 apigateway
+    expose:
+      - "8080"                         # 仅容器网络可见
+    environment:
+      - JWT_SECRET=${JWT_SECRET}       # 从根目录 .env 注入
+    depends_on:
+      - user-service                   # 网关路由会转到它
 
-  userservice:
-    build: ./backend/userservice
-    ports:
-      - "8081:8081"
+  chat-service:
+    build:
+      context: ./backend/chatservice
+    expose:
+      - "4000"
+    env_file:
+      - ./backend/chatservice/.env     # PORT/MONGO_URL/REDIS_URL 等
 
-networks:
-  fitmatch-net:
-    driver: bridge
+  user-service:
+    build:
+      context: ./backend/userservice   # 按你的实际目录名
+    expose:
+      - "8081"

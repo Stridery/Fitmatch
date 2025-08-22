@@ -113,9 +113,9 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     const existing = get().socket;
     if (existing && existing.connected) return;
 
-    const url = import.meta.env?.VITE_CHAT_WS_URL;
+    const url = import.meta.env?.VITE_SOCKET_URL;
     if (!url) {
-      console.warn("VITE_CHAT_WS_URL is not set; skipping socket connection");
+      console.warn("VITE_SOCKET_URL is not set; skipping socket connection");
       return;
     }
 
