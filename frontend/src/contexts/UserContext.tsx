@@ -49,13 +49,20 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         profile,
       });
 
-
-
       setLoading(false);
     };
 
+    // 初次加载
     loadUser();
-    
+
+    // 订阅 Auth 状态变化，保持全局 user 同步
+    const { data: listener } = supabase.auth.onAuthStateChange(async () => {
+      await loadUser();
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   return (

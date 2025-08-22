@@ -21,3 +21,19 @@ export async function getSupabaseUser() {
     email: data.user.email!,
   };
 }
+
+/**
+ * 退出登录：调用 Supabase signOut 并清理本地存储
+ */
+export async function logout() {
+  const { error } = await supabase.auth.signOut();
+  // 清理可能被使用的本地存储键
+  try {
+    localStorage.removeItem("userId");
+    localStorage.removeItem("token");
+  } catch {}
+  if (error) {
+    console.error("Failed to sign out:", error);
+    throw error;
+  }
+}
