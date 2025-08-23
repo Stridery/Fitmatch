@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
 
 function SignUp() {
   const navigate = useNavigate()
@@ -85,12 +86,12 @@ function SignUp() {
         {success && <p className="text-green-600 text-sm">{success}</p>}
 
         {/* Submit */}
-        <button
+        <Button
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
         >
           Sign Up
-        </button>
+        </Button>
 
         <p className="text-sm text-center text-gray-600">
           Already have an account?{" "}

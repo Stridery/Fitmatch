@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { MessagesTab } from "./MessagesTab";
 import { ContactsTab } from "./ContactsTab";
 import { PostsTab } from "./PostsTab";
+import { Button } from "@/components/ui/button";
 import { useCommunityStore } from "./store";
 import { useUser } from "@/contexts/UserContext";
 
@@ -28,7 +29,7 @@ export default function CommunityPage() {
     <div className="w-full">
       <div className="mb-4 border-b border-gray-200">
         <nav className="flex gap-4" aria-label="Tabs">
-          <button
+          <Button
             className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               currentTab === "messages"
                 ? "border-blue-600 text-blue-600"
@@ -37,8 +38,8 @@ export default function CommunityPage() {
             onClick={() => setCurrentTab("messages")}
           >
             Messages
-          </button>
-          <button
+          </Button>
+          <Button
             className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               currentTab === "contacts"
                 ? "border-blue-600 text-blue-600"
@@ -47,8 +48,8 @@ export default function CommunityPage() {
             onClick={() => setCurrentTab("contacts")}
           >
             Contacts
-          </button>
-          <button
+          </Button>
+          <Button
             className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               currentTab === "posts"
                 ? "border-blue-600 text-blue-600"
@@ -57,7 +58,7 @@ export default function CommunityPage() {
             onClick={() => setCurrentTab("posts")}
           >
             Posts
-          </button>
+          </Button>
         </nav>
       </div>
 

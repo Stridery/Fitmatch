@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCommunityStore } from "./store";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export function ContactsTab() {
   const contacts = useCommunityStore((s) => s.contacts);
@@ -43,7 +44,7 @@ export function ContactsTab() {
       <ul className="divide-y">
         {filtered.map((u) => (
           <li key={u.id} className="p-3 hover:bg-gray-50">
-            <button
+            <Button
               className="flex items-center gap-3 w-full text-left"
               onClick={() => startConversationWithUser(u)}
             >
@@ -56,7 +57,7 @@ export function ContactsTab() {
                 <div className="font-medium truncate">{u.nickname}</div>
                 <div className="text-sm text-gray-600 truncate">{u.email}</div>
               </div>
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
