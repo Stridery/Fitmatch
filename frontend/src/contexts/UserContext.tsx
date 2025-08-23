@@ -22,46 +22,66 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
-      setLoading(true);
+    let alive = true;     // 卸载保护
+    let runId = 0;        // 防竞态：只接受最后一次 load 的结果
 
-      const { data: { session }, error } = await supabase.auth.getSession();
+    const apply = (u: User | null) => { if (alive) setUser(u); };
 
-      if (!session || error) {
-        setUser(null);
+    const loadUser = async (hintSession?: any) => {
+      const my = ++runId;
+      try {
+        if (alive) setLoading(true);
+        // 优先用事件里传来的 session，减少一次 I/O
+        const session =
+          hintSession ?? (await supabase.auth.getSession()).data.session;
+
+        if (!session) {
+          apply(null);
+          return;
+        }
+
+        const supaUser = session.user;
+
+        // profile 拉取失败不阻塞 UI
+        let profile: UserProfile | null = null;
+        try {
+          profile = await getUserProfile(session.access_token);
+        } catch {
+          profile = null;
+        }
+
+        // 过期结果丢弃
+        if (!alive || my !== runId) return;
+
+        apply({
+          id: supaUser.id,
+          email: supaUser.email ?? "",
+          profile,
+        });
+      } catch {
+        if (!alive || my !== runId) return;
+        apply(null);
+      } finally {
+        if (alive && my === runId) setLoading(false); // 无论如何都落地
+      }
+    };
+
+    // 首帧同步
+    loadUser();
+
+    // 订阅：不要 await，避免把 UI 卡在 Loading
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        apply(null);
         setLoading(false);
         return;
       }
-
-      const supabaseUser = session.user;
-      const accessToken = session.access_token;
-
-      let profile: UserProfile | null = null;
-      try {
-        profile = await getUserProfile(accessToken);
-      } catch {
-        profile = null; // 没填 profile 也没关系
-      }
-
-      setUser({
-        id: supabaseUser.id,
-        email: supabaseUser.email ?? "",
-        profile,
-      });
-
-      setLoading(false);
-    };
-
-    // 初次加载
-    loadUser();
-
-    // 订阅 Auth 状态变化，保持全局 user 同步
-    const { data: listener } = supabase.auth.onAuthStateChange(async () => {
-      await loadUser();
+      loadUser(session); // 不 await
     });
 
     return () => {
-      listener.subscription.unsubscribe();
+      alive = false;
+      sub.subscription.unsubscribe();
     };
   }, []);
 

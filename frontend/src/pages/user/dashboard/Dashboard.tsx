@@ -15,8 +15,9 @@ function Dashboard() {
       navigate("/login", { replace: true });
     }
   }, [loading, user, navigate]);
-
+/*
   if (loading) return <p>Loading…</p>;
+  */
   if (!user) return null;
 
   return (

@@ -23,11 +23,7 @@ function App() {
     <UserProvider>
       <Routes>
         <Route path="/" element={<MainPage />} />
-        <Route path="/home" element={<HomePage />}> 
-          <Route index element={<MatchPage />} />
-          <Route path="match" element={<MatchPage />} />
-          <Route path="community" element={<CommunityPage />} />
-        </Route>
+        
 
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
@@ -35,14 +31,20 @@ function App() {
         <Route path="/resetPassword" element={<ResetPassword />} />
         <Route path="/complete-profile" element={<CompleteProfilePage />} />
         <Route element={<RequireAuth requireProfile = {false}/>}>
+          <Route path="/home" element={<HomePage />}> 
+            <Route index element={<MatchPage />} />
+            <Route path="match" element={<MatchPage />} />
+            <Route path="community" element={<CommunityPage />} />
+          </Route>
+          
+          
+        </Route>
+
+        <Route element={<RequireAuth requireProfile = {true}/>}>
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<ProfilePage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
-          
-        </Route>
-
-        <Route element={<RequireAuth requireProfile = {false}/>}>
           <Route path="/coach-application" element={<CoachApplicationForm />}/>
         </Route>
       </Routes>
