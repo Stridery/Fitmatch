@@ -30,7 +30,7 @@ function App() {
         <Route path="/forgetPwd" element={<ForgetPassword />} />
         <Route path="/resetPassword" element={<ResetPassword />} />
         <Route path="/complete-profile" element={<CompleteProfilePage />} />
-        <Route element={<RequireAuth requireAuth={false} requireProfile = {false}/>}>
+        <Route element={<RequireAuth requireAuth={false}/>}>
           <Route path="/home" element={<HomePage />}> 
             <Route index element={<MatchPage />} />
             <Route path="match" element={<MatchPage />} />
@@ -40,7 +40,7 @@ function App() {
           
         </Route>
 
-        <Route element={<RequireAuth requireProfile = {true}/>}>
+        <Route element={<RequireAuth/>}>
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<ProfilePage />} />
             <Route path="profile" element={<ProfilePage />} />

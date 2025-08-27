@@ -50,6 +50,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           profile = null;
         }
 
+
         // 过期结果丢弃
         if (!alive || my !== runId) return;
 

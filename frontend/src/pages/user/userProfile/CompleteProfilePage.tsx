@@ -8,6 +8,9 @@ import InjuriesInfo from "./step/InjuriesInfo"
 import { setUserProfile, saveInjuriesBatch } from "../../../api/user"
 import { supabase } from "@/lib/supabase"
 import type { UserProfile, Injury } from "@/entities/user"
+import { useUser } from "@/contexts/UserContext";
+
+
 
 
 
@@ -71,6 +74,7 @@ function validateStep(step: number, profile: UserProfileFormState): string | nul
 
 const CompleteProfilePage = () => {
   const navigate = useNavigate()
+  const { setUser } = useUser();
 
   const [profile, setProfile] = useState<UserProfileFormState>({
     avatarUrl: "",
@@ -156,7 +160,6 @@ const CompleteProfilePage = () => {
 
       const updatedProfile = formStateToUserProfile(profile, avatarUrl)
 
-      //console.log("Submitting profile:", updatedProfile)
 
       const injuriesBatch = {
         created: injuries,
@@ -164,12 +167,17 @@ const CompleteProfilePage = () => {
         deletedIds: []
       }
 
-      //console.log("Submitting injuries batch:", injuriesBatch)
 
       await setUserProfile(updatedProfile, token)
       await saveInjuriesBatch(injuriesBatch, token)
 
-      navigate("/dashboard")
+      setUser({
+        id: userId,
+        email: session.user.email ?? "",
+        profile: updatedProfile as UserProfile, // 注意键名要和守卫检查一致：nickname/gender/birthday 等
+      });
+
+      navigate("/match")
     } catch (err: any) {
       console.error(err)
       setError("Submit failed, please check again")
