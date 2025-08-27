@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { PostsTab } from "./PostsTab";
 import { useCommunityStore } from "./store";
 import { useUser } from "@/contexts/UserContext";
-import Toolbar from "./chatDock/Toolbar";
 
 export default function CommunityPage() {
   const currentTab = useCommunityStore((s) => s.currentTab);
@@ -26,10 +25,7 @@ export default function CommunityPage() {
     <div className="w-full">
       <div className="mb-4 flex items-center justify-between">
         <div className="text-lg font-semibold">Community</div>
-        {/* Desktop-only UserPicker entry point */}
-        <div className="hidden lg:block">
-          <Toolbar />
-        </div>
+        <div className="hidden lg:block" />
       </div>
       <PostsTab />
     </div>

@@ -1,8 +1,7 @@
 import axios from "axios";
 
 export interface PublicUserDTO {
-  _id: string;
-  username: string;
+  id: string;
   nickname?: string;
   avatarUrl?: string;
 }
@@ -16,10 +15,5 @@ export async function searchUsers(q: string) {
   return res.data.users;
 }
 
-export async function getUserByUsername(username: string) {
-  const res = await axios.get<{ user: PublicUserDTO }>(
-    `${BASE_URL}/by-username/${encodeURIComponent(username)}`
-  );
-  return res.data.user;
-}
+// Optional: by-username not implemented on backend; reserved for future use
 

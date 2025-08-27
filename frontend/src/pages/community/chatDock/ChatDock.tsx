@@ -3,7 +3,7 @@ import { X, Minus } from "lucide-react";
 import { useChatDockStore } from "./store";
 import ChatWindowContent from "./ChatWindowContent";
 import { useUser } from "@/contexts/UserContext";
-import Toolbar from "./Toolbar";
+import HeaderPanel from "./HeaderPanel";
 
 export default function ChatDock() {
   const { user } = useUser();
@@ -28,7 +28,7 @@ export default function ChatDock() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex items-end gap-3">
-      <Toolbar />
+      <HeaderPanel />
 
       {threadEntries.map(([threadId, info]) => (
         <div

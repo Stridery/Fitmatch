@@ -3,12 +3,14 @@ package com.fitmatch.userservice.controller;
 import com.fitmatch.userservice.dto.UserProfileRequest;
 import com.fitmatch.userservice.dto.UserProfileResponse;
 import com.fitmatch.userservice.service.UserService;
+import com.fitmatch.userservice.dto.PublicUserDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -42,5 +44,12 @@ public class UserController {
         System.out.println(userId);
         UserProfileResponse profile = userService.getUserProfile(userId);
         return ResponseEntity.ok(profile);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchUsers(@RequestParam("q") String q,
+                                         @RequestParam(value = "limit", required = false, defaultValue = "20") int limit) {
+        List<PublicUserDto> users = userService.searchUsersByNickname(q, limit);
+        return ResponseEntity.ok(Map.of("users", users));
     }
 }

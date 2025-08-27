@@ -3,12 +3,15 @@ package com.fitmatch.userservice.service;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 import com.fitmatch.userservice.dto.UserProfileRequest;
 import com.fitmatch.userservice.dto.UserProfileResponse;
+import com.fitmatch.userservice.dto.PublicUserDto;
 import com.fitmatch.userservice.entity.UserProfile;
 import com.fitmatch.userservice.exception.ConflictException;
 import com.fitmatch.userservice.repository.UserProfileRepository;
@@ -115,4 +118,20 @@ public class UserService {
             .isVenue(entity.getIsVenue())
             .build();
 }
+
+    public List<PublicUserDto> searchUsersByNickname(String q, int limit) {
+        if (q == null || q.trim().length() < 2) {
+            return java.util.Collections.emptyList();
+        }
+        String keyword = q.trim();
+        List<UserProfile> found = userProfileRepository.findByNicknameContainingIgnoreCase(keyword);
+        return found.stream()
+            .limit(Math.max(1, Math.min(limit, 50)))
+            .map(u -> PublicUserDto.builder()
+                    .id(u.getUserId().toString())
+                    .nickname(u.getNickname())
+                    .avatarUrl(u.getAvatarUrl())
+                    .build())
+            .collect(Collectors.toList());
+    }
 }

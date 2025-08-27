@@ -16,4 +16,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
 
     // 删除指定 user_id 的 profile
     void deleteByUserId(UUID userId);
+
+    // 按昵称模糊搜索（不区分大小写），限制数量在 service 层控制
+    java.util.List<UserProfile> findByNicknameContainingIgnoreCase(String nickname);
 }

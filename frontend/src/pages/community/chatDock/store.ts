@@ -40,6 +40,7 @@ interface ChatDockState {
 
   openThreads: Record<string, ChatThreadInfo>;
   messages: Record<string, ChatMessage[]>;
+  recentContacts: { id: string; nickname?: string; avatarUrl?: string }[];
 
   ensureSocket: (userId: string) => void;
   joinThread: (threadId: string) => Promise<void>;
@@ -50,6 +51,7 @@ interface ChatDockState {
   closeThread: (threadId: string) => void;
   startDM: (otherUserId: string) => Promise<string>;
   setUserId: (userId: string | null) => void;
+  addRecentContact: (user: { id: string; nickname?: string; avatarUrl?: string }) => void;
 }
 
 export const useChatDockStore = create<ChatDockState>()(
@@ -59,6 +61,7 @@ export const useChatDockStore = create<ChatDockState>()(
       socket: null,
       openThreads: {},
       messages: {},
+      recentContacts: [],
 
       setUserId: (userId) => set({ userId }),
 
@@ -184,6 +187,11 @@ export const useChatDockStore = create<ChatDockState>()(
       startDM: async (otherUserId: string) => {
         const thread = await startDM(otherUserId);
         const threadId = thread._id;
+        // track recent contact
+        if (thread.otherUser?._id) {
+          const u = thread.otherUser;
+          get().addRecentContact({ id: u._id, nickname: u.nickname, avatarUrl: u.avatarUrl });
+        }
         const exists = get().openThreads[threadId];
         if (exists) {
           // Focus existing window
@@ -211,8 +219,15 @@ export const useChatDockStore = create<ChatDockState>()(
         await get().joinThread(threadId);
         return threadId;
       },
+
+      addRecentContact: (user) => {
+        set((state) => {
+          const rest = state.recentContacts.filter((u) => u.id !== user.id);
+          return { recentContacts: [user, ...rest].slice(0, 20) };
+        });
+      },
     }),
-    { name: "chat-dock", partialize: (s) => ({ openThreads: s.openThreads }) }
+    { name: "chat-dock", partialize: (s) => ({ openThreads: s.openThreads, recentContacts: s.recentContacts }) }
   )
 );
 
