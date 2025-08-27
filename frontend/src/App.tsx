@@ -14,6 +14,7 @@ import CommunityPage from './pages/community/CommunityPage';
 import RequireAuth from "./components/RequireAuth";
 import { UserProvider } from "./contexts/UserContext";
 import CoachApplicationForm from "./pages/coach/CoachApplicationForm";
+import ChatDock from "./pages/community/chatDock/ChatDock";
 
 
 //console.log("Rendering App...");
@@ -48,6 +49,8 @@ function App() {
           <Route path="/coach-application" element={<CoachApplicationForm />}/>
         </Route>
       </Routes>
+      {/* Globally mounted Chat Dock (desktop-only) */}
+      <ChatDock />
     </UserProvider>
   );
 }

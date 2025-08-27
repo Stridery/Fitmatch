@@ -1,10 +1,8 @@
 import { useEffect } from "react";
-import { MessagesTab } from "./MessagesTab";
-import { ContactsTab } from "./ContactsTab";
 import { PostsTab } from "./PostsTab";
-import { Button } from "@/components/ui/button";
 import { useCommunityStore } from "./store";
 import { useUser } from "@/contexts/UserContext";
+import Toolbar from "./chatDock/Toolbar";
 
 export default function CommunityPage() {
   const currentTab = useCommunityStore((s) => s.currentTab);
@@ -14,8 +12,7 @@ export default function CommunityPage() {
   const { user } = useUser();
 
   useEffect(() => {
-    // Default to messages tab when entering the page
-    setCurrentTab("messages");
+    setCurrentTab("posts");
   }, [setCurrentTab]);
 
   useEffect(() => {
@@ -27,44 +24,14 @@ export default function CommunityPage() {
 
   return (
     <div className="w-full">
-      <div className="mb-4 border-b border-gray-200">
-        <nav className="flex gap-4" aria-label="Tabs">
-          <Button
-            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              currentTab === "messages"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-600 hover:text-blue-600"
-            }`}
-            onClick={() => setCurrentTab("messages")}
-          >
-            Messages
-          </Button>
-          <Button
-            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              currentTab === "contacts"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-600 hover:text-blue-600"
-            }`}
-            onClick={() => setCurrentTab("contacts")}
-          >
-            Contacts
-          </Button>
-          <Button
-            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              currentTab === "posts"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-600 hover:text-blue-600"
-            }`}
-            onClick={() => setCurrentTab("posts")}
-          >
-            Posts
-          </Button>
-        </nav>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="text-lg font-semibold">Community</div>
+        {/* Desktop-only UserPicker entry point */}
+        <div className="hidden lg:block">
+          <Toolbar />
+        </div>
       </div>
-
-      {currentTab === "messages" && <MessagesTab />}
-      {currentTab === "contacts" && <ContactsTab />}
-      {currentTab === "posts" && <PostsTab />}
+      <PostsTab />
     </div>
   );
 }
