@@ -17,14 +17,14 @@ export default function ChatDock() {
   useEffect(() => {
     if (user?.id) {
       setUserId(user.id);
-      ensureSocket(user.id);
+      // Defer socket connect until a chat window is opened (joinThread)
     }
   }, [user?.id]);
 
   // Desktop only
   if (typeof window !== "undefined" && window.innerWidth < 1024) return null;
 
-  const threadEntries = Object.entries(openThreads);
+  const threadEntries = openThreads && typeof openThreads === 'object' ? Object.entries(openThreads) : [];
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex items-end gap-3">
