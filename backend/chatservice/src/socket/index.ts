@@ -11,7 +11,8 @@ interface SocketWithAuth extends Socket { data: { userId: string }; }
 interface SendPayload { threadId: string; content: string; clientMsgId?: string; }
 
 const userSockets = new Map<string, Set<string>>(); // 多设备支持（本机内存）
-function roomOf(userId: string) { return `user:${userId}`; }
+function roomOf(userId: string) { return `u:${userId}`; }
+function threadRoom(threadId: string) { return `room:${threadId}`; }
 
 
 function mask(str: string, show = 6) {
@@ -133,6 +134,28 @@ export function setupSocketServer(io: Server) {
       console.error('❌ Offline delivery error:', e);
     }
 
+    // —— 按需加入/离开线程房间 ——
+    socket.on('chat:joinThread', async (data: { threadId: string }) => {
+      try {
+        const threadId = String(data?.threadId ?? '');
+        if (!threadId) return;
+        const part = await ThreadParticipant.findOne({ threadId, userId }).lean();
+        if (!part) return;
+        await socket.join(threadRoom(threadId));
+      } catch (e) {
+        console.error('joinThread error', e);
+      }
+    });
+    socket.on('chat:leaveThread', async (data: { threadId: string }) => {
+      try {
+        const threadId = String(data?.threadId ?? '');
+        if (!threadId) return;
+        await socket.leave(threadRoom(threadId));
+      } catch (e) {
+        console.error('leaveThread error', e);
+      }
+    });
+
     // 线程内发送（幂等）
     socket.on('chat:send', async (data: SendPayload) => {
       try {
@@ -176,14 +199,17 @@ export function setupSocketServer(io: Server) {
           clientMsgId: data.clientMsgId,
         };
 
-        // 在线设备群发；不在线则入离线队列（并限制长度）
-        if (isOnline) {
-          io.to(roomOf(toUserId)).emit('chat:newMessage', payload);
-          io.to(roomOf(userId)).emit('chat:newMessage', payload);
-        } else {
+        // 广播到参与者的个人房间（保证送达）
+        io.to(roomOf(toUserId)).emit('chat:newMessage', payload);
+        io.to(roomOf(userId)).emit('chat:newMessage', payload);
+
+        // 亦可广播到线程房间（活跃读者更低延迟）
+        io.to(threadRoom(threadId)).emit('chat:newMessage', payload);
+
+        // 若对端离线，入离线队列（个人房间在其上线时会被投递）
+        if (!isOnline) {
           const key = `offline:${toUserId}`;
           await redis.rpush(key, JSON.stringify(payload));
-          // 将离线队列长度限制在 1000
           await redis.ltrim(key, -1000, -1);
           console.log(`📦 Stored offline message for ${toUserId}`);
         }

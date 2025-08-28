@@ -18,6 +18,8 @@ type ServerToClientEvents = {
 
 type ClientToServerEvents = {
   'chat:send': (payload: { threadId: string; content: string; clientMsgId?: string }) => void;
+  'chat:joinThread': (payload: { threadId: string }) => void;
+  'chat:leaveThread': (payload: { threadId: string }) => void;
   markAsRead?: (payload: { messageIds: string[] }) => void;
 };
 
@@ -142,11 +144,12 @@ export const useChatDockStore = create<ChatDockState>()(
             },
           }));
         } catch {}
-        // No explicit room join needed in backend; each user is in their own room
+        // Explicitly join thread room for active viewing
+        get().socket?.emit('chat:joinThread', { threadId });
       },
 
-      leaveThread: (_threadId: string) => {
-        // No-op for current backend implementation
+      leaveThread: (threadId: string) => {
+        get().socket?.emit('chat:leaveThread', { threadId });
       },
 
       sendMessage: (threadId: string, content: string) => {
