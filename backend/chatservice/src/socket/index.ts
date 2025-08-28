@@ -4,10 +4,11 @@ import jwt from 'jsonwebtoken';
 import redis from '../config/redis.js';                 // 你前面提供的是默认导出
 import type { MessageStatus } from '../models/message.js';
 import { createMessageIdempotent, Message } from '../models/message.js';
+import { ThreadParticipant } from '../models/threadParticipant.js';
 
 interface JWTPayload { userId?: string; sub?: string; iat?: number; exp?: number; }
 interface SocketWithAuth extends Socket { data: { userId: string }; }
-interface SendPayload { toUserId: string; message: string; clientMsgId?: string; }
+interface SendPayload { threadId: string; content: string; clientMsgId?: string; }
 
 const userSockets = new Map<string, Set<string>>(); // 多设备支持（本机内存）
 function roomOf(userId: string) { return `user:${userId}`; }
@@ -132,27 +133,32 @@ export function setupSocketServer(io: Server) {
       console.error('❌ Offline delivery error:', e);
     }
 
-    // 发送私信（幂等）
-    socket.on('privateMessage', async (data: SendPayload) => {
+    // 线程内发送（幂等）
+    socket.on('chat:send', async (data: SendPayload) => {
       try {
         if (await isRateLimited(userId)) {
           socket.emit('error', { code: 'RATE_LIMIT', message: 'Too many messages. Please slow down.' });
           return;
         }
-        const toUserId = typeof data?.toUserId === 'string' ? data.toUserId : '';
-        let content = typeof data?.message === 'string' ? data.message.trim() : '';
-        if (!toUserId) { socket.emit('error', { code: 'BAD_RECIPIENT', message: 'Invalid recipient' }); return; }
+        const threadId = typeof data?.threadId === 'string' ? data.threadId : '';
+        let content = typeof data?.content === 'string' ? data.content.trim() : '';
+        if (!threadId) { socket.emit('error', { code: 'BAD_THREAD', message: 'Invalid thread' }); return; }
         if (!content) { socket.emit('error', { code: 'EMPTY', message: 'Message cannot be empty' }); return; }
         if (content.length > 1000) { socket.emit('error', { code: 'TOO_LONG', message: 'Message too long' }); return; }
 
-        // 跨实例查询房间内是否有人在线
-        const room = roomOf(toUserId);
-        const sockets = await io.in(room).fetchSockets();
+        // 授权：必须是参与者
+        const parts = await ThreadParticipant.find({ threadId }).lean();
+        if (!parts.some(p => String(p.userId) === userId)) { socket.emit('error', { code: 'FORBIDDEN' }); return; }
+        const toUserId = String((parts.find(p => String(p.userId) !== userId) as any)?.userId ?? '');
+
+        // 在线检测：看对端是否在线
+        const sockets = await io.in(roomOf(toUserId)).fetchSockets();
         const isOnline = sockets.length > 0;
         const status: MessageStatus = isOnline ? 'delivered' : 'sent';
 
         // 幂等写库
         const { doc, created } = await createMessageIdempotent({
+          threadId,
           fromUserId: userId,
           toUserId,
           content,
@@ -162,18 +168,18 @@ export function setupSocketServer(io: Server) {
 
         // 统一响应负载（用 DB 的 createdAt，保证前后端排序一致）
         const payload = {
-          fromUserId: userId,
-          toUserId,
-          message: doc.content,
-          status: doc.status,
-          timestamp: doc.createdAt,
-          messageId: String((doc as any)._id),
-          clientMsgId: data.clientMsgId
+          threadId,
+          id: String((doc as any)._id),
+          senderId: userId,
+          content: doc.content,
+          createdAt: doc.createdAt,
+          clientMsgId: data.clientMsgId,
         };
 
         // 在线设备群发；不在线则入离线队列（并限制长度）
         if (isOnline) {
-          io.to(room).emit('privateMessage', payload);
+          io.to(roomOf(toUserId)).emit('chat:newMessage', payload);
+          io.to(roomOf(userId)).emit('chat:newMessage', payload);
         } else {
           const key = `offline:${toUserId}`;
           await redis.rpush(key, JSON.stringify(payload));
@@ -183,7 +189,7 @@ export function setupSocketServer(io: Server) {
         }
 
         // 给发送者 ACK（带 created 标志）
-        socket.emit('messageSent', { messageId: payload.messageId, status: payload.status, timestamp: payload.timestamp, created });
+        socket.emit('messageSent', { id: payload.id, createdAt: payload.createdAt, created });
       } catch (e) {
         console.error('❌ Send error:', e);
         socket.emit('error', { code: 'SEND_FAIL', message: 'Failed to send message' });

@@ -1,24 +1,23 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { io, Socket } from "socket.io-client";
-import { getThreadMessages } from "@/api/chat";
+import { getThreadMessages, startDM } from "@/api/chat";
 import { supabase } from "@/lib/supabase";
 
 type ServerToClientEvents = {
-  privateMessage: (payload: {
-    fromUserId: string;
-    toUserId: string;
-    message: string;
-    status: string;
-    timestamp: string;
-    messageId: string;
+  'chat:newMessage': (payload: {
+    threadId: string;
+    id: string;
+    senderId: string;
+    content: string;
+    createdAt: string;
     clientMsgId?: string;
   }) => void;
   messageRead?: (payload: { messageIds: string[]; readBy: string }) => void;
 };
 
 type ClientToServerEvents = {
-  privateMessage: (payload: { toUserId: string; message: string; clientMsgId?: string }) => void;
+  'chat:send': (payload: { threadId: string; content: string; clientMsgId?: string }) => void;
   markAsRead?: (payload: { messageIds: string[] }) => void;
 };
 
@@ -89,28 +88,29 @@ export const useChatDockStore = create<ChatDockState>()(
           auth: accessToken ? { token: accessToken } : undefined,
         });
 
-        s.on("privateMessage", (payload) => {
-          const peerId = payload.fromUserId === userId ? payload.toUserId : payload.fromUserId;
+        s.on('chat:newMessage', (payload) => {
           const newMsg: ChatMessage = {
-            id: payload.messageId,
-            threadId: peerId,
-            senderId: payload.fromUserId,
-            content: payload.message,
-            createdAt: payload.timestamp,
-            isMine: payload.fromUserId === userId,
+            id: payload.id,
+            threadId: payload.threadId,
+            senderId: payload.senderId,
+            content: payload.content,
+            createdAt: payload.createdAt,
+            isMine: payload.senderId === get().userId,
           };
           set((state) => {
-            const prev = state.messages[peerId] ?? [];
-            const updated = [...prev, newMsg];
-            return { messages: { ...state.messages, [peerId]: updated } };
+            const prev = state.messages[payload.threadId] ?? [];
+            // optimistic replacement by clientMsgId
+            const idx = payload.clientMsgId ? prev.findIndex(m => m.id === payload.clientMsgId) : -1;
+            const updated = idx >= 0 ? [...prev.slice(0, idx), newMsg, ...prev.slice(idx + 1)] : [...prev, newMsg];
+            return { messages: { ...state.messages, [payload.threadId]: updated } };
           });
-          const info = get().openThreads[peerId];
+          const info = get().openThreads[payload.threadId];
           if (info) {
             const bumpedUnread = info.focused && !info.minimized ? 0 : info.unread + 1;
             set((state) => ({
               openThreads: {
                 ...state.openThreads,
-                [peerId]: { ...info, unread: bumpedUnread },
+                [payload.threadId]: { ...info, unread: bumpedUnread },
               },
             }));
           }
@@ -167,7 +167,14 @@ export const useChatDockStore = create<ChatDockState>()(
           },
         }));
         const clientMsgId = (globalThis as any).crypto?.randomUUID?.() ?? `c_${Date.now()}`;
-        get().socket?.emit("privateMessage", { toUserId: threadId, message: content, clientMsgId });
+        // optimistic id = clientMsgId for replacement
+        set((state) => ({
+          messages: {
+            ...state.messages,
+            [threadId]: (state.messages[threadId] ?? []).map(m => m.id === optimistic.id ? { ...m, id: clientMsgId } : m)
+          },
+        }));
+        get().socket?.emit('chat:send', { threadId, content, clientMsgId });
       },
 
       focusThread: (threadId: string) => {
@@ -207,7 +214,8 @@ export const useChatDockStore = create<ChatDockState>()(
 
       startDM: async (otherUserId: string) => {
         if (!otherUserId) return "";
-        const threadId = String(otherUserId); // Treat peer userId as threadId
+        const thread = await startDM(otherUserId);
+        const threadId = thread.id;
         const exists = get().openThreads[threadId];
         if (exists) {
           // Focus existing window
@@ -224,8 +232,8 @@ export const useChatDockStore = create<ChatDockState>()(
             ...state.openThreads,
             [threadId]: {
               threadId,
-              title: String(otherUserId),
-              avatarUrl: undefined,
+              title: thread.otherUser?.nickname ?? 'Chat',
+              avatarUrl: thread.otherUser?.avatarUrl,
               minimized: false,
               focused: true,
               unread: 0,
