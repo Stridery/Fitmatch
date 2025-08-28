@@ -48,7 +48,15 @@ export default function HeaderPanel() {
     <div
       key={u.id}
       className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
-      onClick={() => startDM(u.id)}
+      onClick={async () => {
+        try {
+          await startDM(u.id);
+        } finally {
+          // Close the search panel after starting DM
+          setQ("");
+          setList([]);
+        }
+      }}
     >
       {u.avatarUrl ? (
         <img src={u.avatarUrl} className="w-7 h-7 rounded-full" />

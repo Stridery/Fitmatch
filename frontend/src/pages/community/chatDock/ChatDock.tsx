@@ -21,13 +21,12 @@ export default function ChatDock() {
     }
   }, [user?.id]);
 
-  // Desktop only
-  if (typeof window !== "undefined" && window.innerWidth < 1024) return null;
+  // Render always; hide via CSS on small screens to avoid layout-induced unmounts
 
   const threadEntries = openThreads && typeof openThreads === 'object' ? Object.entries(openThreads) : [];
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex items-end gap-3">
+    <div className="fixed bottom-4 right-4 z-50 hidden lg:flex items-end gap-3">
       <HeaderPanel />
 
       {threadEntries.map(([threadId, info]) => (

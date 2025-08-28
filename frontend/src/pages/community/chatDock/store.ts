@@ -77,6 +77,7 @@ export const useChatDockStore = create<ChatDockState>()(
       ensureSocket: async (userId: string) => {
         const existing = get().socket;
         if (existing && existing.connected) return;
+        if (!userId) return;
         const url = import.meta.env?.VITE_SOCKET_URL;
         if (!url) return;
 
@@ -209,8 +210,8 @@ export const useChatDockStore = create<ChatDockState>()(
       closeThread: (threadId: string) => {
         get().leaveThread(threadId);
         set((state) => {
-          const { [threadId]: _, ...rest } = state.openThreads;
-          const { [threadId]: __, ...restMsgs } = state.messages;
+          const { [threadId]: _removed, ...rest } = state.openThreads;
+          const { [threadId]: _removedMsgs, ...restMsgs } = state.messages;
           return { openThreads: rest, messages: restMsgs };
         });
       },
