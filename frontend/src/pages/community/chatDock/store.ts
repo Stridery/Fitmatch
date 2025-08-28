@@ -206,7 +206,8 @@ export const useChatDockStore = create<ChatDockState>()(
       },
 
       startDM: async (otherUserId: string) => {
-        const threadId = otherUserId; // Treat peer userId as threadId
+        if (!otherUserId) return "";
+        const threadId = String(otherUserId); // Treat peer userId as threadId
         const exists = get().openThreads[threadId];
         if (exists) {
           // Focus existing window
@@ -223,7 +224,7 @@ export const useChatDockStore = create<ChatDockState>()(
             ...state.openThreads,
             [threadId]: {
               threadId,
-              title: otherUserId,
+              title: String(otherUserId),
               avatarUrl: undefined,
               minimized: false,
               focused: true,

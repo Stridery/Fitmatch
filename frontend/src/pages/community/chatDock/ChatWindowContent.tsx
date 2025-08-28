@@ -13,9 +13,11 @@ export default function ChatWindowContent({ threadId }: { threadId: string }) {
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (!threadId) return;
     joinThread(threadId);
     return () => leaveThread(threadId);
-  }, [threadId, joinThread, leaveThread]);
+    // Intentionally depend only on threadId to avoid effect churn from store fn identities
+  }, [threadId]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });

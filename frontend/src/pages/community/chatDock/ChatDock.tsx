@@ -19,7 +19,7 @@ export default function ChatDock() {
       setUserId(user.id);
       ensureSocket(user.id);
     }
-  }, [user?.id, setUserId, ensureSocket]);
+  }, [user?.id]);
 
   // Desktop only
   if (typeof window !== "undefined" && window.innerWidth < 1024) return null;
