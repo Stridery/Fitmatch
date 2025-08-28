@@ -134,7 +134,7 @@ export const useChatDockStore = create<ChatDockState>()(
           set((state) => ({
             messages: {
               ...state.messages,
-              [threadId]: list.map((m) => ({
+              [threadId]: (Array.isArray(list) ? list : []).map((m) => ({
                 id: m._id,
                 threadId: threadId,
                 senderId: m.senderId,

@@ -33,7 +33,7 @@ export default function ChatWindowContent({ threadId }: { threadId: string }) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
-        {messages.map((m) => (
+        {(Array.isArray(messages) ? messages : []).map((m) => (
           <div key={m.id} className="flex">
             <div
               className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${

@@ -44,7 +44,7 @@ export default function UserPicker() {
       <div className="mt-2 max-h-64 overflow-y-auto space-y-1">
         {loading && <div className="text-xs text-gray-500">Searching...</div>}
         {error && <div className="text-xs text-red-600">{error}</div>}
-        {list.map((u) => (
+        {(Array.isArray(list) ? list : []).map((u) => (
           <div key={u.id ?? u._id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
             {u.avatarUrl ? (
               <img src={u.avatarUrl} className="w-7 h-7 rounded-full" />

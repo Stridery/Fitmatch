@@ -77,11 +77,11 @@ export default function HeaderPanel() {
           <div className="space-y-1">
             {loading && <div className="text-xs text-gray-500">Searching...</div>}
             {error && <div className="text-xs text-red-600">{error}</div>}
-            {list.map(renderUser)}
+            {(Array.isArray(list) ? list : []).map(renderUser)}
           </div>
         ) : (
           <div className="space-y-1">
-            {recent.map(renderUser)}
+            {(Array.isArray(recent) ? recent : []).map(renderUser)}
           </div>
         )}
       </div>
