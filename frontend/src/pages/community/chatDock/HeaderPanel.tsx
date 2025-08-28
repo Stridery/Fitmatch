@@ -39,33 +39,46 @@ export default function HeaderPanel() {
 
   useEffect(() => {
     try {
-      // eslint-disable-next-line no-console
-      console.log('[chatDock] persisted:', localStorage.getItem('chat-dock'));
+      console.log("[chatDock] persisted:", localStorage.getItem("chat-dock"));
     } catch {}
   }, []);
 
-  const renderUser = (u: { id: string; nickname?: string; avatarUrl?: string }) => (
-    <div
-      key={u.id}
-      className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
-      onClick={async () => {
-        try {
-          await startDM(u.id);
-        } finally {
-          // Close the search panel after starting DM
-          setQ("");
-          setList([]);
-        }
-      }}
-    >
-      {u.avatarUrl ? (
-        <img src={u.avatarUrl} className="w-7 h-7 rounded-full" />
-      ) : (
-        <div className="w-7 h-7 rounded-full bg-gray-200" />
-      )}
-      <div className="text-sm truncate">{u.nickname ?? u.id}</div>
-    </div>
-  );
+  // 每次渲染打印一下列表状态
+  console.log("[ui] HeaderPanel render q=", q,
+    "recent=", Array.isArray(recent) ? recent : null,
+    "list=", Array.isArray(list) ? list : null);
+
+  const renderUser = (u: { id: string; nickname?: unknown; avatarUrl?: unknown }) => {
+    console.log("[ui] renderUser id=", u.id,
+      "nickname=", u.nickname, "typeof=", typeof u.nickname,
+      "avatarUrl=", u.avatarUrl, "typeof=", typeof u.avatarUrl);
+
+    return (
+      <div
+        key={u.id}
+        className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+        onClick={async () => {
+          try {
+            console.log("[ui] click startDM", u.id);
+            const tid = await startDM(u.id);
+            console.log("[ui] startDM returned:", tid);
+          } finally {
+            setQ("");
+            setList([]);
+          }
+        }}
+      >
+        {typeof u.avatarUrl === "string" ? (
+          <img src={u.avatarUrl} className="w-7 h-7 rounded-full" />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-gray-200" />
+        )}
+        <div className="text-sm truncate">
+          {typeof u.nickname === "string" ? u.nickname : JSON.stringify(u.nickname ?? u.id)}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="w-[280px] bg-white border rounded-lg shadow overflow-hidden">
@@ -77,15 +90,14 @@ export default function HeaderPanel() {
           <div className="space-y-1">
             {loading && <div className="text-xs text-gray-500">Searching...</div>}
             {error && <div className="text-xs text-red-600">{error}</div>}
-            {(Array.isArray(list) ? list : []).map(renderUser)}
+            {(Array.isArray(list) ? list : []).map((u) => renderUser(u as any))}
           </div>
         ) : (
           <div className="space-y-1">
-            {(Array.isArray(recent) ? recent : []).map(renderUser)}
+            {(Array.isArray(recent) ? recent : []).map((u) => renderUser(u as any))}
           </div>
         )}
       </div>
     </div>
   );
 }
-

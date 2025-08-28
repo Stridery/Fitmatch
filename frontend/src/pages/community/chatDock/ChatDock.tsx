@@ -17,68 +17,94 @@ export default function ChatDock() {
   useEffect(() => {
     if (user?.id) {
       setUserId(user.id);
-      // Defer socket connect until a chat window is opened (joinThread)
+      // 直接连上 socket，避免 joinThread 时 userId 未就绪
+      ensureSocket(user.id);
     }
   }, [user?.id]);
 
-  // Render always; hide via CSS on small screens to avoid layout-induced unmounts
-
-  const threadEntries = openThreads && typeof openThreads === 'object' ? Object.entries(openThreads) : [];
+  const entries =
+    openThreads && typeof openThreads === "object" ? Object.entries(openThreads) : [];
+  console.log("[ui] ChatDock render, openThreads count:", entries.length);
 
   return (
     <div className="fixed bottom-4 right-4 z-50 hidden lg:flex items-end gap-3">
       <HeaderPanel />
 
-      {threadEntries.map(([threadId, info]) => (
-        <div
-          key={threadId}
-          className="w-[320px] h-[420px] bg-white shadow-xl rounded-lg overflow-hidden border"
-          onMouseDown={() => focusThread(threadId)}
-        >
-          {/* Header */}
-          <div className="h-12 border-b bg-white flex items-center px-3 gap-2 select-none">
-            {info.avatarUrl ? (
-              <img src={info.avatarUrl} className="w-7 h-7 rounded-full" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-gray-200" />
-            )}
-            <div className="text-sm font-medium flex-1 truncate">
-              {info.title ?? "Chat"}
-            </div>
-            {info.unread > 0 && (
-              <div className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full mr-1">
-                {info.unread}
-              </div>
-            )}
-            <button
-              className="p-1 hover:bg-gray-100 rounded"
-              onClick={() => minimizeThread(threadId, !info.minimized)}
-              title={info.minimized ? "Restore" : "Minimize"}
-            >
-              <Minus size={16} />
-            </button>
-            <button
-              className="p-1 hover:bg-gray-100 rounded"
-              onClick={() => closeThread(threadId)}
-              title="Close"
-            >
-              <X size={16} />
-            </button>
-          </div>
+      {entries.map(([threadId, raw]) => {
+        console.log("[ui] render threadId =", threadId, "raw =", raw);
 
-          {/* Body */}
-          <div className="h-[calc(100%-3rem)]">
-            {info.minimized ? (
-              <div className="h-full flex items-center justify-center text-xs text-gray-500">
-                Minimized
+        const info = {
+          threadId,
+          title: typeof (raw as any)?.title === "string" ? (raw as any).title : (raw as any)?.title,
+          avatarUrl: typeof (raw as any)?.avatarUrl === "string" ? (raw as any).avatarUrl : (raw as any)?.avatarUrl,
+          minimized: !!(raw as any)?.minimized,
+          focused: !!(raw as any)?.focused,
+          unread: Number.isFinite(Number((raw as any)?.unread)) ? Number((raw as any).unread) : (raw as any)?.unread,
+        };
+
+        // 单独打印每个字段，确认类型
+        console.log("[ui] thread info fields:", {
+          threadId: info.threadId,
+          title: info.title,
+          titleType: typeof info.title,
+          avatarUrl: info.avatarUrl,
+          avatarUrlType: typeof info.avatarUrl,
+          minimized: info.minimized,
+          focused: info.focused,
+          unread: info.unread,
+          unreadType: typeof info.unread,
+        });
+
+        return (
+          <div
+            key={threadId}
+            className="w-[320px] h-[420px] bg-white shadow-xl rounded-lg overflow-hidden border"
+            onMouseDown={() => focusThread(threadId)}
+          >
+            {/* Header */}
+            <div className="h-12 border-b bg-white flex items-center px-3 gap-2 select-none">
+              {info.avatarUrl ? (
+                <img src={info.avatarUrl} className="w-7 h-7 rounded-full" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-gray-200" />
+              )}
+              <div className="text-sm font-medium flex-1 truncate">
+                {info.title ?? "Chat"}
               </div>
-            ) : (
-              <ChatWindowContent threadId={threadId} />
-            )}
+              {info.unread > 0 && (
+                <div className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full mr-1">
+                  {info.unread}
+                </div>
+              )}
+              <button
+                className="p-1 hover:bg-gray-100 rounded"
+                onClick={() => minimizeThread(threadId, !info.minimized)}
+                title={info.minimized ? "Restore" : "Minimize"}
+              >
+                <Minus size={16} />
+              </button>
+              <button
+                className="p-1 hover:bg-gray-100 rounded"
+                onClick={() => closeThread(threadId)}
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="h-[calc(100%-3rem)]">
+              {info.minimized ? (
+                <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                  Minimized
+                </div>
+              ) : (
+                <ChatWindowContent threadId={threadId} />
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
-
