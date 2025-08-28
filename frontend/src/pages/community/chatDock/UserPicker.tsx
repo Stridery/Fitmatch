@@ -25,7 +25,7 @@ export default function UserPicker() {
         setLoading(true);
         setError(null);
         const users = await searchUsers(q.trim());
-        setList(users);
+        setList(Array.isArray(users) ? users : []);
       } catch (e) {
         setError("Failed to search users");
       } finally {

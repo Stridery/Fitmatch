@@ -25,7 +25,7 @@ export default function HeaderPanel() {
         setLoading(true);
         setError(null);
         const users = await searchUsers(q.trim());
-        setList(users);
+        setList(Array.isArray(users) ? users : []);
       } catch {
         setError("Failed to search");
       } finally {

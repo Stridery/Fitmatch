@@ -22,7 +22,7 @@ export default function ProfileModal({ username, onClose }: Props) {
         setLoading(true);
         setError(null);
         const u = await searchUsers(username);
-        setUser(u);
+        setUser(Array.isArray(u) ? u[0] : u);
       } catch (e) {
         setError("Failed to load profile");
       } finally {
