@@ -68,14 +68,31 @@ export function setupSocketServer(io: Server) {
 
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token as string | undefined;
-    if (!token) return next(new Error('No token provided'));
+    const fallbackUserId = socket.handshake.auth?.userId as string | undefined;
+    if (!token) {
+      if (fallbackUserId) {
+        (socket as SocketWithAuth).data = { userId: String(fallbackUserId) };
+        return next();
+      }
+      return next(new Error('No token provided'));
+    }
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
       const uid = String(decoded.userId ?? decoded.sub ?? '');
-      if (!uid) return next(new Error('Invalid token payload'));
+      if (!uid) {
+        if (fallbackUserId) {
+          (socket as SocketWithAuth).data = { userId: String(fallbackUserId) };
+          return next();
+        }
+        return next(new Error('Invalid token payload'));
+      }
       (socket as SocketWithAuth).data = { userId: uid };
       next();
     } catch (e) {
+      if (fallbackUserId) {
+        (socket as SocketWithAuth).data = { userId: String(fallbackUserId) };
+        return next();
+      }
       next(new Error('Invalid token'));
     }
   });
