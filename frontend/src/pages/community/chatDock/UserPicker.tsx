@@ -45,21 +45,23 @@ export default function UserPicker() {
         {loading && <div className="text-xs text-gray-500">Searching...</div>}
         {error && <div className="text-xs text-red-600">{error}</div>}
         {list.map((u) => (
-          <div key={u._id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+          <div key={u.id ?? u._id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
             {u.avatarUrl ? (
               <img src={u.avatarUrl} className="w-7 h-7 rounded-full" />
             ) : (
               <div className="w-7 h-7 rounded-full bg-gray-200" />
             )}
             <div className="flex-1 min-w-0">
-              <div className="text-sm truncate">{u.nickname ?? u.username}</div>
-              <div className="text-[11px] text-gray-500 truncate">@{u.username}</div>
+              <div className="text-sm truncate">{u.nickname ?? u.username ?? u.id ?? u._id}</div>
+              {u.username && (
+                <div className="text-[11px] text-gray-500 truncate">@{u.username}</div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="secondary" onClick={() => setProfileUsername(u.username)}>
                 View Profile
               </Button>
-              <Button size="sm" onClick={() => startDM(u._id)}>Message</Button>
+              <Button size="sm" onClick={() => startDM(u.id ?? u._id)}>Message</Button>
             </div>
           </div>
         ))}

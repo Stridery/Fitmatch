@@ -1,17 +1,25 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { io, Socket } from "socket.io-client";
-import { getThreadMessages, startDM } from "@/api/chat";
+import { getThreadMessages } from "@/api/chat";
+import { supabase } from "@/lib/supabase";
 
 type ServerToClientEvents = {
-  "chat:new_message": (payload: { threadId: string; message: ChatMessage }) => void;
-  "chat:joined": (payload: { threadId: string }) => void;
+  privateMessage: (payload: {
+    fromUserId: string;
+    toUserId: string;
+    message: string;
+    status: string;
+    timestamp: string;
+    messageId: string;
+    clientMsgId?: string;
+  }) => void;
+  messageRead?: (payload: { messageIds: string[]; readBy: string }) => void;
 };
 
 type ClientToServerEvents = {
-  "chat:join": (payload: { threadId: string }) => void;
-  "chat:leave": (payload: { threadId: string }) => void;
-  "chat:send": (payload: { threadId: string; content: string }) => void;
+  privateMessage: (payload: { toUserId: string; message: string; clientMsgId?: string }) => void;
+  markAsRead?: (payload: { messageIds: string[] }) => void;
 };
 
 type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -65,31 +73,44 @@ export const useChatDockStore = create<ChatDockState>()(
 
       setUserId: (userId) => set({ userId }),
 
-      ensureSocket: (userId: string) => {
+      ensureSocket: async (userId: string) => {
         const existing = get().socket;
         if (existing && existing.connected) return;
         const url = import.meta.env?.VITE_SOCKET_URL;
         if (!url) return;
 
+        // Fetch JWT from Supabase and pass to socket auth as `token`
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data.session?.access_token;
+
         const s: ChatSocket = io(url, {
           transports: ["websocket"],
           autoConnect: true,
-          auth: { userId },
+          auth: accessToken ? { token: accessToken } : undefined,
         });
 
-        s.on("chat:new_message", ({ threadId, message }) => {
+        s.on("privateMessage", (payload) => {
+          const peerId = payload.fromUserId === userId ? payload.toUserId : payload.fromUserId;
+          const newMsg: ChatMessage = {
+            id: payload.messageId,
+            threadId: peerId,
+            senderId: payload.fromUserId,
+            content: payload.message,
+            createdAt: payload.timestamp,
+            isMine: payload.fromUserId === userId,
+          };
           set((state) => {
-            const prev = state.messages[threadId] ?? [];
-            const updated = [...prev, message];
-            return { messages: { ...state.messages, [threadId]: updated } };
+            const prev = state.messages[peerId] ?? [];
+            const updated = [...prev, newMsg];
+            return { messages: { ...state.messages, [peerId]: updated } };
           });
-          const info = get().openThreads[threadId];
+          const info = get().openThreads[peerId];
           if (info) {
             const bumpedUnread = info.focused && !info.minimized ? 0 : info.unread + 1;
             set((state) => ({
               openThreads: {
                 ...state.openThreads,
-                [threadId]: { ...info, unread: bumpedUnread },
+                [peerId]: { ...info, unread: bumpedUnread },
               },
             }));
           }
@@ -102,7 +123,7 @@ export const useChatDockStore = create<ChatDockState>()(
         const socket = get().socket;
         const userId = get().userId ?? undefined;
         if (!userId) return;
-        if (!socket || !socket.connected) get().ensureSocket(userId);
+        if (!socket || !socket.connected) await get().ensureSocket(userId);
 
         // fetch latest 50
         try {
@@ -112,7 +133,7 @@ export const useChatDockStore = create<ChatDockState>()(
               ...state.messages,
               [threadId]: list.map((m) => ({
                 id: m._id,
-                threadId: m.threadId,
+                threadId: threadId,
                 senderId: m.senderId,
                 content: m.content,
                 createdAt: m.createdAt,
@@ -121,12 +142,11 @@ export const useChatDockStore = create<ChatDockState>()(
             },
           }));
         } catch {}
-
-        get().socket?.emit("chat:join", { threadId });
+        // No explicit room join needed in backend; each user is in their own room
       },
 
-      leaveThread: (threadId: string) => {
-        get().socket?.emit("chat:leave", { threadId });
+      leaveThread: (_threadId: string) => {
+        // No-op for current backend implementation
       },
 
       sendMessage: (threadId: string, content: string) => {
@@ -146,7 +166,8 @@ export const useChatDockStore = create<ChatDockState>()(
             [threadId]: [...(state.messages[threadId] ?? []), optimistic],
           },
         }));
-        get().socket?.emit("chat:send", { threadId, content });
+        const clientMsgId = (globalThis as any).crypto?.randomUUID?.() ?? `c_${Date.now()}`;
+        get().socket?.emit("privateMessage", { toUserId: threadId, message: content, clientMsgId });
       },
 
       focusThread: (threadId: string) => {
@@ -185,13 +206,7 @@ export const useChatDockStore = create<ChatDockState>()(
       },
 
       startDM: async (otherUserId: string) => {
-        const thread = await startDM(otherUserId);
-        const threadId = thread._id;
-        // track recent contact
-        if (thread.otherUser?._id) {
-          const u = thread.otherUser;
-          get().addRecentContact({ id: u._id, nickname: u.nickname, avatarUrl: u.avatarUrl });
-        }
+        const threadId = otherUserId; // Treat peer userId as threadId
         const exists = get().openThreads[threadId];
         if (exists) {
           // Focus existing window
@@ -208,8 +223,8 @@ export const useChatDockStore = create<ChatDockState>()(
             ...state.openThreads,
             [threadId]: {
               threadId,
-              title: thread.title ?? thread.otherUser?.nickname ?? "Chat",
-              avatarUrl: thread.otherUser?.avatarUrl,
+              title: otherUserId,
+              avatarUrl: undefined,
               minimized: false,
               focused: true,
               unread: 0,

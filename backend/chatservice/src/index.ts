@@ -4,10 +4,12 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
+import jwt from 'jsonwebtoken';
 
 import connectDB, { getDBState, closeDB } from './config/db.js';
 import redis, { pingRedis, closeRedis, createRedisPubSubClients } from './config/redis.js';
 import { setupSocketServer } from './socket/index.js';
+import { Message } from './models/message.js';
 
 dotenv.config();
 
@@ -76,6 +78,54 @@ async function main() {
       time: new Date().toISOString(),
       service: 'Chat Service is running',
     });
+  });
+
+  // 简单历史消息查询：基于对端用户ID，按时间倒序分页
+  app.get('/chat/history/:peerId', async (req, res) => {
+    try {
+      const auth = req.headers['authorization'] as string | undefined;
+      const token = auth?.startsWith('Bearer ') ? auth.slice(7) : undefined;
+      if (!token) return res.status(401).json({ error: 'Unauthorized' });
+      const decoded = (await (async () => {
+        try { return jwt.verify(token, process.env.JWT_SECRET!) as any; } catch { return null; }
+      })());
+      const userId = String(decoded?.userId ?? decoded?.sub ?? '');
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      const peerId = String(req.params.peerId);
+      const limit = Math.min(Number(req.query.limit ?? 50), 100);
+      const before = req.query.before ? new Date(String(req.query.before)) : null;
+
+      const q: any = {
+        $or: [
+          { fromUserId: userId, toUserId: peerId },
+          { fromUserId: peerId, toUserId: userId },
+        ],
+      };
+      if (before && !isNaN(before.getTime())) {
+        q.createdAt = { $lt: before };
+      }
+
+      const docs = await Message
+        .find(q)
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(limit)
+        .lean();
+
+      const messages = docs
+        .reverse()
+        .map(d => ({
+          _id: String((d as any)._id),
+          senderId: String(d.fromUserId),
+          content: d.content,
+          createdAt: (d.createdAt as Date).toISOString(),
+        }));
+
+      res.json({ messages });
+    } catch (e) {
+      console.error('GET /chat/history error', e);
+      res.status(500).json({ error: 'Failed to load history' });
+    }
   });
 
   // 在线状态查询（简单版：读 Redis；Redis 不可用时返回 unknown）

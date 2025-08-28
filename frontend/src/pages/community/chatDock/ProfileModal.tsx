@@ -50,7 +50,7 @@ export default function ProfileModal({ username, onClose }: Props) {
               <div className="font-medium">{user.nickname ?? user.username}</div>
               <div className="text-xs text-gray-500">@{user.username}</div>
             </div>
-            <Button onClick={() => startDM(user._id)}>Message</Button>
+            <Button onClick={() => startDM(user.id ?? user._id)}>Message</Button>
           </div>
         )}
       </DialogContent>
