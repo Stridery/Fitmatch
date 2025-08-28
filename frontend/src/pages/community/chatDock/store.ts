@@ -242,7 +242,7 @@ export const useChatDockStore = create<ChatDockState>()(
         const accessToken = data.session?.access_token;
 
         const opts: Partial<ManagerOptions & SocketOptions> = {
-          transports: ["websocket"],
+          transports: ["websocket", "polling"],
           autoConnect: true,
           auth: accessToken ? { token: accessToken } : undefined,
         };
