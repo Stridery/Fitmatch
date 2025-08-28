@@ -37,6 +37,13 @@ export default function HeaderPanel() {
     };
   }, [q]);
 
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line no-console
+      console.log('[chatDock] persisted:', localStorage.getItem('chat-dock'));
+    } catch {}
+  }, []);
+
   const renderUser = (u: { id: string; nickname?: string; avatarUrl?: string }) => (
     <div
       key={u.id}

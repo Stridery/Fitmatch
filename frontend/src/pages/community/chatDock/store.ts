@@ -218,7 +218,23 @@ export const useChatDockStore = create<ChatDockState>()(
       startDM: async (otherUserId: string) => {
         if (!otherUserId) return "";
         const thread = await startDM(otherUserId);
-        const threadId = thread.id;
+        // Guard: accept id or _id, prefer id
+        let threadId = (thread as any).id ?? (thread as any)._id;
+        if (!threadId) {
+          // eslint-disable-next-line no-console
+          console.warn('[chatDock] startDM missing thread.id, got:', thread);
+          return "";
+        }
+        threadId = String(threadId);
+        try {
+          // Debug logs before state change
+          // eslint-disable-next-line no-console
+          console.log('[chatDock] startDM thread:', thread);
+          // eslint-disable-next-line no-console
+          console.log('[chatDock] startDM computed threadId:', threadId);
+          // eslint-disable-next-line no-console
+          console.log('[chatDock] startDM openThreads(before):', { ...get().openThreads });
+        } catch {}
         const exists = get().openThreads[threadId];
         if (exists) {
           // Focus existing window
@@ -243,6 +259,10 @@ export const useChatDockStore = create<ChatDockState>()(
             },
           },
         }));
+        try {
+          // eslint-disable-next-line no-console
+          console.log('[chatDock] startDM openThreads(after):', { ...get().openThreads });
+        } catch {}
         await get().joinThread(threadId);
         return threadId;
       },
@@ -254,7 +274,61 @@ export const useChatDockStore = create<ChatDockState>()(
         });
       },
     }),
-    { name: "chat-dock", partialize: (s) => ({ openThreads: s.openThreads, recentContacts: s.recentContacts }) }
+    {
+      name: "chat-dock",
+      partialize: (s) => ({ openThreads: s.openThreads, recentContacts: s.recentContacts }),
+      // Validate/repair persisted state shape at load
+      version: 1,
+      migrate: async (persisted: any, _version) => {
+        try {
+          const state = persisted?.state ?? persisted;
+          const repaired: any = { ...persisted };
+          const ot = state?.openThreads;
+          const rc = state?.recentContacts;
+          let changed = false;
+          if (!ot || typeof ot !== 'object' || Array.isArray(ot)) {
+            repaired.state = repaired.state || {};
+            repaired.state.openThreads = {};
+            changed = true;
+            // eslint-disable-next-line no-console
+            console.warn('[chatDock] repaired invalid openThreads in persisted state');
+          }
+          if (!Array.isArray(rc)) {
+            repaired.state = repaired.state || {};
+            repaired.state.recentContacts = [];
+            changed = true;
+            // eslint-disable-next-line no-console
+            console.warn('[chatDock] repaired invalid recentContacts in persisted state');
+          }
+          // Optionally filter out entries without threadId
+          if (repaired.state?.openThreads) {
+            const filtered: Record<string, any> = {};
+            for (const [k, v] of Object.entries(repaired.state.openThreads)) {
+              const tid = (v as any)?.threadId ?? k;
+              if (!tid) {
+                changed = true;
+                continue;
+              }
+              filtered[String(tid)] = {
+                threadId: String(tid),
+                title: (v as any)?.title,
+                avatarUrl: (v as any)?.avatarUrl,
+                minimized: !!(v as any)?.minimized,
+                focused: !!(v as any)?.focused,
+                unread: Number((v as any)?.unread ?? 0),
+              };
+            }
+            repaired.state.openThreads = filtered;
+          }
+          if (changed) return repaired;
+          return persisted;
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn('[chatDock] migrate failed, resetting persisted state', e);
+          return { state: { openThreads: {}, recentContacts: [] }, version: 1 };
+        }
+      },
+    }
   )
 );
 

@@ -21,6 +21,11 @@ export async function startDM(participantId: string) {
     `/chat/threads`,
     { participantId }
   );
+  try {
+    // Debug: confirm backend response shape
+    // eslint-disable-next-line no-console
+    console.log("[chat.api] startDM response:", res.data);
+  } catch {}
   return res.data.thread;
 }
 
