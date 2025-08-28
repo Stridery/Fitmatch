@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { searchUsers, type PublicUserDTO } from "@/api/userSearch";
+import { searchUsers, type PublicUserDTO } from "@/api/user";
 import { useChatDockStore } from "./store";
 
 export default function HeaderPanel() {

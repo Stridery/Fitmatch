@@ -132,7 +132,6 @@ const CompleteProfilePage = () => {
         return;
       }
       const userId = session.user.id;
-      const token = session.access_token;
 
       let avatarUrl: string | null = profile.avatarUrl || null
 
@@ -168,8 +167,8 @@ const CompleteProfilePage = () => {
       }
 
 
-      await setUserProfile(updatedProfile, token)
-      await saveInjuriesBatch(injuriesBatch, token)
+      await setUserProfile(updatedProfile)
+      await saveInjuriesBatch(injuriesBatch)
 
       setUser({
         id: userId,

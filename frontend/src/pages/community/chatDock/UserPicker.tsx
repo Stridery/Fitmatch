@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { searchUsers } from "@/api/userSearch";
+import { searchUsers } from "@/api/user";
 import { useChatDockStore } from "./store";
 import ProfileModal from "./ProfileModal";
 

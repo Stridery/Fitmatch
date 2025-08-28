@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getUserByUsername } from "@/api/userSearch";
+import { searchUsers } from "@/api/user";
 import { useChatDockStore } from "./store";
 
 interface Props {
@@ -21,7 +21,7 @@ export default function ProfileModal({ username, onClose }: Props) {
       try {
         setLoading(true);
         setError(null);
-        const u = await getUserByUsername(username);
+        const u = await searchUsers(username);
         setUser(u);
       } catch (e) {
         setError("Failed to load profile");

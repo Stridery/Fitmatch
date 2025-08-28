@@ -31,7 +31,9 @@ export async function logout() {
   try {
     localStorage.removeItem("userId");
     localStorage.removeItem("token");
-  } catch {}
+  } catch {
+    // Ignore errors
+  }
   if (error) {
     console.error("Failed to sign out:", error);
     throw error;

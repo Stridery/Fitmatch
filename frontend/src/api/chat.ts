@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "./client";
 
 export interface ChatThreadSummary {
   _id: string;
@@ -15,24 +15,40 @@ export interface ChatMessageDTO {
   threadId: string;
   senderId: string;
   content: string;
-  createdAt: string;
+  createdAt: string; // ISO string
 }
 
-const BASE_URL = `${import.meta.env.VITE_API_BASE}/chat`;
-
-export async function startDM(otherUserId: string) {
-  const res = await axios.post<{ thread: ChatThreadSummary }>(
-    `${BASE_URL}/threads`,
-    { otherUserId }
+/** 创建或获取一对一会话（get-or-create） */
+export async function startDM(participantId: string) {
+  const res = await api.post<{ thread: ChatThreadSummary }>(
+    `/chat/threads`,
+    { participantId }
   );
   return res.data.thread;
 }
 
-export async function getThreadMessages(threadId: string, limit = 50) {
-  const res = await axios.get<{ messages: ChatMessageDTO[] }>(
-    `${BASE_URL}/threads/${threadId}/messages`,
-    { params: { limit } }
+/** 拉取会话消息（支持分页：before 为上一页的最早时间戳） */
+export async function getThreadMessages(
+  threadId: string,
+  limit = 50,
+  before?: string
+) {
+  const res = await api.get<{ messages: ChatMessageDTO[] }>(
+    `/chat/threads/${threadId}/messages`,
+    { params: { limit, ...(before ? { before } : {}) } }
   );
   return res.data.messages;
 }
 
+/** 发送消息（可选：幂等需要 clientMsgId） */
+export async function sendMessage(
+  threadId: string,
+  content: string,
+  clientMsgId: string
+) {
+  const res = await api.post<{ message: ChatMessageDTO }>(
+    `/chat/threads/${threadId}/messages`,
+    { content, clientMsgId }
+  );
+  return res.data.message;
+}
