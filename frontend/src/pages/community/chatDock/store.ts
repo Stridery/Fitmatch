@@ -402,6 +402,18 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           }
           return { ...state, openThreads: nextOpen, messages: nextMsgs };
         });
+
+        // If no threads remain, disconnect socket
+        const remaining = Object.keys(get().openThreads).length;
+        if (remaining === 0) {
+          const s = get().socket;
+          try {
+            s?.disconnect();
+          } catch {
+            // noop
+          }
+          set({ socket: null });
+        }
       },
 
       startDM: async (otherUserId: string) => {
