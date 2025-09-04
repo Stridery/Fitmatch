@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { searchUsers, type PublicUserDTO } from "@/api/user";
 import { useChatDockStore } from "./store";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function HeaderPanel() {
   const startDM = useChatDockStore((s) => s.startDM);
@@ -43,11 +44,10 @@ export default function HeaderPanel() {
       className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
       onClick={() => startDM(u.id)}
     >
-      {u.avatarUrl ? (
-        <img src={u.avatarUrl} className="w-7 h-7 rounded-full" />
-      ) : (
-        <div className="w-7 h-7 rounded-full bg-gray-200" />
-      )}
+      <Avatar className="w-7 h-7">
+        {u.avatarUrl && <AvatarImage src={u.avatarUrl} alt={u.nickname ?? u.id} />}
+        <AvatarFallback>{(u.nickname?.charAt(0) ?? u.id.charAt(0) ?? "?").toUpperCase()}</AvatarFallback>
+      </Avatar>
       <div className="text-sm truncate">{u.nickname ?? u.id}</div>
     </div>
   );

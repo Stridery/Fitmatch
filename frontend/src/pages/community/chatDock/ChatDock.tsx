@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { X, Minus } from "lucide-react";
+import { X, Minus, Maximize2 } from "lucide-react";
 import { useChatDockStore } from "./store";
 import ChatWindowContent from "./ChatWindowContent";
 import { useUser } from "@/contexts/UserContext";
 import HeaderPanel from "./HeaderPanel";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ChatDock() {
   const { user } = useUser();
@@ -33,16 +34,15 @@ export default function ChatDock() {
       {threadEntries.map(([threadId, info]) => (
         <div
           key={threadId}
-          className="w-[320px] h-[420px] bg-white shadow-xl rounded-lg overflow-hidden border"
+          className={`w-[320px] ${info.minimized ? "h-12" : "h-[420px]"} bg-white shadow-xl rounded-lg overflow-hidden border`}
           onMouseDown={() => focusThread(threadId)}
         >
           {/* Header */}
           <div className="h-12 border-b bg-white flex items-center px-3 gap-2 select-none">
-            {info.avatarUrl ? (
-              <img src={info.avatarUrl} className="w-7 h-7 rounded-full" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-gray-200" />
-            )}
+            <Avatar className="w-7 h-7">
+              {info.avatarUrl && <AvatarImage src={info.avatarUrl} alt={info.title ?? "Chat avatar"} />}
+              <AvatarFallback>{(info.title?.charAt(0) ?? "?").toUpperCase()}</AvatarFallback>
+            </Avatar>
             <div className="text-sm font-medium flex-1 truncate">
               {info.title ?? "Chat"}
             </div>
@@ -54,9 +54,9 @@ export default function ChatDock() {
             <button
               className="p-1 hover:bg-gray-100 rounded"
               onClick={() => minimizeThread(threadId, !info.minimized)}
-              title={info.minimized ? "Restore" : "Minimize"}
+              title={info.minimized ? "Expand" : "Minimize"}
             >
-              <Minus size={16} />
+              {info.minimized ? <Maximize2 size={16} /> : <Minus size={16} />}
             </button>
             <button
               className="p-1 hover:bg-gray-100 rounded"
@@ -68,15 +68,11 @@ export default function ChatDock() {
           </div>
 
           {/* Body */}
-          <div className="h-[calc(100%-3rem)]">
-            {info.minimized ? (
-              <div className="h-full flex items-center justify-center text-xs text-gray-500">
-                Minimized
-              </div>
-            ) : (
+          {!info.minimized && (
+            <div className="h-[calc(100%-3rem)]">
               <ChatWindowContent threadId={threadId} />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

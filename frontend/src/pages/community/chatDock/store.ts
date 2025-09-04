@@ -180,6 +180,11 @@ export const useChatDockStore = create<ChatDockState>()(
         set((state) => {
           const { [threadId]: _, ...rest } = state.openThreads;
           const { [threadId]: __, ...restMsgs } = state.messages;
+          // If no open threads remain, disconnect socket
+          if (Object.keys(rest).length === 0) {
+            state.socket?.disconnect();
+            return { openThreads: rest, messages: restMsgs, socket: null } as any;
+          }
           return { openThreads: rest, messages: restMsgs };
         });
       },
