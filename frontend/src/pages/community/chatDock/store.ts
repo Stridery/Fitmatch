@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { createWithEqualityFn } from 'zustand/traditional'
 import { persist } from "zustand/middleware";
 import { io, Socket } from "socket.io-client";
 import type { ManagerOptions, SocketOptions } from "socket.io-client";
@@ -175,7 +175,7 @@ const parseMessageDTO = (m: unknown, threadId: string, myUserId: string): ChatMe
 };
 
 /** ============ Store 实现 ============ */
-export const useChatDockStore = create<ChatDockState>()(
+export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
   persist(
     (set, get) => ({
       userId: null,
@@ -188,18 +188,15 @@ export const useChatDockStore = create<ChatDockState>()(
       setUserId: (userId) => set({ userId }),
 
       ensureSocket: async (userId: string): Promise<void> => {
-        const existing = get().socket;
         /*
         if (existing && existing.connected) return;
         if (!userId) return;
         */
-       if (existing && existing.connected) { console.log("[socket] already connected"); return; }
       if (!userId) { console.warn("[socket] no userId, skip connect"); return; }
 
 
         // ✅ 标准方式读取 Vite 环境变量（构建期替换）
         const envUrl = import.meta.env.VITE_SOCKET_URL as string | undefined;
-        console.log("[socket] VITE_SOCKET_URL =", envUrl);
 
         // 解析：支持三种写法
         // 1) "/socket.io"         -> 同域 + 自定义 path
@@ -233,8 +230,6 @@ export const useChatDockStore = create<ChatDockState>()(
           baseUrl = undefined;
           pathOpt = "/socket.io";
         }
-
-        console.log("[socket] resolved baseUrl/path:", baseUrl ?? "(same-origin)", pathOpt);
 
 
         // 拿 Supabase 的 token
@@ -292,7 +287,6 @@ export const useChatDockStore = create<ChatDockState>()(
       },
 
       joinThread: async (threadId: string) => {
-        console.log("[thread] joinThread start:", threadId);
 
         if (!threadId) return;
         const userId = get().userId;
@@ -306,7 +300,6 @@ export const useChatDockStore = create<ChatDockState>()(
         try {
           const listUnknown = await getThreadMessages(threadId, 50);
           const list = Array.isArray(listUnknown) ? listUnknown : [];
-          console.log("[thread] history fetched:", Array.isArray(list) ? list.length : list);
           const parsed: ChatMessage[] = [];
           for (const m of list) {
             const pm = parseMessageDTO(m as MessageDTO, threadId, userId);
@@ -324,7 +317,6 @@ export const useChatDockStore = create<ChatDockState>()(
         }
 
         get().socket?.emit("chat:joinThread", { threadId });
-        console.log("[thread] emitted chat:joinThread");
       },
 
       leaveThread: (threadId: string) => {
@@ -415,12 +407,9 @@ export const useChatDockStore = create<ChatDockState>()(
       startDM: async (otherUserId: string) => {
         if (!otherUserId) return "";
 
-        console.log("[store] startDM called with:", otherUserId);
         const raw = (await startDM(otherUserId)) as unknown;
-        console.log("[store] startDM API response:", raw);
         
         // 👉 如果你在 chat API 层还有日志，这里再加一条更清晰的：
-        // console.log("[chatDock] startDM raw:", raw);
 
         const { id: threadId, title, avatarUrl } = parseThreadFromUnknown(raw);
 

@@ -24,8 +24,10 @@ export async function startDM(participantId: string) {
   try {
     // Debug: confirm backend response shape
     // eslint-disable-next-line no-console
-    console.log("[chat.api] startDM response:", res.data);
-  } catch {}
+  } catch (err){
+    console.error("startDM failed", err);
+    throw err; // 保证错误向上传递
+  }
   return res.data.thread;
 }
 

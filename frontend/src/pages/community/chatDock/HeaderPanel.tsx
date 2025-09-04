@@ -37,31 +37,14 @@ export default function HeaderPanel() {
     };
   }, [q]);
 
-  useEffect(() => {
-    try {
-      console.log("[chatDock] persisted:", localStorage.getItem("chat-dock"));
-    } catch {}
-  }, []);
-
-  // 每次渲染打印一下列表状态
-  console.log("[ui] HeaderPanel render q=", q,
-    "recent=", Array.isArray(recent) ? recent : null,
-    "list=", Array.isArray(list) ? list : null);
-
   const renderUser = (u: { id: string; nickname?: unknown; avatarUrl?: unknown }) => {
-    console.log("[ui] renderUser id=", u.id,
-      "nickname=", u.nickname, "typeof=", typeof u.nickname,
-      "avatarUrl=", u.avatarUrl, "typeof=", typeof u.avatarUrl);
-
     return (
       <div
         key={u.id}
         className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
         onClick={async () => {
           try {
-            console.log("[ui] click startDM", u.id);
             const tid = await startDM(u.id);
-            console.log("[ui] startDM returned:", tid);
           } finally {
             setQ("");
             setList([]);

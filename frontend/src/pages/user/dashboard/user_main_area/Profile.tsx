@@ -216,14 +216,13 @@ const ProfilePage: React.FC = () => {
       console.log("Injury diff:", { toCreate, toUpdate, toDelete });
 
       await saveInjuriesBatch(
-        { created: toCreate, updated: toUpdate, deletedIds: toDelete },
-        token
+        { created: toCreate, updated: toUpdate, deletedIds: toDelete }
       );
 
       alert("✅ Injuries updated successfully!");
 
       // 刷新状态
-      const freshInjuries = await getUserInjuries(token);
+      const freshInjuries = await getUserInjuries();
       setInjuries(freshInjuries);
       setOriginalInjuries(freshInjuries);
 
@@ -278,7 +277,7 @@ console.log("public url: ", publicUrlData);
       }
 
       const updatedProfile = formStateToUserProfile(profile, avatarUrl ?? "")
-      await setUserProfile(updatedProfile, token);
+      await setUserProfile(updatedProfile);
 
       alert("✅ Profile updated successfully!")
     } catch (err) {
@@ -300,7 +299,7 @@ console.log("public url: ", publicUrlData);
         
 
     try {
-      const data = await getUserProfile(token)
+      const data = await getUserProfile()
       if (data) {
         const formState = userProfileToFormState(data)
         setProfile(formState)
@@ -309,13 +308,9 @@ console.log("public url: ", publicUrlData);
         }
       }
 
-      const injuries = await getUserInjuries(token)
+      const injuries = await getUserInjuries()
       setInjuries(injuries)
       setOriginalInjuries(injuries)
-
-      injuries.forEach((injury, index) => {
-        console.log(`Injury[${index}]`, injury)
-      })
 
     } catch (err) {
       console.error("Failed to fetch profile or injuries:", err)

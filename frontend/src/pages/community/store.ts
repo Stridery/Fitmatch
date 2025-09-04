@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { createWithEqualityFn } from 'zustand/traditional'
 import { io, Socket } from "socket.io-client";
 import { api } from "./api";
 
@@ -93,7 +93,7 @@ const errorMessage = (e: unknown, fallback: string): string =>
   e instanceof Error ? e.message : fallback;
 
 /** ---------- Store ---------- */
-export const useCommunityStore = create<CommunityState>((set, get) => ({
+export const useCommunityStore = createWithEqualityFn<CommunityState>()((set, get) => ({
   currentTab: "messages",
   setCurrentTab: (tab) => set({ currentTab: tab }),
 
