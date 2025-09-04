@@ -32,6 +32,7 @@ export interface ChatThreadInfo {
   threadId: string;
   title?: string;
   avatarUrl?: string;
+  otherUserId?: string;
   minimized: boolean;
   focused: boolean;
   unread: number;
@@ -67,6 +68,7 @@ interface ChatDockState extends PersistedShape {
   focusThread: (threadId: string) => void;
   minimizeThread: (threadId: string, minimized: boolean) => void;
   closeThread: (threadId: string) => void;
+  updateThreadInfo: (threadId: string, patch: Partial<ChatThreadInfo>) => void;
   startDM: (otherUserId: string) => Promise<string>;
   addRecentContact: (user: { id: string; nickname?: string; avatarUrl?: string }) => void;
 }
@@ -113,6 +115,7 @@ const normalizeThreadInfo = (tid: string, v: unknown): ChatThreadInfo => {
     threadId: tid,
     title: typeof src.title === "string" ? src.title : undefined,
     avatarUrl: typeof src.avatarUrl === "string" ? src.avatarUrl : undefined,
+    otherUserId: typeof (src as AnyRecord).otherUserId === "string" ? (src as AnyRecord).otherUserId : undefined,
     minimized: !!src.minimized,
     focused: !!src.focused,
     unread: toNumber(src.unread, 0),
@@ -122,7 +125,7 @@ const normalizeThreadInfo = (tid: string, v: unknown): ChatThreadInfo => {
 /** 解析 startDM 返回值 */
 const parseThreadFromUnknown = (
   u: unknown
-): { id: string; title?: string; avatarUrl?: string } => {
+): { id: string; title?: string; avatarUrl?: string; otherUserId?: string } => {
   // 1) 先解包 { thread: {...} }
   const container = isRecord(u) && isRecord(u.thread) ? (u.thread as AnyRecord)
                     : isRecord(u) ? (u as AnyRecord)
@@ -139,13 +142,15 @@ const parseThreadFromUnknown = (
   // 3) 其他展示信息
   let title: string | undefined;
   let avatarUrl: string | undefined;
+  let otherUserId: string | undefined;
   if (isRecord(container.otherUser)) {
     const ou = container.otherUser as AnyRecord;
+    if (typeof ou.id === "string") otherUserId = ou.id;
     if (typeof ou.nickname === "string") title = ou.nickname;
     if (typeof ou.avatarUrl === "string") avatarUrl = ou.avatarUrl;
   }
 
-  return { id, title, avatarUrl };
+  return { id, title, avatarUrl, otherUserId };
 };
 
 /** 解析 getThreadMessages 的单条记录 */
@@ -389,6 +394,20 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         });
       },
 
+      updateThreadInfo: (threadId: string, patch: Partial<ChatThreadInfo>) => {
+        set((state) => {
+          const before = state.openThreads[threadId];
+          if (!before) return state;
+          return {
+            ...state,
+            openThreads: {
+              ...state.openThreads,
+              [threadId]: normalizeThreadInfo(threadId, { ...before, ...patch }),
+            },
+          };
+        });
+      },
+
       closeThread: (threadId: string) => {
         get().leaveThread(threadId);
         set((state) => {
@@ -423,7 +442,7 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         
         // 👉 如果你在 chat API 层还有日志，这里再加一条更清晰的：
 
-        const { id: threadId, title, avatarUrl } = parseThreadFromUnknown(raw);
+        const { id: threadId, title, avatarUrl, otherUserId } = parseThreadFromUnknown(raw);
 
         if (!isNonEmptyString(threadId)) {
           // 关键日志：把 raw 的 keys 打出来，避免把整个对象丢进 React 子树导致 #185
@@ -450,6 +469,7 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
               [threadId]: normalizeThreadInfo(threadId, {
                 title: title ?? "Chat",
                 avatarUrl,
+                otherUserId,
                 minimized: false,
                 focused: true,
                 unread: 0,

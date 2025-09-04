@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X, Minus, Maximize2 } from "lucide-react";
 import { useChatDockStore } from "./store";
 import ChatWindowContent from "./ChatWindowContent";
 import { useUser } from "@/contexts/UserContext";
 import HeaderPanel from "./HeaderPanel";
+import { searchUsers } from "@/api/user";
 
 export default function ChatDock() {
   const { user } = useUser();
@@ -13,6 +14,7 @@ export default function ChatDock() {
   const minimizeThread = useChatDockStore((s) => s.minimizeThread);
   const closeThread = useChatDockStore((s) => s.closeThread);
   const focusThread = useChatDockStore((s) => s.focusThread);
+  const updateThreadInfo = useChatDockStore((s) => s.updateThreadInfo);
 
   useEffect(() => {
     if (user?.id) {
@@ -26,6 +28,32 @@ export default function ChatDock() {
     openThreads && typeof openThreads === "object" ? Object.entries(openThreads) : [];
   console.log("[ui] ChatDock render, openThreads count:", entries.length);
 
+  // Try to hydrate missing avatar/title using user search (fallback)
+  const fetchedRef = useRef<Record<string, boolean>>({});
+  useEffect(() => {
+    (async () => {
+      for (const [threadId, raw] of entries) {
+        const otherUserId = typeof (raw as any)?.otherUserId === "string" ? (raw as any).otherUserId : undefined;
+        const avatarUrl = typeof (raw as any)?.avatarUrl === "string" ? (raw as any).avatarUrl : undefined;
+        const already = fetchedRef.current[threadId];
+        if (!otherUserId || avatarUrl || already) continue;
+        try {
+          fetchedRef.current[threadId] = true;
+          const users = await searchUsers(otherUserId);
+          const u = Array.isArray(users) && users.length > 0 ? users[0] : undefined;
+          if (u) {
+            updateThreadInfo(threadId, {
+              avatarUrl: typeof u.avatarUrl === "string" ? u.avatarUrl : undefined,
+              title: typeof u.nickname === "string" ? u.nickname : undefined,
+            });
+          }
+        } catch {
+          // ignore
+        }
+      }
+    })();
+  }, [entries.length]);
+
   return (
     <div className="fixed bottom-4 right-4 z-50 hidden lg:flex items-end gap-3">
       <HeaderPanel />
@@ -37,6 +65,7 @@ export default function ChatDock() {
           threadId,
           title: typeof (raw as any)?.title === "string" ? (raw as any).title : (raw as any)?.title,
           avatarUrl: typeof (raw as any)?.avatarUrl === "string" ? (raw as any).avatarUrl : (raw as any)?.avatarUrl,
+          otherUserId: typeof (raw as any)?.otherUserId === "string" ? (raw as any).otherUserId : undefined,
           minimized: !!(raw as any)?.minimized,
           focused: !!(raw as any)?.focused,
           unread: Number.isFinite(Number((raw as any)?.unread)) ? Number((raw as any).unread) : (raw as any)?.unread,
