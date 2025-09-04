@@ -110,14 +110,22 @@ interface MessageDTO {
 
 /** 规范化 ThreadInfo 输入 */
 const normalizeThreadInfo = (tid: string, v: unknown): ChatThreadInfo => {
-  const src = isRecord(v) ? v : {};
+  const src: AnyRecord = isRecord(v) ? v : {};
+
+  const title =
+    typeof src.title === "string" ? (src.title as string) : undefined;
+  const avatarUrl =
+    typeof src.avatarUrl === "string" ? (src.avatarUrl as string) : undefined;
+  const otherUserId =
+    typeof src.otherUserId === "string" ? (src.otherUserId as string) : undefined;
+
   return {
     threadId: tid,
-    title: typeof src.title === "string" ? src.title : undefined,
-    avatarUrl: typeof src.avatarUrl === "string" ? src.avatarUrl : undefined,
-    otherUserId: typeof (src as AnyRecord).otherUserId === "string" ? (src as AnyRecord).otherUserId : undefined,
-    minimized: !!src.minimized,
-    focused: !!src.focused,
+    title,
+    avatarUrl,
+    otherUserId,
+    minimized: Boolean(src.minimized),
+    focused: Boolean(src.focused),
     unread: toNumber(src.unread, 0),
   };
 };
@@ -442,7 +450,7 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         
         // 👉 如果你在 chat API 层还有日志，这里再加一条更清晰的：
 
-        const { id: threadId, title, avatarUrl, otherUserId } = parseThreadFromUnknown(raw);
+        const { id: threadId, title, avatarUrl, otherUserId:otherUserIdParsed } = parseThreadFromUnknown(raw);
 
         if (!isNonEmptyString(threadId)) {
           // 关键日志：把 raw 的 keys 打出来，避免把整个对象丢进 React 子树导致 #185
@@ -469,7 +477,7 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
               [threadId]: normalizeThreadInfo(threadId, {
                 title: title ?? "Chat",
                 avatarUrl,
-                otherUserId,
+                otherUserId: otherUserIdParsed,
                 minimized: false,
                 focused: true,
                 unread: 0,
