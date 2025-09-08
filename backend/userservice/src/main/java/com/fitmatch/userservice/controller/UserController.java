@@ -41,7 +41,6 @@ public class UserController {
     public ResponseEntity<UserProfileResponse> getUserProfile(
             @RequestHeader("X-User-Id") String userId
     ) {
-        System.out.println(userId);
         UserProfileResponse profile = userService.getUserProfile(userId);
         return ResponseEntity.ok(profile);
     }

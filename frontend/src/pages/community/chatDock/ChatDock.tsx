@@ -8,43 +8,60 @@ import { searchUsers } from "@/api/user";
 
 export default function ChatDock() {
   const { user } = useUser();
+
   const setUserId = useChatDockStore((s) => s.setUserId);
   const ensureSocket = useChatDockStore((s) => s.ensureSocket);
+
   const openThreads = useChatDockStore((s) => s.openThreads);
   const minimizeThread = useChatDockStore((s) => s.minimizeThread);
   const closeThread = useChatDockStore((s) => s.closeThread);
   const focusThread = useChatDockStore((s) => s.focusThread);
   const updateThreadInfo = useChatDockStore((s) => s.updateThreadInfo);
+  const recent = useChatDockStore((s) => s.recentContacts);
 
   useEffect(() => {
     if (user?.id) {
       setUserId(user.id);
-      // 直接连上 socket，避免 joinThread 时 userId 未就绪
       ensureSocket(user.id);
     }
-  }, [user?.id]);
+  }, [user?.id, setUserId, ensureSocket]);
 
   const entries =
     openThreads && typeof openThreads === "object" ? Object.entries(openThreads) : [];
-  console.log("[ui] ChatDock render, openThreads count:", entries.length);
 
-  // Try to hydrate missing avatar/title using user search (fallback)
+  // 尝试为缺失 avatar/title 的线程补全：先 recentContacts，兜底再查接口
   const fetchedRef = useRef<Record<string, boolean>>({});
   useEffect(() => {
     (async () => {
       for (const [threadId, raw] of entries) {
-        const otherUserId = typeof (raw as any)?.otherUserId === "string" ? (raw as any).otherUserId : undefined;
-        const avatarUrl = typeof (raw as any)?.avatarUrl === "string" ? (raw as any).avatarUrl : undefined;
-        const already = fetchedRef.current[threadId];
-        if (!otherUserId || avatarUrl || already) continue;
+        const otherUserId =
+          typeof (raw as any)?.otherUserId === "string" ? (raw as any).otherUserId : undefined;
+        const avatarUrl =
+          typeof (raw as any)?.avatarUrl === "string" ? (raw as any).avatarUrl : undefined;
+        if (!otherUserId || avatarUrl) continue;
+
+        // 1) 先用最近联系人兜底（同步、最快）
+        const fromRecent = recent.find((u) => u.id === otherUserId);
+        if (fromRecent?.avatarUrl || fromRecent?.nickname) {
+          updateThreadInfo(threadId, {
+            avatarUrl:
+              typeof fromRecent.avatarUrl === "string" ? fromRecent.avatarUrl : undefined,
+            title: typeof fromRecent.nickname === "string" ? fromRecent.nickname : undefined,
+          });
+          continue;
+        }
+
+        // 2) 退而求其次：调用远程（避免重复）
+        if (fetchedRef.current[threadId]) continue;
+        fetchedRef.current[threadId] = true;
         try {
-          fetchedRef.current[threadId] = true;
+          // 如果有按ID查用户的 API，建议改成 getUserById(otherUserId)
           const users = await searchUsers(otherUserId);
           const u = Array.isArray(users) && users.length > 0 ? users[0] : undefined;
           if (u) {
             updateThreadInfo(threadId, {
-              avatarUrl: typeof u.avatarUrl === "string" ? u.avatarUrl : undefined,
-              title: typeof u.nickname === "string" ? u.nickname : undefined,
+              avatarUrl: typeof (u as any).avatarUrl === "string" ? (u as any).avatarUrl : undefined,
+              title: typeof (u as any).nickname === "string" ? (u as any).nickname : undefined,
             });
           }
         } catch {
@@ -52,48 +69,60 @@ export default function ChatDock() {
         }
       }
     })();
-  }, [entries.length]);
+  }, [entries, recent, updateThreadInfo]);
 
   return (
     <div className="fixed bottom-4 right-4 z-50 hidden lg:flex items-end gap-3">
       <HeaderPanel />
 
       {entries.map(([threadId, raw]) => {
-        console.log("[ui] render threadId =", threadId, "raw =", raw);
-
         const info = {
           threadId,
-          title: typeof (raw as any)?.title === "string" ? (raw as any).title : (raw as any)?.title,
-          avatarUrl: typeof (raw as any)?.avatarUrl === "string" ? (raw as any).avatarUrl : (raw as any)?.avatarUrl,
-          otherUserId: typeof (raw as any)?.otherUserId === "string" ? (raw as any).otherUserId : undefined,
+          title:
+            typeof (raw as any)?.title === "string" ? (raw as any).title : undefined,
+          avatarUrl:
+            typeof (raw as any)?.avatarUrl === "string" ? (raw as any).avatarUrl : undefined,
+          otherUserId:
+            typeof (raw as any)?.otherUserId === "string" ? (raw as any).otherUserId : undefined,
           minimized: !!(raw as any)?.minimized,
           focused: !!(raw as any)?.focused,
-          unread: Number.isFinite(Number((raw as any)?.unread)) ? Number((raw as any).unread) : (raw as any)?.unread,
+          unread: Number.isFinite(Number((raw as any)?.unread))
+            ? Number((raw as any).unread)
+            : 0,
         };
 
-        // 单独打印每个字段，确认类型
-        console.log("[ui] thread info fields:", {
-          threadId: info.threadId,
-          title: info.title,
-          titleType: typeof info.title,
-          avatarUrl: info.avatarUrl,
-          avatarUrlType: typeof info.avatarUrl,
-          minimized: info.minimized,
-          focused: info.focused,
-          unread: info.unread,
-          unreadType: typeof info.unread,
-        });
+        console.log("[dock] threadId=", threadId, "avatarUrl=", info.avatarUrl, "title=", info.title);
+
+        // 关键日志：看看 header 渲染到底拿到了什么
+        // console.debug("[dock] header info", info);
+
+        // 兜底：如果 openThreads 里还没头像，尝试从 recentContacts 匹配
+        const fallbackAvatar =
+          (info.otherUserId &&
+            recent.find((u) => u.id === info.otherUserId)?.avatarUrl) ||
+          undefined;
+        const displayAvatar = info.avatarUrl || fallbackAvatar;
 
         return (
           <div
             key={threadId}
-            className={`w-[320px] ${info.minimized ? "h-12" : "h-[420px]"} bg-white shadow-xl rounded-lg overflow-hidden border`}
+            className={`w-[320px] ${
+              info.minimized ? "h-12" : "h-[420px]"
+            } bg-white shadow-xl rounded-lg overflow-hidden border`}
             onMouseDown={() => focusThread(threadId)}
           >
             {/* Header */}
             <div className="h-12 border-b bg-white flex items-center px-3 gap-2 select-none">
-              {typeof info.avatarUrl === "string" && info.avatarUrl.length > 0 ? (
-                <img src={info.avatarUrl} className="w-7 h-7 rounded-full object-cover" />
+              {typeof displayAvatar === "string" && displayAvatar.length > 0 ? (
+                <img
+                  src={displayAvatar}
+                  className="w-7 h-7 rounded-full object-cover"
+                  onError={(e) => {
+                    // 方便定位 404 / 权限问题
+                    // console.warn("[dock] avatar load failed:", displayAvatar);
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
               ) : (
                 <div className="w-7 h-7 rounded-full bg-gray-200" />
               )}
@@ -106,14 +135,14 @@ export default function ChatDock() {
                 </div>
               )}
               <button
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1 rounded text-gray-600 hover:bg-gray-100 hover:text-black"
                 onClick={() => minimizeThread(threadId, !info.minimized)}
                 title={info.minimized ? "Expand" : "Minimize"}
               >
                 {info.minimized ? <Maximize2 size={16} /> : <Minus size={16} />}
               </button>
               <button
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1 rounded text-gray-600 hover:bg-gray-100 hover:text-black"
                 onClick={() => closeThread(threadId)}
                 title="Close"
               >

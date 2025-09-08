@@ -15,17 +15,14 @@ export default function ChatWindowContent({ threadId }: { threadId: string }) {
   // mount / unmount：进入/离开线程
   useEffect(() => {
     if (!threadId) return;
-    console.log("[ui] ChatWindowContent mount -> joinThread", threadId);
     joinThread(threadId);
     return () => {
-      console.log("[ui] ChatWindowContent unmount -> leaveThread", threadId);
       leaveThread(threadId);
     };
   }, [threadId, joinThread, leaveThread]);
 
   // 消息变化时滚动到底部
   useEffect(() => {
-    console.log("[ui] messages.len =", messages.length, "for", threadId);
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, threadId]);
 

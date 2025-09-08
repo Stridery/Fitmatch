@@ -1,8 +1,8 @@
-import { createWithEqualityFn } from 'zustand/traditional'
+import { createWithEqualityFn } from "zustand/traditional";
 import { persist } from "zustand/middleware";
 import { io, Socket } from "socket.io-client";
 import type { ManagerOptions, SocketOptions } from "socket.io-client";
-import { getThreadMessages, startDM } from "@/api/chat";
+import { getThreadMessages, startDM as apiStartDM } from "@/api/chat";
 import { supabase } from "@/lib/supabase";
 
 /** ============ Socket 事件类型 ============ */
@@ -47,6 +47,9 @@ export interface ChatMessage {
   isMine?: boolean;
 }
 
+/** seed：从搜索结果直接带过来的头像与昵称 */
+type ThreadSeed = { nickname?: string; avatarUrl?: string };
+
 /** 仅持久化的字段（与 partialize 对齐） */
 type PersistedShape = {
   openThreads: Record<string, ChatThreadInfo>;
@@ -69,7 +72,7 @@ interface ChatDockState extends PersistedShape {
   minimizeThread: (threadId: string, minimized: boolean) => void;
   closeThread: (threadId: string) => void;
   updateThreadInfo: (threadId: string, patch: Partial<ChatThreadInfo>) => void;
-  startDM: (otherUserId: string) => Promise<string>;
+  startDM: (otherUserId: string, seed?: ThreadSeed) => Promise<string>;
   addRecentContact: (user: { id: string; nickname?: string; avatarUrl?: string }) => void;
 }
 
@@ -84,21 +87,8 @@ const toNumber = (v: unknown, d = 0): number => {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
 };
+const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 
-const isNonEmptyString = (v: unknown): v is string =>
-  typeof v === "string" && v.length > 0;
-
-/** API Thread DTO（宽松） */
-/*
-interface ThreadDTO {
-  id?: unknown;
-  _id?: unknown;
-  otherUser?: {
-    nickname?: unknown;
-    avatarUrl?: unknown;
-  };
-}
-*/
 /** API Message DTO（宽松） */
 interface MessageDTO {
   _id?: unknown;
@@ -110,49 +100,47 @@ interface MessageDTO {
 
 /** 规范化 ThreadInfo 输入 */
 const normalizeThreadInfo = (tid: string, v: unknown): ChatThreadInfo => {
-  const src: AnyRecord = isRecord(v) ? v : {};
-
-  const title =
-    typeof src.title === "string" ? (src.title as string) : undefined;
-  const avatarUrl =
-    typeof src.avatarUrl === "string" ? (src.avatarUrl as string) : undefined;
-  const otherUserId =
-    typeof src.otherUserId === "string" ? (src.otherUserId as string) : undefined;
-
+  const src = isRecord(v) ? v : {};
   return {
     threadId: tid,
-    title,
-    avatarUrl,
-    otherUserId,
-    minimized: Boolean(src.minimized),
-    focused: Boolean(src.focused),
-    unread: toNumber(src.unread, 0),
+    title: typeof (src as AnyRecord).title === "string" ? ((src as AnyRecord).title as string) : undefined,
+    avatarUrl:
+      typeof (src as AnyRecord).avatarUrl === "string"
+        ? ((src as AnyRecord).avatarUrl as string)
+        : undefined,
+    otherUserId:
+      typeof (src as AnyRecord).otherUserId === "string"
+        ? ((src as AnyRecord).otherUserId as string)
+        : undefined,
+    minimized: !!(src as AnyRecord).minimized,
+    focused: !!(src as AnyRecord).focused,
+    unread: toNumber((src as AnyRecord).unread, 0),
   };
 };
 
-/** 解析 startDM 返回值 */
+/** 解析 startDM 返回值（兼容 {thread:{...}} 或直接 {...}） */
 const parseThreadFromUnknown = (
   u: unknown
 ): { id: string; title?: string; avatarUrl?: string; otherUserId?: string } => {
-  // 1) 先解包 { thread: {...} }
-  const container = isRecord(u) && isRecord(u.thread) ? (u.thread as AnyRecord)
-                    : isRecord(u) ? (u as AnyRecord)
-                    : {};
+  const container =
+    isRecord(u) && isRecord((u as AnyRecord).thread)
+      ? ((u as AnyRecord).thread as AnyRecord)
+      : isRecord(u)
+      ? (u as AnyRecord)
+      : {};
 
-  // 2) 支持 id / _id
   const rawId =
     (typeof container.id === "string" && container.id) ||
-    (typeof container._id === "string" && container._id) ||
+    (typeof container._id === "string" && (container._id as string)) ||
     "";
-
   const id = rawId ? toStringSafe(rawId) : "";
 
-  // 3) 其他展示信息
   let title: string | undefined;
   let avatarUrl: string | undefined;
   let otherUserId: string | undefined;
-  if (isRecord(container.otherUser)) {
-    const ou = container.otherUser as AnyRecord;
+
+  if (isRecord((container as AnyRecord).otherUser)) {
+    const ou = (container as AnyRecord).otherUser as AnyRecord;
     if (typeof ou.id === "string") otherUserId = ou.id;
     if (typeof ou.nickname === "string") title = ou.nickname;
     if (typeof ou.avatarUrl === "string") avatarUrl = ou.avatarUrl;
@@ -164,10 +152,14 @@ const parseThreadFromUnknown = (
 /** 解析 getThreadMessages 的单条记录 */
 const parseMessageDTO = (m: unknown, threadId: string, myUserId: string): ChatMessage | null => {
   if (!isRecord(m)) return null;
-  const idRaw = isNonEmptyString(m._id) ? m._id : isNonEmptyString(m.id) ? m.id : undefined;
-  const senderIdRaw = m.senderId;
-  const contentRaw = m.content;
-  const createdAtRaw = m.createdAt;
+  const idRaw = isNonEmptyString((m as AnyRecord)._id)
+    ? (m as AnyRecord)._id
+    : isNonEmptyString((m as AnyRecord).id)
+    ? (m as AnyRecord).id
+    : undefined;
+  const senderIdRaw = (m as AnyRecord).senderId;
+  const contentRaw = (m as AnyRecord).content;
+  const createdAtRaw = (m as AnyRecord).createdAt;
 
   if (!idRaw || !isNonEmptyString(senderIdRaw)) return null;
   const id = toStringSafe(idRaw);
@@ -187,6 +179,9 @@ const parseMessageDTO = (m: unknown, threadId: string, myUserId: string): ChatMe
   };
 };
 
+/** ===== 幂等控制：正在 join 的线程集合（开发/严格模式/HMR 下只发一次请求） ===== */
+const joiningThreads = new Set<string>();
+
 /** ============ Store 实现 ============ */
 export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
   persist(
@@ -201,27 +196,19 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
       setUserId: (userId) => set({ userId }),
 
       ensureSocket: async (userId: string): Promise<void> => {
-        /*
-        if (existing && existing.connected) return;
-        if (!userId) return;
-        */
-      if (!userId) { console.warn("[socket] no userId, skip connect"); return; }
+        if (!userId) {
+          console.warn("[socket] no userId, skip connect");
+          return;
+        }
 
-
-        // ✅ 标准方式读取 Vite 环境变量（构建期替换）
         const envUrl = import.meta.env.VITE_SOCKET_URL as string | undefined;
 
-        // 解析：支持三种写法
-        // 1) "/socket.io"         -> 同域 + 自定义 path
-        // 2) "https://api.x.com"  -> 跨域 + 默认 path(/socket.io)
-        // 3) "https://api.x.com/ws/socket.io" -> 跨域 + 自定义 path
         let baseUrl: string | undefined;
         let pathOpt: string | undefined;
 
         if (envUrl && envUrl.trim() !== "") {
           if (envUrl.startsWith("/")) {
-            // 只提供了 path，走同域
-            baseUrl = undefined;            // io(opts) 走同域
+            baseUrl = undefined;
             pathOpt = envUrl;
           } else {
             try {
@@ -229,23 +216,19 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
               baseUrl = `${u.protocol}//${u.host}`;
               pathOpt = u.pathname && u.pathname !== "/" ? u.pathname : undefined;
             } catch {
-              // 不可解析就按同域路径处理（防御）
               if (envUrl.startsWith("/")) {
                 baseUrl = undefined;
                 pathOpt = envUrl;
               } else {
-                baseUrl = envUrl; // 最后兜底
+                baseUrl = envUrl;
               }
             }
           }
         } else {
-          // 没配的话用同域 + 默认 path
           baseUrl = undefined;
           pathOpt = "/socket.io";
         }
 
-
-        // 拿 Supabase 的 token
         const { data } = await supabase.auth.getSession();
         const accessToken = data.session?.access_token;
 
@@ -256,7 +239,6 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         };
         if (pathOpt) opts.path = pathOpt;
 
-        // 根据是否有 baseUrl 选择重载
         const s: ChatSocket = baseUrl ? io(baseUrl, opts) : io(opts);
 
         s.on("connect_error", (err: unknown) => {
@@ -268,25 +250,28 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           const currentUserId = get().userId;
           const isMine = payload.senderId === currentUserId;
 
-          const newMsg = {
+          const newMsg: ChatMessage = {
             id: payload.id,
             threadId: payload.threadId,
             senderId: payload.senderId,
             content: payload.content,
             createdAt: payload.createdAt,
             isMine,
-          } as ChatMessage;
+          };
 
           set((state) => {
             const prev = state.messages[payload.threadId] ?? [];
-            const idx = payload.clientMsgId ? prev.findIndex((m) => m.id === payload.clientMsgId) : -1;
-            const updated = idx >= 0 ? [...prev.slice(0, idx), newMsg, ...prev.slice(idx + 1)] : [...prev, newMsg];
+            const idx =
+              payload.clientMsgId ? prev.findIndex((m) => m.id === payload.clientMsgId) : -1;
+            const updated =
+              idx >= 0 ? [...prev.slice(0, idx), newMsg, ...prev.slice(idx + 1)] : [...prev, newMsg];
             return { messages: { ...state.messages, [payload.threadId]: updated } };
           });
 
           const info = get().openThreads[payload.threadId];
           if (info) {
-            const nextUnread = info.focused && !info.minimized ? 0 : (isMine ? info.unread : info.unread + 1);
+            const nextUnread =
+              info.focused && !info.minimized ? 0 : isMine ? info.unread : info.unread + 1;
             set((state) => ({
               openThreads: {
                 ...state.openThreads,
@@ -299,18 +284,25 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         set({ socket: s });
       },
 
+      /** ⭐ 幂等 + 临时线程拦截 的 joinThread */
       joinThread: async (threadId: string) => {
+        // 1) 临时占位线程不拉历史、不进房间
+        if (!threadId || threadId.startsWith("tmp_dm_")) return;
 
-        if (!threadId) return;
-        const userId = get().userId;
-        if (!userId) return;
-
-        const socket = get().socket;
-        if (!socket || !socket.connected) {
-          await get().ensureSocket(userId);
-        }
+        // 2) in-flight 防抖：同一线程并发/重复调用直接返回
+        if (joiningThreads.has(threadId)) return;
+        joiningThreads.add(threadId);
 
         try {
+          const userId = get().userId;
+          if (!userId) return;
+
+          const socket = get().socket;
+          if (!socket || !socket.connected) {
+            await get().ensureSocket(userId);
+          }
+
+          // 3) 真正请求历史
           const listUnknown = await getThreadMessages(threadId, 50);
           const list = Array.isArray(listUnknown) ? listUnknown : [];
           const parsed: ChatMessage[] = [];
@@ -319,17 +311,16 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
             if (pm) parsed.push(pm);
           }
           set((state) => ({
-            messages: {
-              ...state.messages,
-              [threadId]: parsed,
-            },
+            messages: { ...state.messages, [threadId]: parsed },
           }));
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.warn("[chatDock] getThreadMessages failed:", e);
-        }
 
-        get().socket?.emit("chat:joinThread", { threadId });
+          // 4) 再 join 房间（重复 join 服务端应忽略）
+          get().socket?.emit("chat:joinThread", { threadId });
+        } catch (e) {
+          console.warn("[chatDock] getThreadMessages failed:", e);
+        } finally {
+          joiningThreads.delete(threadId);
+        }
       },
 
       leaveThread: (threadId: string) => {
@@ -377,7 +368,7 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
       focusThread: (threadId: string) => {
         set((state) => {
           const info = state.openThreads[threadId];
-          if (!info) return state; // 不改变
+          if (!info) return state;
           return {
             ...state,
             openThreads: {
@@ -430,7 +421,6 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           return { ...state, openThreads: nextOpen, messages: nextMsgs };
         });
 
-        // If no threads remain, disconnect socket
         const remaining = Object.keys(get().openThreads).length;
         if (remaining === 0) {
           const s = get().socket;
@@ -443,49 +433,75 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         }
       },
 
-      startDM: async (otherUserId: string) => {
+      /** ⭐ 支持 seed：先临时窗口，后合并真实线程 */
+      startDM: async (otherUserId: string, seed?: ThreadSeed) => {
         if (!otherUserId) return "";
 
-        const raw = (await startDM(otherUserId)) as unknown;
-        
-        // 👉 如果你在 chat API 层还有日志，这里再加一条更清晰的：
-
-        const { id: threadId, title, avatarUrl, otherUserId:otherUserIdParsed } = parseThreadFromUnknown(raw);
-
-        if (!isNonEmptyString(threadId)) {
-          // 关键日志：把 raw 的 keys 打出来，避免把整个对象丢进 React 子树导致 #185
-          const keys = isRecord(raw) ? Object.keys(raw) : typeof raw;
-          // eslint-disable-next-line no-console
-          console.warn("[chatDock] startDM: missing thread id. raw keys/type =", keys);
-          return "";
-        }
-
-        const exists = get().openThreads[threadId];
-        if (exists) {
+        // 1) 临时窗口
+        const tempId = `tmp_dm_${otherUserId}`;
+        const existing = get().openThreads[tempId];
+        if (!existing) {
           set((state) => ({
-            ...state,
             openThreads: {
               ...state.openThreads,
-              [threadId]: { ...exists, minimized: false, focused: true, unread: 0 },
+              [tempId]: {
+                threadId: tempId,
+                title: seed?.nickname ?? "Chat",
+                avatarUrl: seed?.avatarUrl,
+                otherUserId,
+                minimized: false,
+                focused: true,
+                unread: 0,
+              },
             },
           }));
         } else {
           set((state) => ({
-            ...state,
             openThreads: {
               ...state.openThreads,
-              [threadId]: normalizeThreadInfo(threadId, {
-                title: title ?? "Chat",
-                avatarUrl,
-                otherUserId: otherUserIdParsed,
+              [tempId]: {
+                ...state.openThreads[tempId],
+                title: seed?.nickname ?? state.openThreads[tempId].title,
+                avatarUrl: seed?.avatarUrl ?? state.openThreads[tempId].avatarUrl,
                 minimized: false,
                 focused: true,
-                unread: 0,
-              }),
+              },
             },
           }));
         }
 
+        // 2) 请求后端，拿真实 ID
+        const raw = (await apiStartDM(otherUserId)) as unknown;
+        const { id: realId, title, avatarUrl, otherUserId: fromApi } = parseThreadFromUnknown(raw);
+        const threadId = realId || tempId;
+
+        // 3) 合并临时 -> 真实
+        set((state) => {
+          const curr = state.openThreads[tempId] || {
+            threadId: tempId,
+            title: "Chat",
+            avatarUrl: undefined as string | undefined,
+            otherUserId,
+            minimized: false,
+            focused: true,
+            unread: 0,
+          };
+          const next = { ...state.openThreads };
+          delete next[tempId];
+          next[threadId] = {
+            ...curr,
+            threadId,
+            title: title ?? seed?.nickname ?? curr.title,
+            avatarUrl: avatarUrl ?? seed?.avatarUrl ?? curr.avatarUrl,
+            otherUserId: fromApi ?? otherUserId,
+            minimized: false,
+            focused: true,
+            unread: 0,
+          };
+          return { openThreads: next };
+        });
+
+        // 4) 加入真实线程（由 joinThread 负责幂等 + 加载历史）
         await get().joinThread(threadId);
         return threadId;
       },
@@ -500,26 +516,25 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
     }),
     {
       name: "chat-dock",
-      version: 2, // 触发修正后的 migrate
+      version: 2,
       partialize: (s) => ({ openThreads: s.openThreads, recentContacts: s.recentContacts }),
 
-      /** 传入/返回“state 本体” */
       migrate: (persisted: unknown): PersistedShape => {
         const prev = isRecord(persisted) ? (persisted as PersistedShape) : ({} as PersistedShape);
 
-        // ---- openThreads 修复（保持你现有实现）----
         const rawOpen = isRecord((prev as AnyRecord).openThreads)
           ? ((prev as AnyRecord).openThreads as Record<string, unknown>)
           : {};
         const fixedOpen: Record<string, ChatThreadInfo> = {};
         for (const [k, v] of Object.entries(rawOpen)) {
-          const tidCandidate = isRecord(v) && isNonEmptyString(v.threadId) ? v.threadId : k;
+          const tidCandidate = isRecord(v) && isNonEmptyString((v as AnyRecord).threadId)
+            ? ((v as AnyRecord).threadId as string)
+            : k;
           const tid = toStringSafe(tidCandidate);
           if (!tid) continue;
           fixedOpen[tid] = normalizeThreadInfo(tid, v);
         }
 
-        // ---- recentContacts 修复（全新写法，避免 (T|null)[] 和必填属性陷阱）----
         const rawRecentUnknown = (prev as AnyRecord).recentContacts;
         const rawRecent: unknown[] = Array.isArray(rawRecentUnknown) ? rawRecentUnknown : [];
 
@@ -528,14 +543,15 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           if (!isRecord(u)) continue;
 
           let id: string | null = null;
-          if (isNonEmptyString(u.id)) id = u.id;
+          if (isNonEmptyString((u as AnyRecord).id)) id = (u as AnyRecord).id as string;
           else if (isNonEmptyString((u as AnyRecord)._id)) id = String((u as AnyRecord)._id);
           if (!id) continue;
 
-          // 按条件赋值，保持“可选属性”，而不是“必有但可能 undefined”
           const entry: { id: string; nickname?: string; avatarUrl?: string } = { id };
-          if (typeof u.nickname === "string") entry.nickname = u.nickname;
-          if (typeof u.avatarUrl === "string") entry.avatarUrl = u.avatarUrl;
+          if (typeof (u as AnyRecord).nickname === "string")
+            entry.nickname = (u as AnyRecord).nickname as string;
+          if (typeof (u as AnyRecord).avatarUrl === "string")
+            entry.avatarUrl = (u as AnyRecord).avatarUrl as string;
 
           fixedRecent.push(entry);
           if (fixedRecent.length >= 20) break;
@@ -547,10 +563,11 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         const okOpen =
-          state.openThreads && typeof state.openThreads === "object" && !Array.isArray(state.openThreads);
+          state.openThreads &&
+          typeof state.openThreads === "object" &&
+          !Array.isArray(state.openThreads);
         const okRecent = Array.isArray(state.recentContacts);
         if (!okOpen || !okRecent) {
-          // eslint-disable-next-line no-console
           console.warn("[chatDock] invalid persisted shape; resetting");
           state.openThreads = {};
           state.recentContacts = [];

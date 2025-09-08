@@ -44,7 +44,10 @@ export default function HeaderPanel() {
         className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
         onClick={async () => {
           try {
-            const tid = await startDM(u.id);
+            await startDM(u.id, {
+              nickname: typeof u.nickname === "string" ? u.nickname : undefined,
+              avatarUrl: typeof u.avatarUrl === "string" ? u.avatarUrl : undefined,
+            });
           } finally {
             setQ("");
             setList([]);
