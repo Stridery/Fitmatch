@@ -10,6 +10,8 @@ import { logout } from "@/api/auth";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
+import { useChatDockStore } from "@/pages/community/chatDock/store";
+import { useCommunityStore } from "@/pages/community/store";
 
 interface UserHeaderProps {
   username?: string;
@@ -20,6 +22,8 @@ export function UserHeader({ username = "Alex", avatarUrl }: UserHeaderProps) {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const { setUser } = useUser();       // 这里 user/loading 不一定要用到
   const navigate = useNavigate();
+  const disconnectChatDock = useChatDockStore((s) => s.disconnectSocket);
+  const disconnectCommunity = useCommunityStore((s) => s.disconnectSocket);
 
   return (
     <>
@@ -71,6 +75,8 @@ export function UserHeader({ username = "Alex", avatarUrl }: UserHeaderProps) {
                 onClick={async () => {
                   try { await supabase.auth.signOut(); } catch {}
                   try { await logout(); } catch {}
+                  try { disconnectChatDock(); } catch {}
+                  try { disconnectCommunity(); } catch {}
                   setUser(null);
                   setLogoutOpen(false);
                   navigate("/login", { replace: true });

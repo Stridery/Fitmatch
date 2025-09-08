@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { getUserProfile } from "@/api/user";
 import { supabase } from "@/lib/supabase";
 import type { User, UserProfile } from "@/entities/user";
+import { useChatDockStore } from "@/pages/community/chatDock/store";
+import { useCommunityStore } from "@/pages/community/store";
 
 interface UserContextType {
   user: User | null;
@@ -46,6 +48,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (!session) {
           apply(null, null);
+          try { useChatDockStore.getState().disconnectSocket(); } catch {}
+          try { useCommunityStore.getState().disconnectSocket(); } catch {}
           return;
         }
 
@@ -77,6 +81,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         apply(null, null);
+        try { useChatDockStore.getState().disconnectSocket(); } catch {}
+        try { useCommunityStore.getState().disconnectSocket(); } catch {}
         setLoading(false);
         return;
       }

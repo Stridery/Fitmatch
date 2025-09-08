@@ -74,6 +74,7 @@ interface ChatDockState extends PersistedShape {
   updateThreadInfo: (threadId: string, patch: Partial<ChatThreadInfo>) => void;
   startDM: (otherUserId: string, seed?: ThreadSeed) => Promise<string>;
   addRecentContact: (user: { id: string; nickname?: string; avatarUrl?: string }) => void;
+  disconnectSocket: () => void;
 }
 
 /** ============ 工具/类型守卫 ============ */
@@ -282,6 +283,14 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         });
 
         set({ socket: s });
+
+        // Disconnect on tab close
+        if (!(globalThis as any).__chatdock_unload_bound) {
+          (globalThis as any).__chatdock_unload_bound = true;
+          globalThis.addEventListener("beforeunload", () => {
+            try { get().socket?.disconnect(); } catch {}
+          });
+        }
       },
 
       /** ⭐ 幂等 + 临时线程拦截 的 joinThread */
@@ -512,6 +521,11 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           const rest = state.recentContacts.filter((u) => u.id !== user.id);
           return { ...state, recentContacts: [user, ...rest].slice(0, 20) };
         });
+      },
+
+      disconnectSocket: () => {
+        try { get().socket?.disconnect(); } catch {}
+        set({ socket: null });
       },
     }),
     {

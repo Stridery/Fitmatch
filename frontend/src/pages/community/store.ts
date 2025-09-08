@@ -1,6 +1,7 @@
 import { createWithEqualityFn } from 'zustand/traditional'
 import { io, Socket } from "socket.io-client";
 import { api } from "./api";
+import { supabase } from "@/lib/supabase";
 
 export type TabKey = "messages" | "contacts" | "posts";
 
@@ -77,7 +78,8 @@ interface CommunityState {
   socket: ChatSocket | null;
   currentUserId: string | null;
   setCurrentUserId: (userId: string | null) => void;
-  ensureSocket: (userId: string) => void;
+  ensureSocket: (userId: string) => Promise<void>;
+  disconnectSocket: () => void;
 
   // Data actions
   fetchConversations: () => Promise<void>;
@@ -109,7 +111,7 @@ export const useCommunityStore = createWithEqualityFn<CommunityState>()((set, ge
   currentUserId: null,
   setCurrentUserId: (userId) => set({ currentUserId: userId }),
 
-  ensureSocket: (userId: string) => {
+  ensureSocket: async (userId: string) => {
     const existing = get().socket;
     if (existing && existing.connected) return;
 
@@ -119,11 +121,17 @@ export const useCommunityStore = createWithEqualityFn<CommunityState>()((set, ge
       return;
     }
 
-    // 关键修改：io() 不传泛型，用变量类型约束为 ChatSocket
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (!accessToken) {
+      console.warn("No access token; skipping socket connection");
+      return;
+    }
+
     const newSocket: ChatSocket = io(url, {
       transports: ["websocket"],
       autoConnect: true,
-      auth: { userId },
+      auth: { token: accessToken },
     });
 
     newSocket.on("connect_error", (err: Error) => {
@@ -143,6 +151,19 @@ export const useCommunityStore = createWithEqualityFn<CommunityState>()((set, ge
     });
 
     set({ socket: newSocket });
+
+    // Disconnect on tab close
+    if (!(globalThis as any).__community_unload_bound) {
+      (globalThis as any).__community_unload_bound = true;
+      globalThis.addEventListener("beforeunload", () => {
+        try { get().socket?.disconnect(); } catch {}
+      });
+    }
+  },
+
+  disconnectSocket: () => {
+    try { get().socket?.disconnect(); } catch {}
+    set({ socket: null });
   },
 
   fetchConversations: async () => {
