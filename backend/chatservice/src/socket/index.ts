@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import redis from '../config/redis.js';                 // 你前面提供的是默认导出
+import redis from '../config/redis.js';                 // 默认导出
 import type { MessageStatus } from '../models/message.js';
 import { createMessageIdempotent, Message } from '../models/message.js';
 import { ThreadParticipant } from '../models/threadParticipant.js';
@@ -11,9 +11,10 @@ interface SocketWithAuth extends Socket { data: { userId: string }; }
 interface SendPayload { threadId: string; content: string; clientMsgId?: string; }
 
 const userSockets = new Map<string, Set<string>>(); // 多设备支持（本机内存）
-function roomOf(userId: string) { return `u:${userId}`; }
-function threadRoom(threadId: string) { return `room:${threadId}`; }
+const heartbeats = new Map<string, NodeJS.Timeout>(); // 心跳定时器，按 socket.id 管理
 
+function roomOf(userId: string) { return `u:${userId}`; }
+function threadRoom(threadId: string) { return `room:${threadId}`; } // 保留工具函数，当前未使用线程广播
 
 function mask(str: string, show = 6) {
   if (!str) return '';
@@ -23,7 +24,6 @@ function mask(str: string, show = 6) {
 
 function peekJwt(token: string) {
   try {
-    // 只解码，不校验，用于调试 alg / kid / exp 等
     const decoded = (jwt as any).decode(token, { complete: true }) as any;
     return {
       alg: decoded?.header?.alg,
@@ -37,7 +37,6 @@ function peekJwt(token: string) {
     return null;
   }
 }
-
 
 function bindSocket(userId: string, socketId: string) {
   if (!userSockets.has(userId)) userSockets.set(userId, new Set());
@@ -66,8 +65,6 @@ async function isRateLimited(userId: string, limit = 20): Promise<boolean> {
 
 export function setupSocketServer(io: Server) {
   // 鉴权中间件：兼容 payload.userId / payload.sub
-  
-
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token as string | undefined;
     const fallbackUserId = socket.handshake.auth?.userId as string | undefined;
@@ -103,18 +100,26 @@ export function setupSocketServer(io: Server) {
     const userId = socket.data.userId;
     bindSocket(userId, socket.id);
     console.log('✅ User connected:', userId, socket.id);
+
     // 加入以用户为维度的房间，便于跨实例广播
     await socket.join(roomOf(userId));
 
-    // 标记在线与心跳
+    // —— 标记在线与心跳（心跳只更新时间） ——
     try {
+      await redis.hincrby(`user:${userId}`, 'conn', 1); // 连接计数 +1
       await redis.hset(`user:${userId}`, { online: 1, lastOnlineAt: Date.now() });
     } catch {}
-    const heartbeat = setInterval(async () => {
-      try { await redis.hset(`user:${userId}`, { online: 1, lastOnlineAt: Date.now() }); } catch {}
+    // 防重复启动
+    if (heartbeats.has(socket.id)) clearInterval(heartbeats.get(socket.id)!);
+    const hb = setInterval(async () => {
+      try {
+        // 仅更新时间，避免覆盖 offline
+        await redis.hset(`user:${userId}`, { lastOnlineAt: Date.now() });
+      } catch {}
     }, 30_000);
+    heartbeats.set(socket.id, hb);
 
-    // 拉取并清空离线消息队列（原子）
+    // —— 拉取并清空离线消息队列（原子） ——
     try {
       const key = `offline:${userId}`;
       const tmp = `offline:${userId}:tmp:${crypto.randomUUID()}`;
@@ -125,7 +130,12 @@ export function setupSocketServer(io: Server) {
         while (true) {
           const raw = await redis.lpop(tmp);
           if (!raw) break;
-          try { socket.emit('privateMessage', JSON.parse(raw)); delivered += 1; } catch {}
+          try {
+            const payload = JSON.parse(raw);
+            // 统一事件名为 chat:newMessage（与在线广播一致）
+            socket.emit('chat:newMessage', payload);
+            delivered += 1;
+          } catch {}
         }
         await redis.del(tmp);
         if (delivered) console.log(`📬 Delivered ${delivered} offline messages to ${userId}`);
@@ -146,6 +156,7 @@ export function setupSocketServer(io: Server) {
         console.error('joinThread error', e);
       }
     });
+
     socket.on('chat:leaveThread', async (data: { threadId: string }) => {
       try {
         const threadId = String(data?.threadId ?? '');
@@ -156,22 +167,22 @@ export function setupSocketServer(io: Server) {
       }
     });
 
-    // 线程内发送（幂等）
+    // —— 线程内发送（幂等） ——
     socket.on('chat:send', async (data: SendPayload) => {
       try {
         if (await isRateLimited(userId)) {
-          socket.emit('error', { code: 'RATE_LIMIT', message: 'Too many messages. Please slow down.' });
+          socket.emit('chat:error', { code: 'RATE_LIMIT', message: 'Too many messages. Please slow down.' });
           return;
         }
         const threadId = typeof data?.threadId === 'string' ? data.threadId : '';
         let content = typeof data?.content === 'string' ? data.content.trim() : '';
-        if (!threadId) { socket.emit('error', { code: 'BAD_THREAD', message: 'Invalid thread' }); return; }
-        if (!content) { socket.emit('error', { code: 'EMPTY', message: 'Message cannot be empty' }); return; }
-        if (content.length > 1000) { socket.emit('error', { code: 'TOO_LONG', message: 'Message too long' }); return; }
+        if (!threadId) { socket.emit('chat:error', { code: 'BAD_THREAD', message: 'Invalid thread' }); return; }
+        if (!content) { socket.emit('chat:error', { code: 'EMPTY', message: 'Message cannot be empty' }); return; }
+        if (content.length > 1000) { socket.emit('chat:error', { code: 'TOO_LONG', message: 'Message too long' }); return; }
 
         // 授权：必须是参与者
         const parts = await ThreadParticipant.find({ threadId }).lean();
-        if (!parts.some(p => String(p.userId) === userId)) { socket.emit('error', { code: 'FORBIDDEN' }); return; }
+        if (!parts.some(p => String(p.userId) === userId)) { socket.emit('chat:error', { code: 'FORBIDDEN' }); return; }
         const toUserId = String((parts.find(p => String(p.userId) !== userId) as any)?.userId ?? '');
 
         // 在线检测：看对端是否在线
@@ -199,12 +210,8 @@ export function setupSocketServer(io: Server) {
           clientMsgId: data.clientMsgId,
         };
 
-        // 广播到参与者的个人房间（保证送达）
+        // —— 只给对端广播，避免自己收到多次回声 ——
         io.to(roomOf(toUserId)).emit('chat:newMessage', payload);
-        io.to(roomOf(userId)).emit('chat:newMessage', payload);
-
-        // 亦可广播到线程房间（活跃读者更低延迟）
-        io.to(threadRoom(threadId)).emit('chat:newMessage', payload);
 
         // 若对端离线，入离线队列（个人房间在其上线时会被投递）
         if (!isOnline) {
@@ -214,15 +221,20 @@ export function setupSocketServer(io: Server) {
           console.log(`📦 Stored offline message for ${toUserId}`);
         }
 
-        // 给发送者 ACK（带 created 标志）
-        socket.emit('messageSent', { id: payload.id, createdAt: payload.createdAt, created });
+        // 给发送者 ACK（带 created 标志 + clientMsgId 以便前端合并乐观消息）
+        socket.emit('messageSent', { 
+          id: payload.id, 
+          createdAt: payload.createdAt, 
+          created,
+          clientMsgId: data.clientMsgId 
+        });
       } catch (e) {
         console.error('❌ Send error:', e);
-        socket.emit('error', { code: 'SEND_FAIL', message: 'Failed to send message' });
+        socket.emit('chat:error', { code: 'SEND_FAIL', message: 'Failed to send message' });
       }
     });
 
-    // 批量已读
+    // —— 批量已读 ——
     socket.on('markAsRead', async (data: { messageIds: string[] }) => {
       try {
         const ids = Array.isArray(data?.messageIds) ? data.messageIds : [];
@@ -249,14 +261,28 @@ export function setupSocketServer(io: Server) {
       }
     });
 
+    // —— 断开连接 ——
     socket.on('disconnect', async () => {
       unbindSocket(userId, socket.id);
       console.log('❌ User disconnected:', userId, socket.id);
-      // 记录最后在线时间
+
+      // 先停心跳，避免心跳把 online 写回 1
+      const hbTimer = heartbeats.get(socket.id);
+      if (hbTimer) {
+        clearInterval(hbTimer);
+        heartbeats.delete(socket.id);
+      }
+
+      // 连接计数 -1；归零才置 offline
       try {
-        await redis.hset(`user:${userId}`, { online: 0, lastOnlineAt: Date.now() });
+        const c = await redis.hincrby(`user:${userId}`, 'conn', -1);
+        if (c <= 0) {
+          await redis.hset(`user:${userId}`, { online: 0, lastOnlineAt: Date.now() });
+        } else {
+          await redis.hset(`user:${userId}`, { lastOnlineAt: Date.now() });
+        }
       } catch {}
-      clearInterval(heartbeat);
+
       try { await socket.leave(roomOf(userId)); } catch {}
     });
   });
