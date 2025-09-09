@@ -16,26 +16,15 @@ const heartbeats = new Map<string, NodeJS.Timeout>(); // 心跳定时器，按 s
 function roomOf(userId: string) { return `u:${userId}`; }
 function threadRoom(threadId: string) { return `room:${threadId}`; } // 保留工具函数，当前未使用线程广播
 
-function mask(str: string, show = 6) {
-  if (!str) return '';
-  if (str.length <= show * 2) return '*'.repeat(str.length);
-  return str.slice(0, show) + '...' + str.slice(-show);
-}
 
-function peekJwt(token: string) {
-  try {
-    const decoded = (jwt as any).decode(token, { complete: true }) as any;
-    return {
-      alg: decoded?.header?.alg,
-      kid: decoded?.header?.kid,
-      exp: decoded?.payload?.exp,
-      iat: decoded?.payload?.iat,
-      sub: decoded?.payload?.sub,
-      userId: decoded?.payload?.userId,
-    };
-  } catch {
-    return null;
-  }
+async function recomputeOnline(io: Server, userId: string) {
+  const sockets = await io.in(`u:${userId}`).fetchSockets();
+  const conn = sockets.length;
+  await redis.hset(`user:${userId}`, {
+    conn,
+    online: conn > 0 ? 1 : 0,
+    lastOnlineAt: Date.now(),
+  });
 }
 
 function bindSocket(userId: string, socketId: string) {
@@ -91,11 +80,16 @@ export function setupSocketServer(io: Server) {
     // 加入以用户为维度的房间，便于跨实例广播
     await socket.join(roomOf(userId));
 
+    
+
     // —— 标记在线与心跳（心跳只更新时间） ——
+    await recomputeOnline(io, userId);
+    /*
     try {
       await redis.hincrby(`user:${userId}`, 'conn', 1); // 连接计数 +1
       await redis.hset(`user:${userId}`, { online: 1, lastOnlineAt: Date.now() });
     } catch {}
+     */
     // 防重复启动
     if (heartbeats.has(socket.id)) clearInterval(heartbeats.get(socket.id)!);
     const hb = setInterval(async () => {
@@ -260,7 +254,8 @@ export function setupSocketServer(io: Server) {
         heartbeats.delete(socket.id);
       }
 
-      // 连接计数 -1；归零才置 offline
+      // 连接计数 -1；归零才置 offline\
+      /*
       try {
         const c = await redis.hincrby(`user:${userId}`, 'conn', -1);
         if (c <= 0) {
@@ -269,8 +264,10 @@ export function setupSocketServer(io: Server) {
           await redis.hset(`user:${userId}`, { lastOnlineAt: Date.now() });
         }
       } catch {}
-
+      */
+     
       try { await socket.leave(roomOf(userId)); } catch {}
+      await recomputeOnline(io, userId);
     });
   });
 }

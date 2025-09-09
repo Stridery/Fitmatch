@@ -203,7 +203,7 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         }
 
         const envUrl = import.meta.env.VITE_SOCKET_URL as string | undefined;
-
+        const g = globalThis as Record<string, unknown>;
         let baseUrl: string | undefined;
         let pathOpt: string | undefined;
 
@@ -285,10 +285,16 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         set({ socket: s });
 
         // Disconnect on tab close
-        if (!(globalThis as any).__chatdock_unload_bound) {
-          (globalThis as any).__chatdock_unload_bound = true;
+        if (!g.__chatdock_unload_bound) {
+          g.__chatdock_unload_bound = true;
+
           globalThis.addEventListener("beforeunload", () => {
-            try { get().socket?.disconnect(); } catch {}
+            try {
+              get().socket?.disconnect();
+            } catch (e) {
+              // 可选：记录日志，至少不让 catch 是空的
+              console.warn("[chatdock] socket disconnect on unload failed:", e);
+            }
           });
         }
       },
@@ -524,7 +530,9 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
       },
 
       disconnectSocket: () => {
-        try { get().socket?.disconnect(); } catch {}
+        try { get().socket?.disconnect(); } catch {
+          console.warn("[chatdock] socket disconnect failed");
+        }
         set({ socket: null });
       },
     }),

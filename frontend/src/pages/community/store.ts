@@ -78,7 +78,7 @@ interface CommunityState {
   socket: ChatSocket | null;
   currentUserId: string | null;
   setCurrentUserId: (userId: string | null) => void;
-  ensureSocket: (userId: string) => Promise<void>;
+  ensureSocket: () => Promise<void>;
   disconnectSocket: () => void;
 
   // Data actions
@@ -111,8 +111,9 @@ export const useCommunityStore = createWithEqualityFn<CommunityState>()((set, ge
   currentUserId: null,
   setCurrentUserId: (userId) => set({ currentUserId: userId }),
 
-  ensureSocket: async (userId: string) => {
+  ensureSocket: async () => {
     const existing = get().socket;
+    const g = globalThis as Record<string, unknown>;
     if (existing && existing.connected) return;
 
     const url = import.meta.env?.VITE_SOCKET_URL;
@@ -153,16 +154,24 @@ export const useCommunityStore = createWithEqualityFn<CommunityState>()((set, ge
     set({ socket: newSocket });
 
     // Disconnect on tab close
-    if (!(globalThis as any).__community_unload_bound) {
-      (globalThis as any).__community_unload_bound = true;
-      globalThis.addEventListener("beforeunload", () => {
-        try { get().socket?.disconnect(); } catch {}
-      });
-    }
+    if (!g.__chatdock_unload_bound) {
+          g.__chatdock_unload_bound = true;
+
+          globalThis.addEventListener("beforeunload", () => {
+            try {
+              get().socket?.disconnect();
+            } catch (e) {
+              // 可选：记录日志，至少不让 catch 是空的
+              console.warn("[chatdock] socket disconnect on unload failed:", e);
+            }
+          });
+        }
   },
 
   disconnectSocket: () => {
-    try { get().socket?.disconnect(); } catch {}
+    try { get().socket?.disconnect(); } catch {
+      console.warn("[chatdock] socket disconnect failed");
+    }
     set({ socket: null });
   },
 
@@ -244,7 +253,7 @@ export const useCommunityStore = createWithEqualityFn<CommunityState>()((set, ge
 
     const socket = get().socket;
     if (!socket || !socket.connected) {
-      get().ensureSocket(currentUserId);
+      get().ensureSocket();
     }
 
     const tempId = `tmp_${Date.now()}`;
