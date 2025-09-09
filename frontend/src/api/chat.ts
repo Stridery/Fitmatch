@@ -31,6 +31,11 @@ export async function startDM(participantId: string) {
   return res.data.thread;
 }
 
+export async function listThreads() {
+  const res = await api.get<{ threads: ChatThreadSummary[] }>(`/chat/threads`);
+  return res.data.threads;
+}
+
 export async function getThreadMessages(
   threadId: string,
   limit = 50,
