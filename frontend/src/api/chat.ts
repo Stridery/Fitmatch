@@ -42,3 +42,8 @@ export async function getThreadMessages(
   );
   return res.data.messages;
 }
+
+export async function listThreads() {
+  const res = await api.get<{ threads: ChatThreadSummary[] }>(`/chat/threads`);
+  return res.data.threads;
+}

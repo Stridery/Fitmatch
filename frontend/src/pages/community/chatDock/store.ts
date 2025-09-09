@@ -2,7 +2,7 @@ import { createWithEqualityFn } from "zustand/traditional";
 import { persist } from "zustand/middleware";
 import { io, Socket } from "socket.io-client";
 import type { ManagerOptions, SocketOptions } from "socket.io-client";
-import { getThreadMessages, startDM as apiStartDM } from "@/api/chat";
+import { getThreadMessages, startDM as apiStartDM, listThreads } from "@/api/chat";
 import { supabase } from "@/lib/supabase";
 
 /** ============ Socket 事件类型 ============ */
@@ -51,17 +51,27 @@ export interface ChatMessage {
 type ThreadSeed = { nickname?: string; avatarUrl?: string };
 
 /** 仅持久化的字段（与 partialize 对齐） */
+export type RecentContact = {
+  id: string;
+  nickname?: string;
+  avatarUrl?: string;
+  lastMessage?: string;
+  lastMessageAt?: string; // ISO
+  unreadCountFromUser?: number;
+};
+
 type PersistedShape = {
   openThreads: Record<string, ChatThreadInfo>;
-  recentContacts: { id: string; nickname?: string; avatarUrl?: string }[];
+  recentContacts: RecentContact[];
 };
 
 /** 完整 Zustand State */
-interface ChatDockState extends PersistedShape {
+export interface ChatDockState extends PersistedShape {
   userId: string | null;
   socket: ChatSocket | null;
 
   messages: Record<string, ChatMessage[]>;
+  totalUnread: () => number;
 
   setUserId: (userId: string | null) => void;
   ensureSocket: (userId: string) => Promise<void>;
@@ -74,6 +84,9 @@ interface ChatDockState extends PersistedShape {
   updateThreadInfo: (threadId: string, patch: Partial<ChatThreadInfo>) => void;
   startDM: (otherUserId: string, seed?: ThreadSeed) => Promise<string>;
   addRecentContact: (user: { id: string; nickname?: string; avatarUrl?: string }) => void;
+  updateRecentOnIncoming: (senderId: string, content: string, createdAt: string) => void;
+  updateRecentOnOutgoing: (otherUserId: string, content: string, createdAt: string) => void;
+  clearUnreadForUser: (userId: string) => void;
   disconnectSocket: () => void;
 }
 
@@ -194,6 +207,16 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
       messages: {},
       recentContacts: [],
 
+      totalUnread: () => {
+        const list = get().recentContacts ?? [];
+        let sum = 0;
+        for (const u of list) {
+          const n = Number((u as any).unreadCountFromUser ?? 0);
+          if (Number.isFinite(n)) sum += n;
+        }
+        return sum;
+      },
+
       setUserId: (userId) => set({ userId }),
 
       ensureSocket: async (userId: string): Promise<void> => {
@@ -280,9 +303,42 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
               },
             }));
           }
+
+          // 更新最近联系人信息（未读按对端累计）
+          if (isMine) {
+            // 自己发的：定位对端用户ID（若已知）
+            const t = get().openThreads[payload.threadId];
+            const otherUserId = t?.otherUserId;
+            if (otherUserId) {
+              get().updateRecentOnOutgoing(otherUserId, payload.content, payload.createdAt);
+            }
+          } else {
+            // 对方发来：senderId 即对方
+            get().updateRecentOnIncoming(payload.senderId, payload.content, payload.createdAt);
+          }
         });
 
         set({ socket: s });
+
+        // 初次连接后尝试加载我的线程列表，便于构建最近联系人排序
+        try {
+          const threads = await listThreads();
+          // 按 lastMsgAt 更新 recent 的时间戳，保持不丢 nickname/avatar
+          set((state) => {
+            const map = new Map<string, RecentContact>();
+            for (const u of state.recentContacts ?? []) map.set(u.id, { ...u });
+            for (const t of threads ?? []) {
+              const otherId = (t as any)?.otherUser?.id as string | undefined; // 后端简版可能未返回 otherUser
+              if (!otherId) continue;
+              const prev = map.get(otherId) ?? { id: otherId };
+              const lastAt = (t as any)?.lastMsgAt ? String((t as any).lastMsgAt) : prev.lastMessageAt;
+              map.set(otherId, { ...prev, lastMessageAt: lastAt });
+            }
+            return { ...state, recentContacts: Array.from(map.values()) };
+          });
+        } catch {
+          // ignore
+        }
 
         // Disconnect on tab close
         if (!g.__chatdock_unload_bound) {
@@ -378,6 +434,13 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         }));
 
         get().socket?.emit("chat:send", { threadId, content, clientMsgId: rnd });
+
+        // 立刻刷新最近联系人（无需等待服务端回环）
+        const t = get().openThreads[threadId];
+        const otherUserId = t?.otherUserId;
+        if (otherUserId) {
+          get().updateRecentOnOutgoing(otherUserId, content, new Date().toISOString());
+        }
       },
 
       focusThread: (threadId: string) => {
@@ -392,6 +455,10 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
             },
           };
         });
+        // 打开时清除该会话对端的未读
+        const t = get().openThreads[threadId];
+        const otherUserId = t?.otherUserId;
+        if (otherUserId) get().clearUnreadForUser(otherUserId);
       },
 
       minimizeThread: (threadId: string, minimized: boolean) => {
@@ -516,6 +583,9 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           return { openThreads: next };
         });
 
+        // 3.5) 将联系人加入最近列表（不重复）
+        get().addRecentContact({ id: fromApi ?? otherUserId, nickname: title ?? seed?.nickname, avatarUrl: avatarUrl ?? seed?.avatarUrl });
+
         // 4) 加入真实线程（由 joinThread 负责幂等 + 加载历史）
         await get().joinThread(threadId);
         return threadId;
@@ -525,8 +595,52 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         if (!user.id) return;
         set((state) => {
           const rest = state.recentContacts.filter((u) => u.id !== user.id);
-          return { ...state, recentContacts: [user, ...rest].slice(0, 20) };
+          const merged = [{ ...user }, ...rest];
+          return { ...state, recentContacts: merged.slice(0, 20) };
         });
+      },
+
+      updateRecentOnIncoming: (senderId, content, createdAt) => {
+        if (!senderId) return;
+        set((state) => {
+          const list = state.recentContacts ?? [];
+          const others = list.filter((u) => u.id !== senderId);
+          const prev = list.find((u) => u.id === senderId) ?? { id: senderId };
+          const unread = Number(prev.unreadCountFromUser ?? 0) + 1;
+          const next = {
+            ...prev,
+            lastMessage: content,
+            lastMessageAt: createdAt,
+            unreadCountFromUser: unread,
+          } as RecentContact;
+          return { ...state, recentContacts: [next, ...others].slice(0, 50) };
+        });
+      },
+
+      updateRecentOnOutgoing: (otherUserId, content, createdAt) => {
+        if (!otherUserId) return;
+        set((state) => {
+          const list = state.recentContacts ?? [];
+          const others = list.filter((u) => u.id !== otherUserId);
+          const prev = list.find((u) => u.id === otherUserId) ?? { id: otherUserId };
+          const next = {
+            ...prev,
+            lastMessage: content,
+            lastMessageAt: createdAt,
+            unreadCountFromUser: 0, // 自己发出不产生对端未读计数
+          } as RecentContact;
+          return { ...state, recentContacts: [next, ...others].slice(0, 50) };
+        });
+      },
+
+      clearUnreadForUser: (userId) => {
+        if (!userId) return;
+        set((state) => ({
+          ...state,
+          recentContacts: (state.recentContacts ?? []).map((u) =>
+            u.id === userId ? { ...u, unreadCountFromUser: 0 } : u
+          ),
+        }));
       },
 
       disconnectSocket: () => {
@@ -538,7 +652,7 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
     }),
     {
       name: "chat-dock",
-      version: 2,
+      version: 3,
       partialize: (s) => ({ openThreads: s.openThreads, recentContacts: s.recentContacts }),
 
       migrate: (persisted: unknown): PersistedShape => {
@@ -569,14 +683,15 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           else if (isNonEmptyString((u as AnyRecord)._id)) id = String((u as AnyRecord)._id);
           if (!id) continue;
 
-          const entry: { id: string; nickname?: string; avatarUrl?: string } = { id };
-          if (typeof (u as AnyRecord).nickname === "string")
-            entry.nickname = (u as AnyRecord).nickname as string;
-          if (typeof (u as AnyRecord).avatarUrl === "string")
-            entry.avatarUrl = (u as AnyRecord).avatarUrl as string;
+          const entry: RecentContact = { id };
+          if (typeof (u as AnyRecord).nickname === "string") entry.nickname = (u as AnyRecord).nickname as string;
+          if (typeof (u as AnyRecord).avatarUrl === "string") entry.avatarUrl = (u as AnyRecord).avatarUrl as string;
+          if (typeof (u as AnyRecord).lastMessage === "string") entry.lastMessage = (u as AnyRecord).lastMessage as string;
+          if (typeof (u as AnyRecord).lastMessageAt === "string") entry.lastMessageAt = (u as AnyRecord).lastMessageAt as string;
+          if (Number.isFinite(Number((u as AnyRecord).unreadCountFromUser))) entry.unreadCountFromUser = Number((u as AnyRecord).unreadCountFromUser);
 
           fixedRecent.push(entry);
-          if (fixedRecent.length >= 20) break;
+          if (fixedRecent.length >= 50) break;
         }
 
         return { openThreads: fixedOpen, recentContacts: fixedRecent };
