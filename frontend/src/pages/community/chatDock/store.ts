@@ -103,6 +103,20 @@ const toNumber = (v: unknown, d = 0): number => {
 };
 const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 
+/** 从未知对象里安全取 string 字段 */
+const pickString = (obj: unknown, key: string): string | undefined => {
+  if (!isRecord(obj)) return undefined;
+  const v = obj[key];
+  return typeof v === "string" ? v : undefined;
+};
+
+/** 从未知对象里安全取嵌套对象 */
+const pickRecord = (obj: unknown, key: string): AnyRecord | undefined => {
+  if (!isRecord(obj)) return undefined;
+  const v = obj[key];
+  return isRecord(v) ? v : undefined;
+};
+
 /** API Message DTO（宽松） */
 interface MessageDTO {
   _id?: unknown;
@@ -117,18 +131,12 @@ const normalizeThreadInfo = (tid: string, v: unknown): ChatThreadInfo => {
   const src = isRecord(v) ? v : {};
   return {
     threadId: tid,
-    title: typeof (src as AnyRecord).title === "string" ? ((src as AnyRecord).title as string) : undefined,
-    avatarUrl:
-      typeof (src as AnyRecord).avatarUrl === "string"
-        ? ((src as AnyRecord).avatarUrl as string)
-        : undefined,
-    otherUserId:
-      typeof (src as AnyRecord).otherUserId === "string"
-        ? ((src as AnyRecord).otherUserId as string)
-        : undefined,
-    minimized: !!(src as AnyRecord).minimized,
-    focused: !!(src as AnyRecord).focused,
-    unread: toNumber((src as AnyRecord).unread, 0),
+    title: typeof src.title === "string" ? (src.title as string) : undefined,
+    avatarUrl: typeof src.avatarUrl === "string" ? (src.avatarUrl as string) : undefined,
+    otherUserId: typeof src.otherUserId === "string" ? (src.otherUserId as string) : undefined,
+    minimized: !!src.minimized,
+    focused: !!src.focused,
+    unread: toNumber(src.unread, 0),
   };
 };
 
@@ -136,12 +144,7 @@ const normalizeThreadInfo = (tid: string, v: unknown): ChatThreadInfo => {
 const parseThreadFromUnknown = (
   u: unknown
 ): { id: string; title?: string; avatarUrl?: string; otherUserId?: string } => {
-  const container =
-    isRecord(u) && isRecord((u as AnyRecord).thread)
-      ? ((u as AnyRecord).thread as AnyRecord)
-      : isRecord(u)
-      ? (u as AnyRecord)
-      : {};
+  const container = isRecord(u) && isRecord(u.thread) ? (u.thread as AnyRecord) : (isRecord(u) ? (u as AnyRecord) : {});
 
   const rawId =
     (typeof container.id === "string" && container.id) ||
@@ -153,11 +156,14 @@ const parseThreadFromUnknown = (
   let avatarUrl: string | undefined;
   let otherUserId: string | undefined;
 
-  if (isRecord((container as AnyRecord).otherUser)) {
-    const ou = (container as AnyRecord).otherUser as AnyRecord;
-    if (typeof ou.id === "string") otherUserId = ou.id;
-    if (typeof ou.nickname === "string") title = ou.nickname;
-    if (typeof ou.avatarUrl === "string") avatarUrl = ou.avatarUrl;
+  const other = pickRecord(container, "otherUser");
+  if (other) {
+    const oid = pickString(other, "id");
+    const nick = pickString(other, "nickname");
+    const ava = pickString(other, "avatarUrl");
+    if (oid) otherUserId = oid;
+    if (nick) title = nick;
+    if (ava) avatarUrl = ava;
   }
 
   return { id, title, avatarUrl, otherUserId };
@@ -166,22 +172,16 @@ const parseThreadFromUnknown = (
 /** 解析 getThreadMessages 的单条记录 */
 const parseMessageDTO = (m: unknown, threadId: string, myUserId: string): ChatMessage | null => {
   if (!isRecord(m)) return null;
-  const idRaw = isNonEmptyString((m as AnyRecord)._id)
-    ? (m as AnyRecord)._id
-    : isNonEmptyString((m as AnyRecord).id)
-    ? (m as AnyRecord).id
-    : undefined;
-  const senderIdRaw = (m as AnyRecord).senderId;
-  const contentRaw = (m as AnyRecord).content;
-  const createdAtRaw = (m as AnyRecord).createdAt;
+  const idRaw = isNonEmptyString(m._id) ? m._id : isNonEmptyString(m.id) ? m.id : undefined;
+  const senderIdRaw = m.senderId;
+  const contentRaw = m.content;
+  const createdAtRaw = m.createdAt;
 
   if (!idRaw || !isNonEmptyString(senderIdRaw)) return null;
   const id = toStringSafe(idRaw);
   const senderId = toStringSafe(senderIdRaw);
   const content = isNonEmptyString(contentRaw) ? contentRaw : toStringSafe(contentRaw ?? "");
-  const createdAt = isNonEmptyString(createdAtRaw)
-    ? createdAtRaw
-    : new Date().toISOString();
+  const createdAt = isNonEmptyString(createdAtRaw) ? createdAtRaw : new Date().toISOString();
 
   return {
     id,
@@ -208,10 +208,10 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
       recentContacts: [],
 
       totalUnread: () => {
-        const list = get().recentContacts ?? [];
+        const list: RecentContact[] = get().recentContacts ?? [];
         let sum = 0;
         for (const u of list) {
-          const n = Number((u as any).unreadCountFromUser ?? 0);
+          const n = Number(u.unreadCountFromUser ?? 0);
           if (Number.isFinite(n)) sum += n;
         }
         return sum;
@@ -322,18 +322,26 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
 
         // 初次连接后尝试加载我的线程列表，便于构建最近联系人排序
         try {
-          const threads = await listThreads();
-          // 按 lastMsgAt 更新 recent 的时间戳，保持不丢 nickname/avatar
+          const threadsUnknown: unknown = await listThreads();
+
           set((state) => {
             const map = new Map<string, RecentContact>();
             for (const u of state.recentContacts ?? []) map.set(u.id, { ...u });
-            for (const t of threads ?? []) {
-              const otherId = (t as any)?.otherUser?.id as string | undefined; // 后端简版可能未返回 otherUser
-              if (!otherId) continue;
-              const prev = map.get(otherId) ?? { id: otherId };
-              const lastAt = (t as any)?.lastMsgAt ? String((t as any).lastMsgAt) : prev.lastMessageAt;
-              map.set(otherId, { ...prev, lastMessageAt: lastAt });
+
+            if (Array.isArray(threadsUnknown)) {
+              for (const t of threadsUnknown) {
+                if (!isRecord(t)) continue;
+
+                const otherUser = pickRecord(t, "otherUser");
+                const otherId = otherUser ? pickString(otherUser, "id") : undefined;
+                if (!otherId) continue;
+
+                const prev = map.get(otherId) ?? { id: otherId };
+                const lastAt = pickString(t, "lastMsgAt") ?? prev.lastMessageAt;
+                map.set(otherId, { ...prev, lastMessageAt: lastAt });
+              }
             }
+
             return { ...state, recentContacts: Array.from(map.values()) };
           });
         } catch {
@@ -341,8 +349,8 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         }
 
         // Disconnect on tab close
-        if (!g.__chatdock_unload_bound) {
-          g.__chatdock_unload_bound = true;
+        if (!(g as AnyRecord).__chatdock_unload_bound) {
+          (g as AnyRecord).__chatdock_unload_bound = true;
 
           globalThis.addEventListener("beforeunload", () => {
             try {
@@ -584,7 +592,11 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
         });
 
         // 3.5) 将联系人加入最近列表（不重复）
-        get().addRecentContact({ id: fromApi ?? otherUserId, nickname: title ?? seed?.nickname, avatarUrl: avatarUrl ?? seed?.avatarUrl });
+        get().addRecentContact({
+          id: fromApi ?? otherUserId,
+          nickname: title ?? seed?.nickname,
+          avatarUrl: avatarUrl ?? seed?.avatarUrl,
+        });
 
         // 4) 加入真实线程（由 joinThread 负责幂等 + 加载历史）
         await get().joinThread(threadId);
@@ -607,12 +619,12 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           const others = list.filter((u) => u.id !== senderId);
           const prev = list.find((u) => u.id === senderId) ?? { id: senderId };
           const unread = Number(prev.unreadCountFromUser ?? 0) + 1;
-          const next = {
+          const next: RecentContact = {
             ...prev,
             lastMessage: content,
             lastMessageAt: createdAt,
             unreadCountFromUser: unread,
-          } as RecentContact;
+          };
           return { ...state, recentContacts: [next, ...others].slice(0, 50) };
         });
       },
@@ -623,12 +635,12 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           const list = state.recentContacts ?? [];
           const others = list.filter((u) => u.id !== otherUserId);
           const prev = list.find((u) => u.id === otherUserId) ?? { id: otherUserId };
-          const next = {
+          const next: RecentContact = {
             ...prev,
             lastMessage: content,
             lastMessageAt: createdAt,
             unreadCountFromUser: 0, // 自己发出不产生对端未读计数
-          } as RecentContact;
+          };
           return { ...state, recentContacts: [next, ...others].slice(0, 50) };
         });
       },
@@ -644,7 +656,9 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
       },
 
       disconnectSocket: () => {
-        try { get().socket?.disconnect(); } catch {
+        try {
+          get().socket?.disconnect();
+        } catch {
           console.warn("[chatdock] socket disconnect failed");
         }
         set({ socket: null });
@@ -658,20 +672,21 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
       migrate: (persisted: unknown): PersistedShape => {
         const prev = isRecord(persisted) ? (persisted as PersistedShape) : ({} as PersistedShape);
 
-        const rawOpen = isRecord((prev as AnyRecord).openThreads)
-          ? ((prev as AnyRecord).openThreads as Record<string, unknown>)
+        const rawOpen = isRecord((prev as unknown as AnyRecord).openThreads)
+          ? (((prev as unknown as AnyRecord).openThreads) as Record<string, unknown>)
           : {};
         const fixedOpen: Record<string, ChatThreadInfo> = {};
         for (const [k, v] of Object.entries(rawOpen)) {
-          const tidCandidate = isRecord(v) && isNonEmptyString((v as AnyRecord).threadId)
-            ? ((v as AnyRecord).threadId as string)
-            : k;
+          const tidCandidate =
+            isRecord(v) && isNonEmptyString((v as AnyRecord).threadId)
+              ? ((v as AnyRecord).threadId as string)
+              : k;
           const tid = toStringSafe(tidCandidate);
           if (!tid) continue;
           fixedOpen[tid] = normalizeThreadInfo(tid, v);
         }
 
-        const rawRecentUnknown = (prev as AnyRecord).recentContacts;
+        const rawRecentUnknown = (prev as unknown as AnyRecord).recentContacts;
         const rawRecent: unknown[] = Array.isArray(rawRecentUnknown) ? rawRecentUnknown : [];
 
         const fixedRecent: PersistedShape["recentContacts"] = [];
@@ -679,16 +694,20 @@ export const useChatDockStore = createWithEqualityFn<ChatDockState>()(
           if (!isRecord(u)) continue;
 
           let id: string | null = null;
-          if (isNonEmptyString((u as AnyRecord).id)) id = (u as AnyRecord).id as string;
+          if (isNonEmptyString(u.id)) id = u.id;
           else if (isNonEmptyString((u as AnyRecord)._id)) id = String((u as AnyRecord)._id);
           if (!id) continue;
 
           const entry: RecentContact = { id };
-          if (typeof (u as AnyRecord).nickname === "string") entry.nickname = (u as AnyRecord).nickname as string;
-          if (typeof (u as AnyRecord).avatarUrl === "string") entry.avatarUrl = (u as AnyRecord).avatarUrl as string;
-          if (typeof (u as AnyRecord).lastMessage === "string") entry.lastMessage = (u as AnyRecord).lastMessage as string;
-          if (typeof (u as AnyRecord).lastMessageAt === "string") entry.lastMessageAt = (u as AnyRecord).lastMessageAt as string;
-          if (Number.isFinite(Number((u as AnyRecord).unreadCountFromUser))) entry.unreadCountFromUser = Number((u as AnyRecord).unreadCountFromUser);
+          if (typeof u.nickname === "string") entry.nickname = u.nickname;
+          if (typeof u.avatarUrl === "string") entry.avatarUrl = u.avatarUrl;
+          if (typeof u.lastMessage === "string") entry.lastMessage = u.lastMessage;
+          if (typeof u.lastMessageAt === "string") entry.lastMessageAt = u.lastMessageAt;
+
+          const unreadMaybe = (u as AnyRecord).unreadCountFromUser;
+          if (Number.isFinite(Number(unreadMaybe))) {
+            entry.unreadCountFromUser = Number(unreadMaybe);
+          }
 
           fixedRecent.push(entry);
           if (fixedRecent.length >= 50) break;
