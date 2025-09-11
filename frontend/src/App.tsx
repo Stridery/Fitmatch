@@ -14,9 +14,11 @@ import CommunityPage from './pages/community/CommunityPage';
 import RequireAuth from "./components/RequireAuth";
 import { UserProvider } from "./contexts/UserContext";
 import CoachApplicationForm from "./pages/coach/CoachApplicationForm";
-import CoachDashboard from './pages/coach/CoachDashboard';
-import SportEditor from './pages/coach/SportEditor';
-import CourseEditor from './pages/coach/CourseEditor';
+import CoachCenterPage from "./pages/coach/CoachCenterPage";
+import SportDetailPage from "./pages/coach/SportDetailPage";
+import SportEditor from "./pages/coach/SportEditor";
+import CourseEditor from "./pages/coach/CourseEditor";
+import SessionsPage from "./pages/coach/SessionsPage";
 import ChatDock from "./pages/community/chatDock/ChatDock";
 //console.log("Rendering App...");
 
@@ -52,10 +54,11 @@ function App() {
 
         <Route element={<RequireAuth requireProfile = {false}/>}>
           <Route path="/coach-application" element={<CoachApplicationForm />}/>
-          <Route path="/coach" element={<CoachDashboard />} />
-          <Route path="/coach/sports/new" element={<SportEditor />} />
+          <Route path="/coach" element={<CoachCenterPage />} />
+          <Route path="/coach/sports/:id" element={<SportDetailPage />} />
           <Route path="/coach/sports/:id/edit" element={<SportEditor />} />
           <Route path="/coach/sports/:id/course" element={<CourseEditor />} />
+          <Route path="/coach/sports/:id/sessions" element={<SessionsPage />} />
         </Route>
       </Routes>
       {/* Globally mounted Chat Dock (desktop-only) */}
