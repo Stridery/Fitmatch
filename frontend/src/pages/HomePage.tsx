@@ -57,7 +57,7 @@ export default function HomePage() {
                   <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                     Personal Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/become-coach")}>
+                  <DropdownMenuItem onClick={() => navigate("/coach-application")}>
                     Become a Coach
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/manage-venue")}>
