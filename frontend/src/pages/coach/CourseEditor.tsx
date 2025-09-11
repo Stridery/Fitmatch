@@ -15,6 +15,7 @@ const modes = ['1v1','1v2','Group','Online'] as const
 const timeSlots = ['Weekdays Morning','Weekdays Afternoon','Weekdays Evening','Weekend Morning','Weekend Afternoon','Weekend Evening'] as const
 const goals = ['Skill Improvement','Competition','Build Interest','Well-being'] as const
 const frequencies = ['1–2 per week','3+ per week','Flexible'] as const
+import { RHFNumberInput } from '@/components/form/Input'
 
 const schema = z.object({
   training_modes: z.array(z.string()).default([]),
@@ -31,13 +32,15 @@ const schema = z.object({
       lesson_duration_minutes: z.coerce.number().int().positive(),
       price: z.coerce.number().positive(),
     })
-  ),
+  ).default([]), // 👈 建议给 packages 也加默认空数组，更稳
   media_file: z.any().optional(),
   media_type: z.enum(['image','video','other']).default('image'),
   media_description: z.string().optional(),
 })
 
-type FormValues = z.infer<typeof schema>
+// 👈 关键改动：区分输入/输出类型
+type FormInput = z.input<typeof schema>    // 允许 undefined / 原始输入
+type FormValues = z.output<typeof schema>  // 已应用 default/coerce 后的最终类型
 
 export default function CourseEditor() {
   const { id: coachSportId } = useParams()
@@ -48,8 +51,10 @@ export default function CourseEditor() {
   const [existingCourseId, setExistingCourseId] = useState<string | null>(null)
   const [signedMediaUrl, setSignedMediaUrl] = useState<string | null>(null)
 
-  const form = useForm<FormValues>({
+  // 👈 关键改动：useForm 使用三泛型 <FormInput, any, FormValues>
+  const form = useForm<FormInput, any, FormValues>({
     resolver: zodResolver(schema),
+    // defaultValues 是 DeepPartial<FormInput>，保持输入侧形状（允许 undefined）
     defaultValues: {
       training_modes: [],
       available_time_slots: [],
@@ -63,7 +68,8 @@ export default function CourseEditor() {
     },
   })
 
-  const packagesField = useFieldArray({ control: form.control, name: 'packages' })
+  // 👈 建议为 useFieldArray 指定 TFieldValues（即 FormInput）
+  const packagesField = useFieldArray<FormInput>({ control: form.control, name: 'packages' as const })
 
   useEffect(() => {
     if (!coachSportId) return
@@ -78,11 +84,12 @@ export default function CourseEditor() {
         if (cErr) throw cErr
         if (course) {
           setExistingCourseId(course.id)
+          // 👈 reset 接受输入侧形状（允许 undefined）
           form.reset({
-            training_modes: course.training_modes || [],
-            available_time_slots: course.available_time_slots || [],
-            preferred_frequency: course.preferred_frequency || undefined,
-            training_goals: course.training_goals || [],
+            training_modes: course.training_modes ?? [],
+            available_time_slots: course.available_time_slots ?? [],
+            preferred_frequency: course.preferred_frequency ?? undefined,
+            training_goals: course.training_goals ?? [],
             attributes_style: [],
             attributes_prefer: [],
             attributes_not_prefer: [],
@@ -136,6 +143,7 @@ export default function CourseEditor() {
     run()
   }, [coachSportId])
 
+  // 👈 这里的 values 使用 FormValues（输出类型），跟 resolver 的输出一致
   const saveAll = async (values: FormValues) => {
     if (!coachSportId || !user) return
     setSaving(true)
@@ -245,10 +253,19 @@ export default function CourseEditor() {
 
   if (loading) return <div className="p-6">Loading…</div>
 
+  // 👇 读取 watch 的地方都加了 ?? [] 兜底，避免输入侧 undefined 的类型告警
+  const watchTrainingModes = form.watch('training_modes') ?? []
+  const watchTimeSlots = form.watch('available_time_slots') ?? []
+  const watchGoals = form.watch('training_goals') ?? []
+  const watchStyle = form.watch('attributes_style') ?? []
+  const watchPrefer = form.watch('attributes_prefer') ?? []
+  const watchNotPrefer = form.watch('attributes_not_prefer') ?? []
+
   return (
     <div className="max-w-3xl mx-auto p-6">
       <h2 className="text-xl font-semibold mb-4">Course, Attributes, Prices & Media</h2>
       <Form {...form}>
+        {/* 👈 handleSubmit 现在会把 FormValues（输出类型）传进 saveAll，类型不再报错 */}
         <form onSubmit={form.handleSubmit(saveAll)} className="space-y-8">
           <section className="space-y-3">
             <h3 className="font-medium">Training modes</h3>
@@ -256,9 +273,9 @@ export default function CourseEditor() {
               {modes.map((m) => (
                 <label key={m} className="flex items-center gap-2 text-sm">
                   <Checkbox
-                    checked={form.watch('training_modes').includes(m)}
+                    checked={watchTrainingModes.includes(m)}
                     onCheckedChange={(checked) => {
-                      const cur = new Set(form.getValues('training_modes'))
+                      const cur = new Set(form.getValues('training_modes') ?? [])
                       if (checked) cur.add(m)
                       else cur.delete(m)
                       form.setValue('training_modes', Array.from(cur))
@@ -276,9 +293,9 @@ export default function CourseEditor() {
               {timeSlots.map((t) => (
                 <label key={t} className="flex items-center gap-2 text-sm">
                   <Checkbox
-                    checked={form.watch('available_time_slots').includes(t)}
+                    checked={watchTimeSlots.includes(t)}
                     onCheckedChange={(checked) => {
-                      const cur = new Set(form.getValues('available_time_slots'))
+                      const cur = new Set(form.getValues('available_time_slots') ?? [])
                       if (checked) cur.add(t)
                       else cur.delete(t)
                       form.setValue('available_time_slots', Array.from(cur))
@@ -315,9 +332,9 @@ export default function CourseEditor() {
               {goals.map((g) => (
                 <label key={g} className="flex items-center gap-2 text-sm">
                   <Checkbox
-                    checked={form.watch('training_goals').includes(g)}
+                    checked={watchGoals.includes(g)}
                     onCheckedChange={(checked) => {
-                      const cur = new Set(form.getValues('training_goals'))
+                      const cur = new Set(form.getValues('training_goals') ?? [])
                       if (checked) cur.add(g)
                       else cur.delete(g)
                       form.setValue('training_goals', Array.from(cur))
@@ -334,15 +351,15 @@ export default function CourseEditor() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div className="text-sm mb-1">Style</div>
-                <Textarea value={form.watch('attributes_style').join('\n')} onChange={(e) => form.setValue('attributes_style', e.target.value.split('\n').filter(Boolean))} placeholder="One per line" />
+                <Textarea value={watchStyle.join('\n')} onChange={(e) => form.setValue('attributes_style', e.target.value.split('\n').filter(Boolean))} placeholder="One per line" />
               </div>
               <div>
                 <div className="text-sm mb-1">Prefer student</div>
-                <Textarea value={form.watch('attributes_prefer').join('\n')} onChange={(e) => form.setValue('attributes_prefer', e.target.value.split('\n').filter(Boolean))} placeholder="One per line" />
+                <Textarea value={watchPrefer.join('\n')} onChange={(e) => form.setValue('attributes_prefer', e.target.value.split('\n').filter(Boolean))} placeholder="One per line" />
               </div>
               <div>
                 <div className="text-sm mb-1">Not prefer student</div>
-                <Textarea value={form.watch('attributes_not_prefer').join('\n')} onChange={(e) => form.setValue('attributes_not_prefer', e.target.value.split('\n').filter(Boolean))} placeholder="One per line" />
+                <Textarea value={watchNotPrefer.join('\n')} onChange={(e) => form.setValue('attributes_not_prefer', e.target.value.split('\n').filter(Boolean))} placeholder="One per line" />
               </div>
             </div>
           </section>
@@ -358,7 +375,7 @@ export default function CourseEditor() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Lessons</FormLabel>
-                        <Input type="number" {...field} />
+                        <RHFNumberInput field={field} />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -369,7 +386,7 @@ export default function CourseEditor() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Duration (min)</FormLabel>
-                        <Input type="number" {...field} />
+                        <RHFNumberInput field={field} />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -380,7 +397,7 @@ export default function CourseEditor() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Price</FormLabel>
-                        <Input type="number" step="0.01" {...field} />
+                        <RHFNumberInput field={field} step="0.01" />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -447,4 +464,3 @@ export default function CourseEditor() {
     </div>
   )
 }
-
