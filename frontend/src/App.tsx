@@ -18,6 +18,7 @@ import CoachCenterPage from "./pages/coach/CoachCenterPage";
 import SportDetailPage from "./pages/coach/SportDetailPage";
 import SportEditor from "./pages/coach/SportEditor";
 import CourseEditor from "./pages/coach/CourseEditor";
+import CourseEditorPage from "./pages/coach/CourseEditorPage";
 import SessionsPage from "./pages/coach/SessionsPage";
 import ChatDock from "./pages/community/chatDock/ChatDock";
 //console.log("Rendering App...");
@@ -57,7 +58,9 @@ function App() {
           <Route path="/coach" element={<CoachCenterPage />} />
           <Route path="/coach/sports/:id" element={<SportDetailPage />} />
           <Route path="/coach/sports/:id/edit" element={<SportEditor />} />
-          <Route path="/coach/sports/:id/course" element={<CourseEditor />} />
+          <Route path="/coach/sports/:coachSportId/course" element={<CourseEditor />} />
+          <Route path="/coach/sports/:coachSportId/course/new" element={<CourseEditorPage />} />
+          <Route path="/coach/sports/:coachSportId/course/:courseId/edit" element={<CourseEditorPage />} />
           <Route path="/coach/sports/:id/sessions" element={<SessionsPage />} />
         </Route>
       </Routes>

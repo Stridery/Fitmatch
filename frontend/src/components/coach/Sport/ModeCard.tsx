@@ -10,17 +10,25 @@ export type ModeCardProps = {
   vm: CourseVM
   sportId: string
   canSchedule: boolean
+  courseId?: string
+  onDelete?: () => void
+  deleting?: boolean
 }
 
-export function ModeCard({ mode, vm, sportId, canSchedule }: ModeCardProps) {
+export function ModeCard({ mode, vm, sportId, canSchedule, courseId, onDelete, deleting }: ModeCardProps) {
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">{mode}</CardTitle>
         <div className="flex gap-2">
-          <Link to={`/coach/sports/${sportId}/course`}>
-            <Button size="sm" variant="outline">Edit</Button>
-          </Link>
+          {courseId ? (
+            <Link to={`/coach/sports/${sportId}/course/${courseId}/edit`}>
+              <Button size="sm" variant="outline" className="text-black">Edit</Button>
+            </Link>
+          ) : null}
+          {courseId ? (
+            <Button size="sm" variant="outline" className="text-black" onClick={onDelete} disabled={deleting}>Delete</Button>
+          ) : null}
           <Link to={`/coach/sports/${sportId}/sessions?mode=${encodeURIComponent(mode)}`}>
             <Button size="sm" disabled={!canSchedule} title={!canSchedule ? 'Available after approval' : undefined}>Schedule</Button>
           </Link>

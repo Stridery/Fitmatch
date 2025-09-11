@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react'
-import { useParams, Link, useLocation } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useSportDetail } from '@/hooks/useSportDetail'
 import { SportHeader } from '@/components/coach/Sport/SportHeader'
 import { ModeGrid } from '@/components/coach/Sport/ModeGrid'
+import { Button } from '@/components/ui/button'
 
 export default function SportDetailPage() {
   const { id } = useParams()
   const location = useLocation() as { state?: { sportName?: string } }
-  const { loading, error, coachSport, courseVM, canSchedule } = useSportDetail(id)
+  const navigate = useNavigate()
+  const { loading, error, coachSport, course, courseVM, canSchedule } = useSportDetail(id)
 
   // 先用 Link.state 里的名字
   const [resolvedSportName, setResolvedSportName] = useState<string | null>(
@@ -60,6 +62,30 @@ export default function SportDetailPage() {
   // 最终展示名：优先 state，其次兜底查询，最后才退回 id
   const sportName = resolvedSportName ?? coachSport.sport_id
 
+  const [isDeleting, setIsDeleting] = useState<boolean>(false)
+  const [isCourseDeleted, setIsCourseDeleted] = useState<boolean>(false)
+
+  const handleDeleteCourse = useCallback(async () => {
+    if (!course?.id) return
+    const ok = window.confirm('Delete this course? This cannot be undone.')
+    if (!ok) return
+    try {
+      setIsDeleting(true)
+      const { error: delErr } = await supabase
+        .from('course_detail')
+        .delete()
+        .eq('id', course.id)
+      if (delErr) throw delErr
+      setIsCourseDeleted(true)
+      window.alert('Course deleted')
+    } catch (e: any) {
+      console.error(e)
+      window.alert(e?.message ?? 'Failed to delete')
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [course?.id])
+
   return (
     <div className="p-6 space-y-6">
       <SportHeader
@@ -68,33 +94,67 @@ export default function SportDetailPage() {
         sportId={coachSport.id}
       />
 
-      {!courseVM ? (
+      {!courseVM || isCourseDeleted ? (
         <div className="border rounded-lg p-4 text-sm text-muted-foreground">
           <div>You haven’t set up your course profile yet.</div>
-          <Link
-            to={`/coach/sports/${coachSport.id}/course`}
-            className="text-blue-600"
-          >
-            Edit course
-          </Link>
+          <div className="mt-3">
+            <Button
+              className="text-black"
+              onClick={() =>
+                navigate(`/coach/sports/${coachSport.id}/course/new`, {
+                  state: { sportName },
+                })
+              }
+            >
+              Add course
+            </Button>
+          </div>
         </div>
       ) : courseVM.modes.length === 0 ? (
         <div className="border rounded-lg p-4 text-sm text-muted-foreground">
           <div>No training modes selected.</div>
-          <Link
-            to={`/coach/sports/${coachSport.id}/course`}
-            className="text-blue-600"
-          >
-            Choose modes
-          </Link>
+          <div className="mt-3">
+            <Button
+              variant="outline"
+              className="text-black"
+              onClick={() =>
+                navigate(
+                  course?.id
+                    ? `/coach/sports/${coachSport.id}/course/${course.id}/edit`
+                    : `/coach/sports/${coachSport.id}/course/new`,
+                  { state: { sportName } }
+                )
+              }
+            >
+              Edit course
+            </Button>
+          </div>
         </div>
       ) : (
         <ModeGrid
           vm={courseVM}
           sportId={coachSport.id}
           canSchedule={canSchedule}
+          courseId={course?.id}
+          onDelete={handleDeleteCourse}
+          deleting={isDeleting}
         />
       )}
+
+      <div className="pt-2">
+        <div className="border-t mt-4 pt-4 flex justify-end">
+          <Button
+            className="text-black"
+            onClick={() =>
+              navigate(`/coach/sports/${coachSport.id}/course/new`, {
+                state: { sportName },
+              })
+            }
+          >
+            Add course
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
