@@ -14,9 +14,10 @@ import CommunityPage from './pages/community/CommunityPage';
 import RequireAuth from "./components/RequireAuth";
 import { UserProvider } from "./contexts/UserContext";
 import CoachApplicationForm from "./pages/coach/CoachApplicationForm";
+import CoachDashboard from './pages/coach/CoachDashboard';
+import SportEditor from './pages/coach/SportEditor';
+import CourseEditor from './pages/coach/CourseEditor';
 import ChatDock from "./pages/community/chatDock/ChatDock";
-
-
 //console.log("Rendering App...");
 
 function App() {
@@ -46,7 +47,15 @@ function App() {
             <Route index element={<ProfilePage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
+          
+        </Route>
+
+        <Route element={<RequireAuth requireProfile = {false}/>}>
           <Route path="/coach-application" element={<CoachApplicationForm />}/>
+          <Route path="/coach" element={<CoachDashboard />} />
+          <Route path="/coach/sports/new" element={<SportEditor />} />
+          <Route path="/coach/sports/:id/edit" element={<SportEditor />} />
+          <Route path="/coach/sports/:id/course" element={<CourseEditor />} />
         </Route>
       </Routes>
       {/* Globally mounted Chat Dock (desktop-only) */}
