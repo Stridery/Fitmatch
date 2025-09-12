@@ -111,10 +111,10 @@ export default function SportDetailPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6 w-full">
           {courseVMs.map(({ courseId, vm }) => {
             return (
-              <div key={courseId} className="h-full">
+              <div key={courseId} className="w-full">
                 <ModeGrid
                   vm={vm}
                   sportId={coachSport.id}

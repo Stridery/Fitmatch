@@ -3,7 +3,7 @@ import { ModeCard } from './ModeCard'
 
 export function ModeGrid({ vm, sportId, canSchedule, courseId, onDelete, deleting }: { vm: CourseVM, sportId: string, canSchedule: boolean, courseId?: string, onDelete?: () => void, deleting?: boolean }) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="flex flex-col gap-4 w-full min-w-0">
       {vm.modes.map((mode) => (
         <ModeCard key={mode} mode={mode as TrainingMode} vm={vm} sportId={sportId} canSchedule={canSchedule} courseId={courseId} onDelete={onDelete} deleting={deleting} />
       ))}

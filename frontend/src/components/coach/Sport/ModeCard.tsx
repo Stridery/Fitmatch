@@ -17,7 +17,7 @@ export type ModeCardProps = {
 
 export function ModeCard({ mode, vm, sportId, canSchedule, courseId, onDelete, deleting }: ModeCardProps) {
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden w-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">{mode}</CardTitle>
         <div className="flex gap-2">
