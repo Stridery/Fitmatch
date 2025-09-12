@@ -111,18 +111,19 @@ export default function SportDetailPage() {
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {courseVMs.map(({ courseId, vm }) => {
             return (
-              <ModeGrid
-                key={courseId}
-                vm={vm}
-                sportId={coachSport.id}
-                canSchedule={canSchedule}
-                courseId={courseId}
-                onDelete={() => handleDeleteCourse(courseId)}
-                deleting={isDeleting}
-              />
+              <div key={courseId} className="h-full">
+                <ModeGrid
+                  vm={vm}
+                  sportId={coachSport.id}
+                  canSchedule={canSchedule}
+                  courseId={courseId}
+                  onDelete={() => handleDeleteCourse(courseId)}
+                  deleting={isDeleting}
+                />
+              </div>
             )
           })}
         </div>
