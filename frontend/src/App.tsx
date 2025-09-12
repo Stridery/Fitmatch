@@ -1,7 +1,9 @@
 import Login from "./pages/auth/Login";
 import Dashboard from './pages/user/dashboard/Dashboard';
+import DashboardLayout from '@/layouts/DashboardLayout'
+import CoachLayout from '@/layouts/CoachLayout'
 import './App.css';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import SignUp from './pages/auth/SignUp';
 import ResetPassword from "./pages/auth/ResetPwd";
 import ForgetPassword from "./pages/auth/ForgetPwd";
@@ -46,23 +48,43 @@ function App() {
         </Route>
 
         <Route element={<RequireAuth/>}>
+          {/* Existing user dashboard */}
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<ProfilePage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
-          
+
+          {/* New fixed-sidebar dashboard layout for coach center */}
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route path="coach" element={<CoachLayout />}>
+              <Route index element={<CoachCenterPage />} />
+              <Route path="sports/new" element={<SportEditor />} />
+              <Route path="sports/:id" element={<SportDetailPage />} />
+              <Route path="sports/:id/edit" element={<SportEditor />} />
+              <Route path="sports/:coachSportId/course" element={<CourseEditor />} />
+              <Route path="sports/:coachSportId/course/new" element={<CourseEditorPage />} />
+              <Route path="sports/:coachSportId/course/:courseId/edit" element={<CourseEditorPage />} />
+              <Route path="sports/:id/sessions" element={<SessionsPage />} />
+            </Route>
+          </Route>
         </Route>
+
+        {/* Full-screen onboarding (no sidebar) */}
+        <Route path="/coach/onboarding" element={<CoachApplicationForm />} />
+        <Route path="/become-a-coach" element={<Navigate to="/coach/onboarding" replace />} />
 
         <Route element={<RequireAuth requireProfile = {false}/>}>
           <Route path="/coach-application" element={<CoachApplicationForm />}/>
-          <Route path="/coach" element={<CoachCenterPage />} />
-          <Route path="/coach/sports/:id" element={<SportDetailPage />} />
-          <Route path="/coach/sports/:id/edit" element={<SportEditor />} />
-          <Route path="/coach/sports/:coachSportId/course" element={<CourseEditor />} />
-          <Route path="/coach/sports/:coachSportId/course/new" element={<CourseEditorPage />} />
-          <Route path="/coach/sports/:coachSportId/course/:courseId/edit" element={<CourseEditorPage />} />
-          <Route path="/coach/sports/:id/sessions" element={<SessionsPage />} />
         </Route>
+
+        {/* Legacy redirects from old /coach paths to new /dashboard/coach paths */}
+        <Route path="/coach" element={<Navigate to="/dashboard/coach" replace />} />
+        <Route path="/coach/sports/:id" element={<Navigate to="/dashboard/coach/sports/:id" replace />} />
+        <Route path="/coach/sports/:id/edit" element={<Navigate to="/dashboard/coach/sports/:id/edit" replace />} />
+        <Route path="/coach/sports/:coachSportId/course" element={<Navigate to="/dashboard/coach/sports/:coachSportId/course" replace />} />
+        <Route path="/coach/sports/:coachSportId/course/new" element={<Navigate to="/dashboard/coach/sports/:coachSportId/course/new" replace />} />
+        <Route path="/coach/sports/:coachSportId/course/:courseId/edit" element={<Navigate to="/dashboard/coach/sports/:coachSportId/course/:courseId/edit" replace />} />
+        <Route path="/coach/sports/:id/sessions" element={<Navigate to="/dashboard/coach/sports/:id/sessions" replace />} />
       </Routes>
       {/* Globally mounted Chat Dock (desktop-only) */}
       <ChatDock />

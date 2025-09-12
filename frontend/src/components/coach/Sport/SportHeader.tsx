@@ -16,7 +16,7 @@ export function SportHeader({ sportName, status, sportId }: Props) {
         <span className={`px-2.5 py-1 rounded-full text-xs ${statusColor}`}>{status}</span>
       </div>
       <div className="flex gap-2">
-        <Link to={`/coach/sports/${sportId}/sessions`}>
+        <Link to={`/dashboard/coach/sports/${sportId}/sessions`}>
           <Button disabled={status !== 'approved'} title={status !== 'approved' ? 'Available after approval' : undefined}>Schedule sessions</Button>
         </Link>
       </div>

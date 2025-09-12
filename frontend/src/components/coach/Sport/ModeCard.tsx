@@ -22,14 +22,14 @@ export function ModeCard({ mode, vm, sportId, canSchedule, courseId, onDelete, d
         <CardTitle className="text-lg">{mode}</CardTitle>
         <div className="flex gap-2">
           {courseId ? (
-            <Link to={`/coach/sports/${sportId}/course/${courseId}/edit`}>
+            <Link to={`/dashboard/coach/sports/${sportId}/course/${courseId}/edit`}>
               <Button size="sm" variant="outline" className="text-black">Edit</Button>
             </Link>
           ) : null}
           {courseId ? (
             <Button size="sm" variant="outline" className="text-black" onClick={onDelete} disabled={deleting}>Delete</Button>
           ) : null}
-          <Link to={`/coach/sports/${sportId}/sessions?mode=${encodeURIComponent(mode)}`}>
+          <Link to={`/dashboard/coach/sports/${sportId}/sessions?mode=${encodeURIComponent(mode)}`}>
             <Button size="sm" disabled={!canSchedule} title={!canSchedule ? 'Available after approval' : undefined}>Schedule</Button>
           </Link>
         </div>

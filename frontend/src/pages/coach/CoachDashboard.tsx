@@ -131,7 +131,7 @@ export default function CoachDashboard() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Coach Center</h2>
         <div className="flex gap-3">
-          <Link to="/coach/sports/new">
+          <Link to="/dashboard/coach/sports/new">
             <Button>Create profile</Button>
           </Link>
         </div>
@@ -169,8 +169,8 @@ export default function CoachDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" onClick={() => navigate(`/coach/sports/${cs.id}/edit`)}>Edit</Button>
-                    <Button onClick={() => navigate(`/coach/sports/${cs.id}/course`)}>Course & Packages</Button>
+                    <Button variant="outline" onClick={() => navigate(`/dashboard/coach/sports/${cs.id}/edit`)}>Edit</Button>
+                    <Button onClick={() => navigate(`/dashboard/coach/sports/${cs.id}/course`)}>Course & Packages</Button>
                   </div>
                 </CardContent>
               </Card>

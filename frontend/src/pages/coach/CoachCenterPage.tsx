@@ -51,7 +51,7 @@ export default function CoachCenterPage() {
         {items.map((it) => (
           <Link
             key={it.id}
-            to={`/coach/sports/${it.id}`}
+            to={`/dashboard/coach/sports/${it.id}`}
             state={{ sportName: it.sports?.name }} 
             className="border rounded-lg p-4 hover:shadow"
           >

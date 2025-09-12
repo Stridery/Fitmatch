@@ -289,7 +289,7 @@ export default function CourseEditorPage() {
       const ok = window.confirm('You have unsaved changes, leave anyway?')
       if (!ok) return
     }
-    navigate(`/coach/sports/${coachSportId}`, { state: { sportName } })
+    navigate(`/dashboard/coach/sports/${coachSportId}`, { state: { sportName } })
   }, [form.formState.isDirty, coachSportId, navigate, sportName])
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -387,7 +387,7 @@ export default function CourseEditorPage() {
       }
 
       window.alert('Saved')
-      navigate(`/coach/sports/${coachSportId}`, { state: { sportName } })
+      navigate(`/dashboard/coach/sports/${coachSportId}`, { state: { sportName } })
     } catch (e: any) {
       console.error(e)
       window.alert(e?.message ?? 'Failed to save')

@@ -101,7 +101,7 @@ export default function SportDetailPage() {
             <Button
               className="text-black"
               onClick={() =>
-                navigate(`/coach/sports/${coachSport.id}/course/new`, {
+                navigate(`/dashboard/coach/sports/${coachSport.id}/course/new`, {
                   state: { sportName },
                 })
               }
@@ -136,7 +136,7 @@ export default function SportDetailPage() {
           <Button
             className="text-black"
             onClick={() =>
-              navigate(`/coach/sports/${coachSport.id}/course/new`, {
+              navigate(`/dashboard/coach/sports/${coachSport.id}/course/new`, {
                 state: { sportName },
               })
             }
