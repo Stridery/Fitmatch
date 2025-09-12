@@ -69,6 +69,23 @@ const commTags = ['direct_concise','supportive','visual_analysis','data_review']
 const paceTags = ['intense','balanced','light_beginner_friendly'] as const
 const preferTags = ['beginner','intermediate','advanced','competitive','kids','teens','adults','seniors','motivated','consistent_attendance','open_to_feedback'] as const
 
+// ================== 方式一：运行时校验 + 类型收窄（新增） ==================
+const STYLE_SET = new Set(styleTags)
+const COMM_SET  = new Set(commTags)
+const PACE_SET  = new Set(paceTags)
+const PREF_SET  = new Set(preferTags)
+
+type Style = typeof styleTags[number]
+type CommunicationStyle = typeof commTags[number]
+type PaceIntensity = typeof paceTags[number]
+type PreferStudent = typeof preferTags[number]
+
+const isStyle = (v: string): v is Style => STYLE_SET.has(v as Style)
+const isComm  = (v: string): v is CommunicationStyle => COMM_SET.has(v as CommunicationStyle)
+const isPace  = (v: string): v is PaceIntensity => PACE_SET.has(v as PaceIntensity)
+const isPref  = (v: string): v is PreferStudent => PREF_SET.has(v as PreferStudent)
+// ===========================================================================
+
 function Chip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
     <Button type="button" variant={active ? 'default' : 'outline'} className="text-black" onClick={onClick}>
@@ -171,17 +188,33 @@ export default function CourseEditorPage() {
           .eq('course_id', courseId)
         if (aErr) throw aErr
 
-        const grouped = {
-          style: [] as string[],
-          communication_style: [] as string[],
-          pace_intensity: [] as string[],
-          prefer_student: [] as string[],
+        // ====== 修改点：构造严格类型的 grouped，并在推入前用类型守卫过滤 ======
+        const grouped: FormValues["attributes"] = {
+          style: [],
+          communication_style: [],
+          pace_intensity: [],
+          prefer_student: [],
         }
-        for (const row of (attrs ?? []) as { type: keyof typeof grouped; value: string }[]) {
-          if (grouped[row.type]) {
-            grouped[row.type].push(row.value)
+
+        for (const row of (attrs ?? []) as { type: keyof FormValues["attributes"]; value: string }[]) {
+          switch (row.type) {
+            case 'style':
+              if (isStyle(row.value)) grouped.style.push(row.value)
+              break
+            case 'communication_style':
+              if (isComm(row.value)) grouped.communication_style.push(row.value)
+              break
+            case 'pace_intensity':
+              if (isPace(row.value)) grouped.pace_intensity.push(row.value)
+              break
+            case 'prefer_student':
+              if (isPref(row.value)) grouped.prefer_student.push(row.value)
+              break
+            default:
+              console.warn('Unknown attribute type:', row)
           }
         }
+        // ===================================================================
 
         form.reset({
           detail: {
@@ -509,4 +542,3 @@ export default function CourseEditorPage() {
     </div>
   )
 }
-

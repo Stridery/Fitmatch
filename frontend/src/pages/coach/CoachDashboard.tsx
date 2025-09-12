@@ -37,13 +37,6 @@ type CoachPackagePrice = {
   price: number
 }
 
-type CoachMedia = {
-  coach_sport_id: string
-  type: 'image' | 'video' | 'other'
-  url: string
-  description: string | null
-}
-
 export default function CoachDashboard() {
   const { user, loading: loadingUser } = useUser()
   const navigate = useNavigate()
@@ -53,7 +46,6 @@ export default function CoachDashboard() {
   const [sportsMap, setSportsMap] = useState<Record<string, Sport>>({})
   const [courseByCoachSport, setCourseByCoachSport] = useState<Record<string, CourseDetail | undefined>>({})
   const [packagesByCoachSport, setPackagesByCoachSport] = useState<Record<string, CoachPackagePrice[]>>({})
-  const [mediaByCoachSport, setMediaByCoachSport] = useState<Record<string, CoachMedia | undefined>>({})
 
   useEffect(() => {
     if (loadingUser) return
@@ -71,10 +63,11 @@ export default function CoachDashboard() {
           .eq('coach_id', user.id)
           .order('created_at', { ascending: false })
         if (csErr) throw csErr
+
         const sportsIds = Array.from(new Set((coachSportsData ?? []).map(s => s.sport_id)))
         const coachSportIds = Array.from(new Set((coachSportsData ?? []).map(s => s.id)))
 
-        const [sportsRes, courseRes, pkgRes, mediaRes] = await Promise.all([
+        const [sportsRes, courseRes, pkgRes] = await Promise.all([
           sportsIds.length
             ? supabase.from('sports').select('id,name').in('id', sportsIds)
             : Promise.resolve({ data: [] as Sport[], error: null } as any),
@@ -84,21 +77,21 @@ export default function CoachDashboard() {
           coachSportIds.length
             ? supabase.from('coach_package_prices').select('*').in('coach_sport_id', coachSportIds)
             : Promise.resolve({ data: [] as CoachPackagePrice[], error: null } as any),
-          coachSportIds.length
-            ? supabase.from('coach_media').select('*').in('coach_sport_id', coachSportIds)
-            : Promise.resolve({ data: [] as CoachMedia[], error: null } as any),
         ])
 
         if (sportsRes.error) throw sportsRes.error
         if (courseRes.error) throw courseRes.error
         if (pkgRes.error) throw pkgRes.error
-        if (mediaRes.error) throw mediaRes.error
 
         const sportsMapNext: Record<string, Sport> = {}
         for (const s of (sportsRes.data ?? []) as Sport[]) sportsMapNext[s.id] = s
 
         const courseMapNext: Record<string, CourseDetail> = {}
-        for (const c of (courseRes.data ?? []) as CourseDetail[]) courseMapNext[c.coach_sport_id] = c
+        for (const c of (courseRes.data ?? []) as CourseDetail[]) {
+          // 如果同一个 coach_sport_id 有多条，这里会以最后一条覆盖前面一条
+          // 如需按时间取最新，可在查询中加 order + limit per id（需要 RPC 或分组处理）
+          courseMapNext[c.coach_sport_id] = c
+        }
 
         const packagesMapNext: Record<string, CoachPackagePrice[]> = {}
         for (const p of (pkgRes.data ?? []) as CoachPackagePrice[]) {
@@ -107,16 +100,13 @@ export default function CoachDashboard() {
           packagesMapNext[key].push(p)
         }
 
-        const mediaMapNext: Record<string, CoachMedia> = {}
-        for (const m of (mediaRes.data ?? []) as CoachMedia[]) mediaMapNext[m.coach_sport_id] = m
-
         setCoachSports((coachSportsData ?? []) as CoachSport[])
         setSportsMap(sportsMapNext)
         setCourseByCoachSport(courseMapNext)
         setPackagesByCoachSport(packagesMapNext)
-        setMediaByCoachSport(mediaMapNext)
-      } catch (e: any) {
-        setError(e.message || 'Failed to load coach data')
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Failed to load coach data'
+        setError(msg)
       } finally {
         setLoading(false)
       }
@@ -125,14 +115,16 @@ export default function CoachDashboard() {
   }, [user, loadingUser, navigate])
 
   if (loadingUser || loading) return <div className="p-6">Loading…</div>
-  if (error) return (
-    <div className="p-6 text-red-600">
-      {error}
-      <div className="mt-4">
-        <Button onClick={() => window.location.reload()}>Reload</Button>
+  if (error) {
+    return (
+      <div className="p-6 text-red-600">
+        {error}
+        <div className="mt-4">
+          <Button onClick={() => window.location.reload()}>Reload</Button>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -153,7 +145,6 @@ export default function CoachDashboard() {
             const sport = sportsMap[cs.sport_id]
             const course = courseByCoachSport[cs.id]
             const pkgCount = (packagesByCoachSport[cs.id] || []).length
-            const hasMedia = !!mediaByCoachSport[cs.id]
             return (
               <Card key={cs.id} className="border">
                 <CardHeader>
@@ -167,7 +158,7 @@ export default function CoachDashboard() {
                     <div className="text-sm text-muted-foreground">Experience</div>
                     <div className="text-sm">{cs.experience_years || '-'}</div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <div className="text-muted-foreground">Course</div>
                       <div>{course ? 'Configured' : 'Missing'}</div>
@@ -175,10 +166,6 @@ export default function CoachDashboard() {
                     <div>
                       <div className="text-muted-foreground">Packages</div>
                       <div>{pkgCount}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">Media</div>
-                      <div>{hasMedia ? 1 : 0}</div>
                     </div>
                   </div>
                   <div className="flex gap-2 pt-2">
@@ -194,4 +181,3 @@ export default function CoachDashboard() {
     </div>
   )
 }
-

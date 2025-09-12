@@ -34,20 +34,32 @@ export function ModeCard({ mode, vm, sportId, canSchedule, courseId, onDelete, d
           </Link>
         </div>
       </CardHeader>
+
       <CardContent className="space-y-4">
-        <div className="w-full h-40 bg-gray-100 rounded-lg overflow-hidden">
-          {vm.mediaUrl ? (
-            <img src={vm.mediaUrl} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">No media yet</div>
-          )}
-        </div>
+        {/* ✅ 移除媒体展示框 */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InfoList title="Goals" items={vm.goals} />
           <InfoList title="Prefer students" items={vm.prefer} />
-          <InfoList title="Not prefer students" items={vm.notPrefer} />
+          {/* ❌ 移除 Not prefer students */}
           <InfoList title="Coaching style" items={vm.style} />
+
+          {vm.communicationStyle?.length ? (
+            <InfoList title="Communication" items={vm.communicationStyle} />
+          ) : null}
+
+          {vm.paceIntensity?.length ? (
+            <InfoList title="Pace & intensity" items={vm.paceIntensity} />
+          ) : null}
+
+          {vm.timeSlots?.length ? (
+            <InfoList title="Time slots" items={vm.timeSlots} />
+          ) : null}
+
+          {vm.frequency ? <InfoList title="Preferred frequency" items={[vm.frequency]} /> : null}
+          {vm.skillLevel ? <InfoList title="Skill level" items={[vm.skillLevel]} /> : null}
+          {vm.experienceYears ? <InfoList title="Experience years" items={[vm.experienceYears]} /> : null}
+          {vm.ageGroups?.length ? <InfoList title="Age groups" items={vm.ageGroups} /> : null}
         </div>
 
         <div className="space-y-2">
@@ -58,4 +70,3 @@ export function ModeCard({ mode, vm, sportId, canSchedule, courseId, onDelete, d
     </Card>
   )
 }
-

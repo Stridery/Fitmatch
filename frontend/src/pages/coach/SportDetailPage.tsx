@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useSportDetail } from '@/hooks/useSportDetail'
 import { SportHeader } from '@/components/coach/Sport/SportHeader'
@@ -10,14 +10,18 @@ export default function SportDetailPage() {
   const { id } = useParams()
   const location = useLocation() as { state?: { sportName?: string } }
   const navigate = useNavigate()
+
+  // ✅ 自定义 Hook 必须在顶层
   const { loading, error, coachSport, course, courseVM, canSchedule } = useSportDetail(id)
 
-  // 先用 Link.state 里的名字
+  // ✅ 所有 useState 都放在顶层——不要放在任何条件 return 之后
   const [resolvedSportName, setResolvedSportName] = useState<string | null>(
     location.state?.sportName ?? null
   )
+  const [isDeleting, setIsDeleting] = useState<boolean>(false)
+  const [isCourseDeleted, setIsCourseDeleted] = useState<boolean>(false)
 
-  // 如果没有名字但有 sport_id，就兜底查 sports 表
+  // ✅ 这个副作用也在顶层（没问题）
   useEffect(() => {
     let mounted = true
     if (!resolvedSportName && coachSport?.sport_id) {
@@ -27,16 +31,36 @@ export default function SportDetailPage() {
         .eq('id', coachSport.sport_id)
         .maybeSingle()
         .then(({ data }) => {
-          if (mounted) {
-            setResolvedSportName(data?.name ?? null)
-          }
+          if (mounted) setResolvedSportName(data?.name ?? null)
         })
     }
-    return () => {
-      mounted = false
-    }
+    return () => { mounted = false }
   }, [resolvedSportName, coachSport?.sport_id])
 
+  // ✅ 用到的回调同样要在顶层定义（可以依赖 course?.id）
+  const handleDeleteCourse = useCallback(async () => {
+    if (!course?.id) return
+    const ok = window.confirm('Delete this course? This cannot be undone.')
+    if (!ok) return
+    try {
+      setIsDeleting(true)
+      const { error: delErr } = await supabase
+        .from('course_detail')
+        .delete()
+        .eq('id', course.id)
+      if (delErr) throw delErr
+      setIsCourseDeleted(true)
+      window.alert('Course deleted')
+    } catch (e: unknown) {
+      console.error(e)
+      const msg = e instanceof Error ? e.message : 'Failed to delete'
+      window.alert(msg)
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [course?.id])
+
+  // 下面开始做条件渲染就安全了（不会再引入新 Hook）
   if (loading) {
     return (
       <div className="p-6 space-y-4">
@@ -59,32 +83,7 @@ export default function SportDetailPage() {
     return <div className="p-6">Not found.</div>
   }
 
-  // 最终展示名：优先 state，其次兜底查询，最后才退回 id
   const sportName = resolvedSportName ?? coachSport.sport_id
-
-  const [isDeleting, setIsDeleting] = useState<boolean>(false)
-  const [isCourseDeleted, setIsCourseDeleted] = useState<boolean>(false)
-
-  const handleDeleteCourse = useCallback(async () => {
-    if (!course?.id) return
-    const ok = window.confirm('Delete this course? This cannot be undone.')
-    if (!ok) return
-    try {
-      setIsDeleting(true)
-      const { error: delErr } = await supabase
-        .from('course_detail')
-        .delete()
-        .eq('id', course.id)
-      if (delErr) throw delErr
-      setIsCourseDeleted(true)
-      window.alert('Course deleted')
-    } catch (e: any) {
-      console.error(e)
-      window.alert(e?.message ?? 'Failed to delete')
-    } finally {
-      setIsDeleting(false)
-    }
-  }, [course?.id])
 
   return (
     <div className="p-6 space-y-6">
