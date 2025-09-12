@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useSportDetail } from '@/hooks/useSportDetail'
+import type { CourseVM } from '@/hooks/useSportDetail'
 import { SportHeader } from '@/components/coach/Sport/SportHeader'
 import { ModeGrid } from '@/components/coach/Sport/ModeGrid'
 import { Button } from '@/components/ui/button'
@@ -13,14 +14,14 @@ export default function SportDetailPage() {
   const navigate = useNavigate()
 
   // ✅ 自定义 Hook 必须在顶层
-  const { loading, error, coachSport, course, courseVM, canSchedule } = useSportDetail(id)
+  const { loading, error, coachSport, courses, courseVMs, canSchedule, reload } = useSportDetail(id)
 
   // ✅ 所有 useState 都放在顶层——不要放在任何条件 return 之后
   const [resolvedSportName, setResolvedSportName] = useState<string | null>(
     location.state?.sportName ?? null
   )
   const [isDeleting, setIsDeleting] = useState<boolean>(false)
-  const [isCourseDeleted, setIsCourseDeleted] = useState<boolean>(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // ✅ 这个副作用也在顶层（没问题）
   useEffect(() => {
@@ -31,35 +32,36 @@ export default function SportDetailPage() {
         .select('name')
         .eq('id', coachSport.sport_id)
         .maybeSingle()
-        .then(({ data }) => {
+        .then(({ data }: { data: { name?: string } | null }) => {
           if (mounted) setResolvedSportName(data?.name ?? null)
         })
     }
     return () => { mounted = false }
   }, [resolvedSportName, coachSport?.sport_id])
 
-  // ✅ 用到的回调同样要在顶层定义（可以依赖 course?.id）
-  const handleDeleteCourse = useCallback(async () => {
-    if (!course?.id) return
+  // ✅ 用到的回调同样要在顶层定义（传入具体 courseId）
+  const handleDeleteCourse = useCallback(async (courseId: string) => {
     const ok = window.confirm('Delete this course? This cannot be undone.')
     if (!ok) return
     try {
       setIsDeleting(true)
+      setDeletingId(courseId)
       const { error: delErr } = await supabase
         .from('course_detail')
         .delete()
-        .eq('id', course.id)
+        .eq('id', courseId)
       if (delErr) throw delErr
-      setIsCourseDeleted(true)
       window.alert('Course deleted')
+      await reload()
     } catch (e: unknown) {
       console.error(e)
       const msg = e instanceof Error ? e.message : 'Failed to delete'
       window.alert(msg)
     } finally {
+      setDeletingId(null)
       setIsDeleting(false)
     }
-  }, [course?.id])
+  }, [reload])
 
   // 下面开始做条件渲染就安全了（不会再引入新 Hook）
   if (loading) {
@@ -94,7 +96,7 @@ export default function SportDetailPage() {
         sportId={coachSport.id}
       />
 
-      {!courseVM || isCourseDeleted ? (
+      {!courseVMs || courseVMs.length === 0 ? (
         <div className="border rounded-lg p-4 text-sm text-muted-foreground">
           <div>You haven’t set up your course profile yet.</div>
           <div className="mt-3">
@@ -110,35 +112,41 @@ export default function SportDetailPage() {
             </Button>
           </div>
         </div>
-      ) : courseVM.modes.length === 0 ? (
-        <div className="border rounded-lg p-4 text-sm text-muted-foreground">
-          <div>No training modes selected.</div>
-          <div className="mt-3">
-            <Button
-              variant="outline"
-              className="text-black"
-              onClick={() =>
-                navigate(
-                  course?.id
-                    ? `/coach/sports/${coachSport.id}/course/${course.id}/edit`
-                    : `/coach/sports/${coachSport.id}/course/new`,
-                  { state: { sportName } }
-                )
-              }
-            >
-              Edit course
-            </Button>
-          </div>
-        </div>
       ) : (
-        <ModeGrid
-          vm={courseVM}
-          sportId={coachSport.id}
-          canSchedule={canSchedule}
-          courseId={course?.id}
-          onDelete={handleDeleteCourse}
-          deleting={isDeleting}
-        />
+        <div className="space-y-6">
+          {courseVMs.map(({ course, vm }: { course: { id: string }, vm: CourseVM }) => (
+            vm.modes.length === 0 ? (
+              <div key={course.id} className="border rounded-lg p-4 text-sm text-muted-foreground">
+                <div>No training modes selected.</div>
+                <div className="mt-3">
+                  <Button
+                    variant="outline"
+                    className="text-black"
+                    onClick={() =>
+                      navigate(
+                        `/coach/sports/${coachSport.id}/course/${course.id}/edit`,
+                        { state: { sportName } }
+                      )
+                    }
+                  >
+                    Edit course
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div key={course.id}>
+                <ModeGrid
+                  vm={vm}
+                  sportId={coachSport.id}
+                  canSchedule={canSchedule}
+                  courseId={course.id}
+                  onDelete={() => handleDeleteCourse(course.id)}
+                  deleting={isDeleting && deletingId === course.id}
+                />
+              </div>
+            )
+          ))}
+        </div>
       )}
 
       <MediaGallery coachSportId={coachSport.id} />

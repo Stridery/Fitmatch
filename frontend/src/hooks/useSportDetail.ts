@@ -70,8 +70,8 @@ export function useSportDetail(id: string | undefined) {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [coachSport, setCoachSport] = useState<CoachSport | null>(null)
-  const [course, setCourse] = useState<CourseDetail | null>(null)
-  const [attributes, setAttributes] = useState<CourseAttribute[]>([])
+  const [courses, setCourses] = useState<CourseDetail[]>([])
+  const [attributesByCourseId, setAttributesByCourseId] = useState<Record<string, CourseAttribute[]>>({})
   const [packages, setPackages] = useState<Package[]>([])
 
   useEffect(() => {
@@ -95,29 +95,34 @@ export function useSportDetail(id: string | undefined) {
         if (isCancelled) return
         setCoachSport((coach ?? null) as CoachSport | null)
 
-        // course_detail：可能 0/1/多条 → 列表 + 取第一条（updated_at/created_at 倒序）
+        // course_detail：0/1/多条 → 全量列表，按更新时间倒序
         const { data: courseRows, error: courseErr } = await supabase
           .from('course_detail')
           .select('*')
           .eq('coach_sport_id', id)
           .order('updated_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false, nullsFirst: true })
-          .limit(1)
         if (courseErr) throw courseErr
-        const firstCourse = (courseRows?.[0] ?? null) as CourseDetail | null
-        setCourse(firstCourse)
+        const allCourses = (courseRows ?? []) as CourseDetail[]
+        setCourses(allCourses)
 
-        // attributes：有 course.id 再查
-        let attrs: CourseAttribute[] = []
-        if (firstCourse?.id) {
+        // attributes：按所有 course.id 聚合
+        let attributesMap: Record<string, CourseAttribute[]> = {}
+        if (allCourses.length > 0) {
+          type CourseAttributeRow = { course_id: string } & CourseAttribute
+          const courseIds = allCourses.map((c) => c.id)
           const { data: attrData, error: attrErr } = await supabase
             .from('course_attributes')
-            .select('type,value')
-            .eq('course_id', firstCourse.id)
+            .select('course_id,type,value')
+            .in('course_id', courseIds)
           if (attrErr) throw attrErr
-          attrs = (attrData ?? []) as CourseAttribute[]
+          const rows = (attrData ?? []) as CourseAttributeRow[]
+          for (const row of rows) {
+            if (!attributesMap[row.course_id]) attributesMap[row.course_id] = []
+            attributesMap[row.course_id].push({ type: row.type, value: row.value })
+          }
         }
-        setAttributes(attrs)
+        setAttributesByCourseId(attributesMap)
 
         // packages：列表
         const { data: pkgData, error: pkgErr } = await supabase
@@ -142,55 +147,110 @@ export function useSportDetail(id: string | undefined) {
     }
   }, [id])
 
-  const courseVM: CourseVM | null = useMemo(() => {
-    if (!course) return null
+  const courseVMs: { course: CourseDetail; vm: CourseVM }[] = useMemo(() => {
+    return courses.map((course: CourseDetail) => {
+      const attrs: CourseAttribute[] = attributesByCourseId[course.id] ?? []
 
-    const modes = (course.training_modes ?? []).filter(Boolean) as TrainingMode[]
-    const goals = course.training_goals ?? []
-    const prefer = attributes
-      .filter((a) => a.type === 'prefer_student')
-      .map((a) => a.value)
-    const style = attributes.filter((a) => a.type === 'style').map((a) => a.value)
-    const communicationStyle = attributes
-      .filter((a) => a.type === 'communication_style')
-      .map((a) => a.value)
-    const paceIntensity = attributes
-      .filter((a) => a.type === 'pace_intensity')
-      .map((a) => a.value)
+      const modes = (course.training_modes ?? []).filter(Boolean) as TrainingMode[]
+      const goals = course.training_goals ?? []
+      const prefer = attrs
+        .filter((a: CourseAttribute) => a.type === 'prefer_student')
+        .map((a: CourseAttribute) => a.value)
+      const style = attrs.filter((a: CourseAttribute) => a.type === 'style').map((a: CourseAttribute) => a.value)
+      const communicationStyle = attrs
+        .filter((a: CourseAttribute) => a.type === 'communication_style')
+        .map((a: CourseAttribute) => a.value)
+      const paceIntensity = attrs
+        .filter((a: CourseAttribute) => a.type === 'pace_intensity')
+        .map((a: CourseAttribute) => a.value)
 
-    const timeSlots = course.available_time_slots ?? []
-    const frequency = course.preferred_frequency ?? null
-    const skillLevel = course.skill_level ?? null
-    const experienceYears = course.experience_years ?? null
-    const ageGroups = course.age_groups ?? []
+      const timeSlots = course.available_time_slots ?? []
+      const frequency = course.preferred_frequency ?? null
+      const skillLevel = course.skill_level ?? null
+      const experienceYears = course.experience_years ?? null
+      const ageGroups = course.age_groups ?? []
 
-    return {
-      modes,
-      goals,
-      prefer,
-      style,
-      communicationStyle,
-      paceIntensity,
-      timeSlots,
-      frequency,
-      skillLevel,
-      experienceYears,
-      ageGroups,
-      packages,
-      mediaUrl: null, // 本迭代不展示 media
-    }
-  }, [course, attributes, packages])
+      const vm: CourseVM = {
+        modes,
+        goals,
+        prefer,
+        style,
+        communicationStyle,
+        paceIntensity,
+        timeSlots,
+        frequency,
+        skillLevel,
+        experienceYears,
+        ageGroups,
+        packages,
+        mediaUrl: null,
+      }
+
+      return { course, vm }
+    })
+  }, [courses, attributesByCourseId, packages])
 
   const canSchedule = coachSport?.status === 'approved'
+
+  // 对外暴露刷新函数，供删除/新增后调用
+  async function reload() {
+    if (!id) return
+    setLoading(true)
+    setError(null)
+    try {
+      const { data: coach } = await supabase
+        .from('coach_sports')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+      setCoachSport((coach ?? null) as CoachSport | null)
+
+      const { data: courseRows } = await supabase
+        .from('course_detail')
+        .select('*')
+        .eq('coach_sport_id', id)
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false, nullsFirst: true })
+      const allCourses = (courseRows ?? []) as CourseDetail[]
+      setCourses(allCourses)
+
+      let attributesMap: Record<string, CourseAttribute[]> = {}
+      if (allCourses.length > 0) {
+        type CourseAttributeRow = { course_id: string } & CourseAttribute
+        const courseIds = allCourses.map((c) => c.id)
+        const { data: attrData } = await supabase
+          .from('course_attributes')
+          .select('course_id,type,value')
+          .in('course_id', courseIds)
+        const rows = (attrData ?? []) as CourseAttributeRow[]
+        for (const row of rows) {
+          if (!attributesMap[row.course_id]) attributesMap[row.course_id] = []
+          attributesMap[row.course_id].push({ type: row.type, value: row.value })
+        }
+      }
+      setAttributesByCourseId(attributesMap)
+
+      const { data: pkgData } = await supabase
+        .from('coach_package_prices')
+        .select('id,coach_sport_id,lessons_count,lesson_duration_minutes,price')
+        .eq('coach_sport_id', id)
+      setPackages((pkgData ?? []) as Package[])
+    } catch (e) {
+      // 静默错误，维持现有错误处理模型
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return {
     loading,
     error,
     coachSport,
-    course,
-    attributes,
+    courses,
+    attributesByCourseId,
     packages,
-    courseVM,
+    courseVMs,
     canSchedule,
+    reload,
   }
 }
