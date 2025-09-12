@@ -5,6 +5,7 @@ import { useSportDetail } from '@/hooks/useSportDetail'
 import { SportHeader } from '@/components/coach/Sport/SportHeader'
 import { ModeGrid } from '@/components/coach/Sport/ModeGrid'
 import { Button } from '@/components/ui/button'
+import MediaGallery from '@/components/coach/Sport/MediaGallery'
 
 export default function SportDetailPage() {
   const { id } = useParams()
@@ -139,6 +140,8 @@ export default function SportDetailPage() {
           deleting={isDeleting}
         />
       )}
+
+      <MediaGallery coachSportId={coachSport.id} />
 
       <div className="pt-2">
         <div className="border-t mt-4 pt-4 flex justify-end">

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
+import PackageEditor, { type PackageItem } from '@/components/coach/Course/PackageEditor'
 
 // Schemas
 const detailSchema = z.object({
@@ -167,6 +168,8 @@ export default function CourseEditorPage() {
 
   const [initialLoading, setInitialLoading] = useState<boolean>(!!courseId)
   const [saving, setSaving] = useState<boolean>(false)
+  const [pkgItems, setPkgItems] = useState<PackageItem[]>([])
+  const [pkgLoading, setPkgLoading] = useState<boolean>(true)
 
   // Load for edit
   useEffect(() => {
@@ -241,6 +244,34 @@ export default function CourseEditorPage() {
     return () => { isCancelled = true }
   }, [courseId])
 
+  // Load packages by coach_sport_id
+  useEffect(() => {
+    let cancelled = false
+    async function loadPkgs() {
+      if (!coachSportId) {
+        setPkgItems([])
+        setPkgLoading(false)
+        return
+      }
+      setPkgLoading(true)
+      try {
+        const { data: pkgData, error: pkgErr } = await supabase
+          .from('coach_package_prices')
+          .select('id,lessons_count,lesson_duration_minutes,price')
+          .eq('coach_sport_id', coachSportId)
+        if (pkgErr) throw pkgErr
+        if (!cancelled) setPkgItems((pkgData ?? []) as any)
+      } catch (e) {
+        console.error(e)
+        if (!cancelled) setPkgItems([])
+      } finally {
+        if (!cancelled) setPkgLoading(false)
+      }
+    }
+    loadPkgs()
+    return () => { cancelled = true }
+  }, [coachSportId])
+
   // confirm on unload if dirty
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -308,6 +339,51 @@ export default function CourseEditorPage() {
           const { error: insErr } = await supabase.from('course_attributes').insert(rows)
           if (insErr) throw insErr
         }
+      }
+
+      // Packages replace strategy
+      // Validate rows with zod before saving
+      const pkgSchema = z.object({
+        lessons_count: z.number().int().gt(0),
+        lesson_duration_minutes: z.number().int().gt(0),
+        price: z.number().min(0),
+      })
+      for (const it of pkgItems) {
+        const res = pkgSchema.safeParse({
+          lessons_count: it.lessons_count,
+          lesson_duration_minutes: it.lesson_duration_minutes,
+          price: it.price,
+        })
+        if (!res.success) {
+          window.alert('Please fix package validation errors before saving.')
+          setSaving(false)
+          return
+        }
+      }
+
+      // Delete all existing
+      {
+        const { error: delErr } = await supabase
+          .from('coach_package_prices')
+          .delete()
+          .eq('coach_sport_id', coachSportId)
+        if (delErr) throw delErr
+      }
+
+      // Insert new rows
+      const rows = (pkgItems ?? [])
+        .map((it) => ({
+          id: crypto.randomUUID(),
+          coach_sport_id: coachSportId,
+          lessons_count: it.lessons_count as number,
+          lesson_duration_minutes: it.lesson_duration_minutes as number,
+          price: it.price as number,
+        }))
+      if (rows.length > 0) {
+        const { error: insErr } = await supabase
+          .from('coach_package_prices')
+          .insert(rows)
+        if (insErr) throw insErr
       }
 
       window.alert('Saved')
@@ -472,6 +548,19 @@ export default function CourseEditorPage() {
                     </FormItem>
                   )}
                 />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Packages</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pkgLoading ? (
+                  <div className="h-24 bg-gray-100 rounded" />
+                ) : (
+                  <PackageEditor items={pkgItems} onChange={setPkgItems} disabled={saving} />
+                )}
               </CardContent>
             </Card>
 
