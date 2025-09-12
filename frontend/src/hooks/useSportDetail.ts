@@ -63,7 +63,8 @@ export function useSportDetail(id: string | undefined) {
           .from('coach_sports')
           .select('*')
           .eq('id', id)
-          .single()
+          .limit(1)
+          .maybeSingle()
         if (coachErr) throw coachErr
         if (isCancelled) return
         setCoachSport(coach as unknown as CoachSport)
@@ -73,8 +74,9 @@ export function useSportDetail(id: string | undefined) {
           .from('course_detail')
           .select('*')
           .eq('coach_sport_id', id)
-          .single()
-        if (courseErr && courseErr.code !== 'PGRST116') throw courseErr // 4060 vs not found; allow null
+          .limit(1)
+          .maybeSingle()
+        if (courseErr && courseErr.code !== 'PGRST116') throw courseErr
         setCourse(courseDetail as unknown as CourseDetail | null)
 
         // attributes by course_id if course exists
@@ -102,6 +104,8 @@ export function useSportDetail(id: string | undefined) {
           .from('coach_media')
           .select('type,url,description')
           .eq('coach_sport_id', id)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle()
         if (mediaErr && mediaErr.code !== 'PGRST116') throw mediaErr
         if (mediaData?.url) {

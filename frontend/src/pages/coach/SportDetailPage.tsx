@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useSportDetail } from '@/hooks/useSportDetail'
 import { SportHeader } from '@/components/coach/Sport/SportHeader'
 import { ModeGrid } from '@/components/coach/Sport/ModeGrid'
+import MediaGallery from '@/components/coach/Sport/MediaGallery'
 
 export default function SportDetailPage() {
   const { id } = useParams()
@@ -24,7 +25,7 @@ export default function SportDetailPage() {
         .select('name')
         .eq('id', coachSport.sport_id)
         .maybeSingle()
-        .then(({ data }) => {
+        .then(({ data }: { data: { name?: string } | null }) => {
           if (mounted) {
             setResolvedSportName(data?.name ?? null)
           }
@@ -89,11 +90,15 @@ export default function SportDetailPage() {
           </Link>
         </div>
       ) : (
-        <ModeGrid
-          vm={courseVM}
-          sportId={coachSport.id}
-          canSchedule={canSchedule}
-        />
+        <>
+          <ModeGrid
+            vm={courseVM}
+            sportId={coachSport.id}
+            canSchedule={canSchedule}
+          />
+
+          <MediaGallery coachSportId={coachSport.id} />
+        </>
       )}
     </div>
   )

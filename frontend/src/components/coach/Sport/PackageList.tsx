@@ -1,10 +1,8 @@
-import { Card } from '@/components/ui/card'
-
 type Package = { id:string; lessons_count:number; lesson_duration_minutes:number; price:number }
 
 function formatPrice(value: number) {
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
   } catch {
     return `$${value}`
   }
@@ -18,13 +16,14 @@ export function PackageList({ items }: { items: Package[] }) {
   }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {items.map((p) => (
-        <div key={p.id} className="border rounded-lg p-4">
-          <div className="font-medium text-sm">{p.lessons_count} lessons</div>
-          <div className="text-xs text-muted-foreground">{p.lesson_duration_minutes} min each</div>
-          <div className="mt-2 font-semibold">{formatPrice(p.price)}</div>
-        </div>
-      ))}
+      {items.map((p) => {
+        const label = `${p.lessons_count} lessons × ${p.lesson_duration_minutes} min — ${formatPrice(p.price)}`
+        return (
+          <div key={p.id} className="border rounded-lg p-4">
+            <div className="font-medium text-sm">{label}</div>
+          </div>
+        )
+      })}
     </div>
   )
 }
