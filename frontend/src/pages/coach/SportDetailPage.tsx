@@ -13,7 +13,7 @@ export default function SportDetailPage() {
   const navigate = useNavigate()
 
   // ✅ 自定义 Hook 必须在顶层
-  const { loading, error, coachSport, course, courseVM, canSchedule } = useSportDetail(id)
+  const { loading, error, coachSport, courses, courseVMs, canSchedule } = useSportDetail(id)
 
   // ✅ 所有 useState 都放在顶层——不要放在任何条件 return 之后
   const [resolvedSportName, setResolvedSportName] = useState<string | null>(
@@ -38,9 +38,8 @@ export default function SportDetailPage() {
     return () => { mounted = false }
   }, [resolvedSportName, coachSport?.sport_id])
 
-  // ✅ 用到的回调同样要在顶层定义（可以依赖 course?.id）
-  const handleDeleteCourse = useCallback(async () => {
-    if (!course?.id) return
+  // ✅ 删除指定课程后刷新
+  const handleDeleteCourse = useCallback(async (courseId: string) => {
     const ok = window.confirm('Delete this course? This cannot be undone.')
     if (!ok) return
     try {
@@ -48,10 +47,11 @@ export default function SportDetailPage() {
       const { error: delErr } = await supabase
         .from('course_detail')
         .delete()
-        .eq('id', course.id)
+        .eq('id', courseId)
       if (delErr) throw delErr
       setIsCourseDeleted(true)
       window.alert('Course deleted')
+      window.location.reload()
     } catch (e: unknown) {
       console.error(e)
       const msg = e instanceof Error ? e.message : 'Failed to delete'
@@ -59,7 +59,7 @@ export default function SportDetailPage() {
     } finally {
       setIsDeleting(false)
     }
-  }, [course?.id])
+  }, [])
 
   // 下面开始做条件渲染就安全了（不会再引入新 Hook）
   if (loading) {
@@ -94,7 +94,7 @@ export default function SportDetailPage() {
         sportId={coachSport.id}
       />
 
-      {!courseVM || isCourseDeleted ? (
+      {(!courseVMs || courseVMs.length === 0) || isCourseDeleted ? (
         <div className="border rounded-lg p-4 text-sm text-muted-foreground">
           <div>You haven’t set up your course profile yet.</div>
           <div className="mt-3">
@@ -110,35 +110,22 @@ export default function SportDetailPage() {
             </Button>
           </div>
         </div>
-      ) : courseVM.modes.length === 0 ? (
-        <div className="border rounded-lg p-4 text-sm text-muted-foreground">
-          <div>No training modes selected.</div>
-          <div className="mt-3">
-            <Button
-              variant="outline"
-              className="text-black"
-              onClick={() =>
-                navigate(
-                  course?.id
-                    ? `/coach/sports/${coachSport.id}/course/${course.id}/edit`
-                    : `/coach/sports/${coachSport.id}/course/new`,
-                  { state: { sportName } }
-                )
-              }
-            >
-              Edit course
-            </Button>
-          </div>
-        </div>
       ) : (
-        <ModeGrid
-          vm={courseVM}
-          sportId={coachSport.id}
-          canSchedule={canSchedule}
-          courseId={course?.id}
-          onDelete={handleDeleteCourse}
-          deleting={isDeleting}
-        />
+        <div className="space-y-6">
+          {courseVMs.map(({ courseId, vm }) => {
+            return (
+              <ModeGrid
+                key={courseId}
+                vm={vm}
+                sportId={coachSport.id}
+                canSchedule={canSchedule}
+                courseId={courseId}
+                onDelete={() => handleDeleteCourse(courseId)}
+                deleting={isDeleting}
+              />
+            )
+          })}
+        </div>
       )}
 
       <MediaGallery coachSportId={coachSport.id} />

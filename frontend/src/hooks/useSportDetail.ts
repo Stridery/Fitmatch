@@ -49,6 +49,7 @@ type CourseDetail = {
 
 type CourseAttribute = {
   // 保留 not_prefer_student 以兼容旧数据；本 VM 不再展示
+  course_id: string
   type:
     | 'style'
     | 'prefer_student'
@@ -70,7 +71,7 @@ export function useSportDetail(id: string | undefined) {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [coachSport, setCoachSport] = useState<CoachSport | null>(null)
-  const [course, setCourse] = useState<CourseDetail | null>(null)
+  const [courses, setCourses] = useState<CourseDetail[]>([])
   const [attributes, setAttributes] = useState<CourseAttribute[]>([])
   const [packages, setPackages] = useState<Package[]>([])
 
@@ -95,25 +96,25 @@ export function useSportDetail(id: string | undefined) {
         if (isCancelled) return
         setCoachSport((coach ?? null) as CoachSport | null)
 
-        // course_detail：可能 0/1/多条 → 列表 + 取第一条（updated_at/created_at 倒序）
+        // course_detail：多条（按 updated_at/created_at 倒序）
         const { data: courseRows, error: courseErr } = await supabase
           .from('course_detail')
           .select('*')
           .eq('coach_sport_id', id)
-          .order('updated_at', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false, nullsFirst: true })
-          .limit(1)
+          .order('updated_at', { ascending: false })
+          .order('created_at', { ascending: false })
         if (courseErr) throw courseErr
-        const firstCourse = (courseRows?.[0] ?? null) as CourseDetail | null
-        setCourse(firstCourse)
+        const allCourses = (courseRows ?? []) as CourseDetail[]
+        setCourses(allCourses)
 
-        // attributes：有 course.id 再查
+        // attributes：批量按课程查询
         let attrs: CourseAttribute[] = []
-        if (firstCourse?.id) {
+        const courseIds = allCourses.map((c) => c.id)
+        if (courseIds.length > 0) {
           const { data: attrData, error: attrErr } = await supabase
             .from('course_attributes')
-            .select('type,value')
-            .eq('course_id', firstCourse.id)
+            .select('course_id,type,value')
+            .in('course_id', courseIds)
           if (attrErr) throw attrErr
           attrs = (attrData ?? []) as CourseAttribute[]
         }
@@ -142,44 +143,65 @@ export function useSportDetail(id: string | undefined) {
     }
   }, [id])
 
-  const courseVM: CourseVM | null = useMemo(() => {
-    if (!course) return null
+  const courseVMs: Array<{ courseId: string; vm: CourseVM }> = useMemo(() => {
+    if (!courses || courses.length === 0) return []
 
-    const modes = (course.training_modes ?? []).filter(Boolean) as TrainingMode[]
-    const goals = course.training_goals ?? []
-    const prefer = attributes
-      .filter((a) => a.type === 'prefer_student')
-      .map((a) => a.value)
-    const style = attributes.filter((a) => a.type === 'style').map((a) => a.value)
-    const communicationStyle = attributes
-      .filter((a) => a.type === 'communication_style')
-      .map((a) => a.value)
-    const paceIntensity = attributes
-      .filter((a) => a.type === 'pace_intensity')
-      .map((a) => a.value)
+    const attributesByCourseId = attributes.reduce<Record<string, CourseAttribute[]>>(
+      (
+        acc: Record<string, CourseAttribute[]>,
+        attr: CourseAttribute
+      ): Record<string, CourseAttribute[]> => {
+        const list: CourseAttribute[] = acc[attr.course_id] ?? []
+        list.push(attr)
+        acc[attr.course_id] = list
+        return acc
+      },
+      {}
+    )
 
-    const timeSlots = course.available_time_slots ?? []
-    const frequency = course.preferred_frequency ?? null
-    const skillLevel = course.skill_level ?? null
-    const experienceYears = course.experience_years ?? null
-    const ageGroups = course.age_groups ?? []
+    return courses.map((course: CourseDetail) => {
+      const attrs: CourseAttribute[] = attributesByCourseId[course.id] ?? []
 
-    return {
-      modes,
-      goals,
-      prefer,
-      style,
-      communicationStyle,
-      paceIntensity,
-      timeSlots,
-      frequency,
-      skillLevel,
-      experienceYears,
-      ageGroups,
-      packages,
-      mediaUrl: null, // 本迭代不展示 media
-    }
-  }, [course, attributes, packages])
+      const modes = (course.training_modes ?? []).filter(Boolean) as TrainingMode[]
+      const goals = course.training_goals ?? []
+      const prefer = attrs
+        .filter((a: CourseAttribute) => a.type === 'prefer_student')
+        .map((a: CourseAttribute) => a.value)
+      const style = attrs
+        .filter((a: CourseAttribute) => a.type === 'style')
+        .map((a: CourseAttribute) => a.value)
+      const communicationStyle = attrs
+        .filter((a: CourseAttribute) => a.type === 'communication_style')
+        .map((a: CourseAttribute) => a.value)
+      const paceIntensity = attrs
+        .filter((a: CourseAttribute) => a.type === 'pace_intensity')
+        .map((a: CourseAttribute) => a.value)
+
+      const timeSlots = course.available_time_slots ?? []
+      const frequency = course.preferred_frequency ?? null
+      const skillLevel = course.skill_level ?? null
+      const experienceYears = course.experience_years ?? null
+      const ageGroups = course.age_groups ?? []
+
+      const vm: CourseVM = {
+        modes,
+        goals,
+        prefer,
+        style,
+        communicationStyle,
+        paceIntensity,
+        timeSlots,
+        frequency,
+        skillLevel,
+        experienceYears,
+        ageGroups,
+        packages,
+        mediaUrl: null,
+      }
+
+      return { courseId: course.id, vm }
+    })
+  }, [courses, attributes, packages])
 
   const canSchedule = coachSport?.status === 'approved'
 
@@ -187,10 +209,9 @@ export function useSportDetail(id: string | undefined) {
     loading,
     error,
     coachSport,
-    course,
-    attributes,
+    courses,
+    courseVMs,
     packages,
-    courseVM,
     canSchedule,
   }
 }
