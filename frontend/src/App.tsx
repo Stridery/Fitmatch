@@ -52,10 +52,6 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<ProfilePage />} />
             <Route path="profile" element={<ProfilePage />} />
-          </Route>
-
-          {/* New fixed-sidebar dashboard layout for coach center */}
-          <Route path="/dashboard" element={<DashboardLayout />}>
             <Route path="coach" element={<CoachLayout />}>
               <Route index element={<CoachCenterPage />} />
               <Route path="sports/new" element={<SportEditor />} />

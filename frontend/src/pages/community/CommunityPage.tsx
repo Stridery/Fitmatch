@@ -17,7 +17,7 @@ export default function CommunityPage() {
   useEffect(() => {
     if (user?.id) {
       setCurrentUserId(user.id);
-      ensureSocket(user.id);
+      ensureSocket();
     }
   }, [user?.id, ensureSocket, setCurrentUserId]);
 
