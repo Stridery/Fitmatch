@@ -1,6 +1,5 @@
 import Login from "./pages/auth/Login";
 import Dashboard from './pages/user/dashboard/Dashboard';
-import DashboardLayout from '@/layouts/DashboardLayout'
 import CoachLayout from '@/layouts/CoachLayout'
 import './App.css';
 import { Route, Routes, Navigate } from 'react-router-dom';

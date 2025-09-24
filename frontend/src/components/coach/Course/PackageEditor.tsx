@@ -10,11 +10,21 @@ export type PackageItem = {
   price?: number
 }
 
-const rowSchema = z.object({
-  lessons_count: z.number({ required_error: 'Required' }).int('Must be an integer').gt(0, 'Must be > 0'),
-  lesson_duration_minutes: z.number({ required_error: 'Required' }).int('Must be an integer').gt(0, 'Must be > 0'),
-  price: z.number({ required_error: 'Required' }).min(0, 'Must be ≥ 0'),
-})
+const numberRequiredOrTypeError = (issue: any) =>
+  issue.input === undefined ? 'Required' : 'Must be a number';
+
+export const rowSchema = z.object({
+  lessons_count: z.number({ error: numberRequiredOrTypeError })
+    .int({ error: 'Must be an integer' })
+    .gt(0, { error: 'Must be > 0' }),
+
+  lesson_duration_minutes: z.number({ error: numberRequiredOrTypeError })
+    .int({ error: 'Must be an integer' })
+    .gt(0, { error: 'Must be > 0' }),
+
+  price: z.number({ error: numberRequiredOrTypeError })
+    .min(0, { error: 'Must be ≥ 0' }),
+});
 
 function getRowErrors(row: PackageItem) {
   const result = rowSchema.safeParse({

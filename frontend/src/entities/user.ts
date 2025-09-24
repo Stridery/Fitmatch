@@ -11,7 +11,7 @@ export interface UserProfile {
   country: string | null;
   city: string | null;
   mbtiType: string | null;
-  behavioralAnswers: Record<string, any> | null;
+  behavioralAnswers: null;
   heightCm: number | null;
   weightKg: number | null;
   currentTrainingFrequency: string | null;
