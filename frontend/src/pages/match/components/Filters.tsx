@@ -33,7 +33,7 @@ export function Filters({ initial, sports, cities, onSubmit, onReset }: FiltersP
   }, [initial]);
 
   // Get selected sport name
-  const selectedSport = sports.find(sport => sport.id === draft.sport);
+  const selectedSport = sports.find(sport => sport.name.toLowerCase() === draft.sport);
 
   // Local handlers
   const handleSubmit = () => {
@@ -68,9 +68,9 @@ export function Filters({ initial, sports, cities, onSubmit, onReset }: FiltersP
                 {sports.map((sport) => (
                   <CommandItem
                     key={sport.id}
-                    value={sport.id}
+                    value={sport.name}
                     onSelect={() => {
-                      setDraft(prev => ({ ...prev, sport: sport.id }));
+                      setDraft(prev => ({ ...prev, sport: sport.name.toLowerCase() }));
                     }}
                   >
                     <Check
@@ -110,7 +110,7 @@ export function Filters({ initial, sports, cities, onSubmit, onReset }: FiltersP
                 {cities.map((city) => (
                   <CommandItem
                     key={city.id}
-                    value={city.id}
+                    value={city.name}
                     onSelect={() => {
                       setDraft(prev => ({ ...prev, city: city.id }));
                     }}

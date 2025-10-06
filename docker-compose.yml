@@ -3,21 +3,26 @@ services:
     build:
       context: ./frontend
     ports:
-      - "80:80"                        # http://localhost
+      - "80:80"
     depends_on:
       - api-gateway
       - chat-service
-      - user-service                   # 前端依赖网关/聊天/用户
+      - user-service
+      - course-service
 
   api-gateway:
     build:
-      context: ./backend/apigateway    # 你的网关目录名无连字符，这里用 apigateway
+      context: ./backend/apigateway
     expose:
-      - "8080"                         # 仅容器网络可见
+      - "8080"
     environment:
-      - JWT_SECRET=${JWT_SECRET}       # 从根目录 .env 注入
+      - JWT_SECRET=${JWT_SECRET}
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL}
+      - SUPABASE_DB_USER=${SUPABASE_DB_USER}
+      - SUPABASE_DB_PASSWORD=${SUPABASE_DB_PASSWORD}
     depends_on:
-      - user-service                   # 网关路由会转到它
+      - user-service
+      - course-service
 
   chat-service:
     build:
@@ -25,10 +30,20 @@ services:
     expose:
       - "4000"
     env_file:
-      - ./backend/chatservice/.env     # PORT/MONGO_URL/REDIS_URL 等
+      - ./backend/chatservice/.env
 
   user-service:
     build:
-      context: ./backend/userservice   # 按你的实际目录名
+      context: ./backend/userservice
     expose:
       - "8081"
+
+  course-service:
+    build:
+      context: ./backend/courseservice
+    expose:
+      - "8082"
+    environment:
+      - SPRING_DATASOURCE_URL=${SUPABASE_DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${SUPABASE_DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${SUPABASE_DB_PASSWORD}

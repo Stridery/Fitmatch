@@ -17,53 +17,79 @@ interface FilterChipsProps {
   sportNames: Record<string, string>;
 }
 
+// Check if field should be ignored in filter chips
+const shouldIgnoreField = (key: keyof SearchFilters): boolean => {
+  // 宽松比较，避免 keyof 与字符串数组的类型不匹配
+  return (["limit", "offset"] as readonly string[]).includes(key as string);
+};
+
 // Check if field is multi-value
 const isMultiValueField = (key: keyof SearchFilters): boolean => {
-  return [
-    'cert_type',
-    'lessons',
-    'duration',
-    'styles',
-    'comm_styles',
-    'pace_intensities',
-    'prefer_students',
-    'training_modes',
-    'available_time_slots',
-    'goals',
-    'skill_levels',
-    'age_groups',
-  ].includes(key);
+  return (
+    [
+      "cert_type",
+      "lessons",
+      "duration",
+      "styles",
+      "comm_styles",
+      "pace_intensities",
+      "prefer_students",
+      "training_modes",
+      "available_time_slots",
+      "goals",
+      "skill_levels",
+      "age_groups",
+    ] as readonly string[]
+  ).includes(key as string);
 };
 
 // Get field display label
 const getFieldLabel = (key: keyof SearchFilters): string => {
-  return FIELD_LABELS[key] || key;
+  // 放宽常量字典的类型，避免“Element implicitly has an 'any' type ...”报错
+  const map = FIELD_LABELS as unknown as Record<string, string>;
+  return map[key as string] ?? (key as string);
 };
 
 // Get value display label
-const getValueLabel = (key: keyof SearchFilters, value: string | number | boolean, sportNames: Record<string, string>): string => {
-  if (key === 'sport') {
-    return sportNames[value as string] || value;
+const getValueLabel = (
+  key: keyof SearchFilters,
+  value: string | number | boolean,
+  sportNames: Record<string, string>
+): string => {
+  // 统一把 value 转成字符串作为兜底
+  const vStr = String(value);
+
+  if (key === "sport") {
+    return sportNames[vStr] ?? vStr;
   }
-  if (key === 'has_certificate') {
-    return FILTER_LABELS.has_certificate;
+  if (key === "has_certificate") {
+    // FILTER_LABELS 的精确类型未知，这里放宽读取
+    return (FILTER_LABELS as any).has_certificate ?? "Certification";
   }
-  if (key === 'preferred_frequency') {
-    return FILTER_LABELS.preferred_frequency[value as keyof typeof FILTER_LABELS.preferred_frequency] || value;
+  if (key === "preferred_frequency") {
+    const dict = (FILTER_LABELS as any).preferred_frequency as
+      | Record<string, string>
+      | undefined;
+    return dict?.[vStr] ?? vStr;
   }
-  if (key === 'skill_level') {
-    return FILTER_LABELS.skill_level[value as keyof typeof FILTER_LABELS.skill_level] || value;
+  if (key === "skill_level") {
+    const dict = (FILTER_LABELS as any).skill_level as
+      | Record<string, string>
+      | undefined;
+    return dict?.[vStr] ?? vStr;
   }
-  if (key === 'min_exp') {
-    return `≥${value}y`;
+  if (key === "min_exp") {
+    return `≥${vStr}y`;
   }
-  if (key === 'max_ppl') {
-    return `≤${value}`;
-  }
-  return value.toString();
+  return vStr;
 };
 
-export function FilterChips({ filters, onRemove, onReset, sportNames }: FilterChipsProps) {
+export function FilterChips({
+  filters,
+  onRemove,
+  onReset,
+  sportNames,
+}: FilterChipsProps) {
   // Don't render if no filters
   if (Object.keys(filters).length === 0) {
     return null;
@@ -71,10 +97,10 @@ export function FilterChips({ filters, onRemove, onReset, sportNames }: FilterCh
 
   // Render single value chip
   const renderSingleValueChip = (key: keyof SearchFilters, value: any) => {
-    const label = getValueLabel(key, value, sportNames);
+    const label = getValueLabel(key, value as string | number | boolean, sportNames);
     return (
       <Badge
-        key={`${key}-${value}`}
+        key={`${String(key)}-${String(value)}`}
         variant="secondary"
         className="h-7 px-2 cursor-pointer hover:bg-gray-200"
         onClick={() => onRemove(key)}
@@ -93,10 +119,10 @@ export function FilterChips({ filters, onRemove, onReset, sportNames }: FilterCh
     const remainingCount = values.length - 4;
 
     return (
-      <div key={key} className="flex flex-wrap gap-2">
+      <div key={String(key)} className="flex flex-wrap gap-2">
         {displayValues.map((value) => (
           <Badge
-            key={`${key}-${value}`}
+            key={`${String(key)}-${value}`}
             variant="secondary"
             className="h-7 px-2 cursor-pointer hover:bg-gray-200"
             onClick={() => onRemove(key, value)}
@@ -123,10 +149,7 @@ export function FilterChips({ filters, onRemove, onReset, sportNames }: FilterCh
               <ScrollArea className="h-[200px]">
                 <div className="space-y-2 p-2">
                   {values.slice(4).map((value) => (
-                    <div
-                      key={value}
-                      className="flex items-center justify-between"
-                    >
+                    <div key={value} className="flex items-center justify-between">
                       <span className="text-sm">{value}</span>
                       <Button
                         variant="ghost"
@@ -150,14 +173,18 @@ export function FilterChips({ filters, onRemove, onReset, sportNames }: FilterCh
   return (
     <div className="flex flex-wrap gap-2 items-center">
       {Object.entries(filters).map(([key, value]) => {
-        // Skip empty values
-        if (value == null || (Array.isArray(value) && value.length === 0)) {
+        // Skip empty values and ignored fields
+        if (
+          value == null ||
+          (Array.isArray(value) && value.length === 0) ||
+          shouldIgnoreField(key as keyof SearchFilters)
+        ) {
           return null;
         }
 
         // Handle multi-value fields
         if (isMultiValueField(key as keyof SearchFilters) && Array.isArray(value)) {
-          return renderMultiValueChips(key as keyof SearchFilters, value);
+          return renderMultiValueChips(key as keyof SearchFilters, value as string[]);
         }
 
         // Handle single value fields

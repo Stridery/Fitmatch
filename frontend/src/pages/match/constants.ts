@@ -32,5 +32,4 @@ export const FIELD_LABELS = {
   skill_levels: "Skill Level",
   age_groups: "Age Group",
   min_exp: "Min Experience",
-  max_ppl: "Max Group Size",
 } as const;

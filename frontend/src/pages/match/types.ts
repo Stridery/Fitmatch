@@ -1,6 +1,7 @@
 export interface CourseSearchItem {
   course_id: string;
   course_title?: string;
+  course_desc?: string;
   sport_name: string;
   coach_name: string;
   coach_nickname?: string;
@@ -13,6 +14,19 @@ export interface CourseSearchItem {
   pace_intensities?: string[];
   prefer_students?: string[];
   match_score: number;
+  // 详情所需的额外字段
+  training_modes?: string[];
+  available_time_slots?: string[];
+  preferred_frequency?: string;
+  training_goals?: string[];
+  skill_levels?: string[];
+  age_groups?: string[];
+  gender?: string;
+  experience_years_int?: number;
+  certificate_type?: string;
+  coach_sport_id?: string;
+  lesson_options?: number[];
+  duration_options?: number[];
 }
 
 export interface SearchFilters {
@@ -38,7 +52,6 @@ export interface SearchFilters {
   preferred_frequency?: 'daily' | 'weekly' | 'monthly';
   skill_level?: 'beginner' | 'intermediate' | 'advanced';
   min_exp?: number;
-  max_ppl?: number;
 }
 
 export interface Sport {

@@ -273,8 +273,8 @@ export function AdvancedFilters({
               </div>
             </div>
 
-            {/* Numeric Inputs */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Numeric Input */}
+            <div>
               <div className="space-y-2">
                 <Label>Min. Experience (Years)</Label>
                 <Input
@@ -283,17 +283,6 @@ export function AdvancedFilters({
                   value={draft.min_exp || ""}
                   onChange={(e) =>
                     updateDraft({ min_exp: e.target.value ? Number(e.target.value) : undefined })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Max. Group Size</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={draft.max_ppl || ""}
-                  onChange={(e) =>
-                    updateDraft({ max_ppl: e.target.value ? Number(e.target.value) : undefined })
                   }
                 />
               </div>
