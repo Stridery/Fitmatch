@@ -18,9 +18,10 @@ interface EventData {
 interface ListViewProps {
   weekStart: Date;
   events: EventData[];
+  onEditEvent: (event: EventData) => void;
 }
 
-export default function ListView({ weekStart, events }: ListViewProps) {
+export default function ListView({ weekStart, events, onEditEvent }: ListViewProps) {
   const weekDays = getWeekDays(weekStart);
   const weekRangeLabel = formatRangeLabel(weekStart, weekDays[6]);
 
@@ -73,7 +74,8 @@ export default function ListView({ weekStart, events }: ListViewProps) {
                 {weekEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600"
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={() => onEditEvent(event)}
                   >
                     <div className="flex items-center space-x-3">
                       <div className={`w-3 h-3 rounded-full ${getEventColor(event.kind)}`}></div>

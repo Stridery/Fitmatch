@@ -264,7 +264,7 @@ export default function ManageSessionsPage() {
           </TabsContent>
 
           <TabsContent value="list" className="h-full m-0">
-            <ListView weekStart={weekStart} events={events} />
+            <ListView weekStart={weekStart} events={events} onEditEvent={handleEditEvent} />
           </TabsContent>
         </Tabs>
       </div>
