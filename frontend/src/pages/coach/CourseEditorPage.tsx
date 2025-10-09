@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 import PackageEditor, { type PackageItem } from '@/components/coach/Course/PackageEditor'
+import { saveCoursePackages, getPackagesByCourseId } from '@/api/courses'
 
 // Schemas
 const detailSchema = z.object({
@@ -244,23 +245,25 @@ export default function CourseEditorPage() {
     return () => { isCancelled = true }
   }, [courseId])
 
-  // Load packages by coach_sport_id
+  // Load packages by course_id
   useEffect(() => {
     let cancelled = false
     async function loadPkgs() {
-      if (!coachSportId) {
+      if (!courseId) {
         setPkgItems([])
         setPkgLoading(false)
         return
       }
       setPkgLoading(true)
       try {
-        const { data: pkgData, error: pkgErr } = await supabase
-          .from('coach_package_prices')
-          .select('id,lessons_count,lesson_duration_minutes,price')
-          .eq('coach_sport_id', coachSportId)
-        if (pkgErr) throw pkgErr
-        if (!cancelled) setPkgItems((pkgData ?? []) as any)
+        const pkgData = await getPackagesByCourseId(courseId)
+        if (!cancelled) {
+          setPkgItems(pkgData.map(pkg => ({
+            lessons_count: pkg.lessonsCount,
+            lesson_duration_minutes: pkg.lessonDurationMinutes,
+            price: pkg.price
+          })))
+        }
       } catch (e) {
         console.error(e)
         if (!cancelled) setPkgItems([])
@@ -270,7 +273,7 @@ export default function CourseEditorPage() {
     }
     loadPkgs()
     return () => { cancelled = true }
-  }, [coachSportId])
+  }, [courseId])
 
   // confirm on unload if dirty
   useEffect(() => {
@@ -361,29 +364,14 @@ export default function CourseEditorPage() {
         }
       }
 
-      // Delete all existing
-      {
-        const { error: delErr } = await supabase
-          .from('coach_package_prices')
-          .delete()
-          .eq('coach_sport_id', coachSportId)
-        if (delErr) throw delErr
-      }
-
-      // Insert new rows
-      const rows = (pkgItems ?? [])
-        .map((it) => ({
-          id: crypto.randomUUID(),
-          coach_sport_id: coachSportId,
+      // Save packages via course service
+      if (targetCourseId) {
+        const packages = pkgItems.map(it => ({
           lessons_count: it.lessons_count as number,
           lesson_duration_minutes: it.lesson_duration_minutes as number,
           price: it.price as number,
         }))
-      if (rows.length > 0) {
-        const { error: insErr } = await supabase
-          .from('coach_package_prices')
-          .insert(rows)
-        if (insErr) throw insErr
+        await saveCoursePackages(targetCourseId, packages)
       }
 
       window.alert('Saved')

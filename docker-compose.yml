@@ -43,7 +43,3 @@ services:
       context: ./backend/courseservice
     expose:
       - "8082"
-    environment:
-      - SPRING_DATASOURCE_URL=${SUPABASE_DB_URL}
-      - SPRING_DATASOURCE_USERNAME=${SUPABASE_DB_USER}
-      - SPRING_DATASOURCE_PASSWORD=${SUPABASE_DB_PASSWORD}

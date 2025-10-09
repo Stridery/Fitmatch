@@ -101,3 +101,47 @@ export async function getSports(): Promise<Sport[]> {
     name: sport.name
   }));
 }
+
+// 包价格相关类型定义
+export interface CoursePackagePrice {
+  id: string;
+  courseId: string;  // 后端返回的是 courseId
+  lessonsCount: number;  // 后端返回的是 lessonsCount
+  lessonDurationMinutes: number;  // 后端返回的是 lessonDurationMinutes
+  price: number;
+  createdAt: string;  // 后端返回的是 createdAt
+  updatedAt: string;  // 后端返回的是 updatedAt
+}
+
+export interface PackageItem {
+  lessons_count: number;
+  lesson_duration_minutes: number;
+  price: number;
+}
+
+// 根据课程ID获取包价格列表
+export async function getPackagesByCourseId(courseId: string): Promise<CoursePackagePrice[]> {
+  const { data } = await api.get<CoursePackagePrice[]>(`/courses/packages/course/${courseId}`);
+  return data;
+}
+
+// 批量获取多个课程的包价格
+export async function getPackagesByCourseIds(courseIds: string[]): Promise<CoursePackagePrice[]> {
+  const { data } = await api.post<CoursePackagePrice[]>('/courses/packages/batch', courseIds);
+  return data;
+}
+
+// 保存课程的包价格（替换策略）
+export async function saveCoursePackages(courseId: string, packages: PackageItem[]): Promise<string> {
+  const { data } = await api.post<string>('/courses/packages/save', {
+    courseId,
+    packages
+  });
+  return data;
+}
+
+// 删除课程的所有包价格
+export async function deleteCoursePackages(courseId: string): Promise<string> {
+  const { data } = await api.delete<string>(`/courses/packages/course/${courseId}`);
+  return data;
+}

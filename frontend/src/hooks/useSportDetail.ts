@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { getPackagesByCourseIds } from '@/api/courses'
 
 export type TrainingMode = '1v1' | '1v2' | 'Group' | 'Online'
 
@@ -61,7 +62,7 @@ type CourseAttribute = {
 
 type Package = {
   id: string
-  coach_sport_id: string
+  course_id: string
   lessons_count: number
   lesson_duration_minutes: number
   price: number
@@ -120,13 +121,24 @@ export function useSportDetail(id: string | undefined) {
         }
         setAttributes(attrs)
 
-        // packages：列表
-        const { data: pkgData, error: pkgErr } = await supabase
-          .from('coach_package_prices')
-          .select('id,coach_sport_id,lessons_count,lesson_duration_minutes,price')
-          .eq('coach_sport_id', id)
-        if (pkgErr) throw pkgErr
-        setPackages((pkgData ?? []) as Package[])
+        // packages：通过 course service 获取
+        if (courseIds.length > 0) {
+          console.log('Fetching packages for courseIds:', courseIds)
+          const pkgData = await getPackagesByCourseIds(courseIds)
+          console.log('Received package data:', pkgData)
+          const mappedPackages = pkgData.map(pkg => ({
+            id: pkg.id,
+            course_id: pkg.courseId,
+            lessons_count: pkg.lessonsCount,
+            lesson_duration_minutes: pkg.lessonDurationMinutes,
+            price: pkg.price
+          }))
+          console.log('Mapped packages:', mappedPackages)
+          setPackages(mappedPackages)
+        } else {
+          console.log('No courseIds, setting empty packages')
+          setPackages([])
+        }
       } catch (e: unknown) {
         console.error(e)
         const msg =
@@ -183,6 +195,20 @@ export function useSportDetail(id: string | undefined) {
       const experienceYears = course.experience_years ?? null
       const ageGroups = course.age_groups ?? []
 
+      // 获取当前课程的包
+      console.log(`Filtering packages for course ${course.id}`)
+      console.log('All packages:', packages)
+      const coursePackages = packages.filter(pkg => pkg.course_id === course.id)
+      console.log(`Course ${course.id} packages:`, coursePackages)
+      // 转换为 CourseVM 期望的格式（移除 course_id 字段）
+      const vmPackages = coursePackages.map(pkg => ({
+        id: pkg.id,
+        lessons_count: pkg.lessons_count,
+        lesson_duration_minutes: pkg.lesson_duration_minutes,
+        price: pkg.price
+      }))
+      console.log(`VM packages for course ${course.id}:`, vmPackages)
+
       const vm: CourseVM = {
         modes,
         goals,
@@ -195,7 +221,7 @@ export function useSportDetail(id: string | undefined) {
         skillLevel,
         experienceYears,
         ageGroups,
-        packages,
+        packages: vmPackages,
         mediaUrl: null,
       }
 

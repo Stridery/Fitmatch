@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useUser } from '@/contexts/UserContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { getPackagesByCourseIds } from '@/api/courses'
 
 type CoachSport = {
   id: string
@@ -67,21 +68,21 @@ export default function CoachDashboard() {
         const sportsIds = Array.from(new Set((coachSportsData ?? []).map(s => s.sport_id)))
         const coachSportIds = Array.from(new Set((coachSportsData ?? []).map(s => s.id)))
 
-        const [sportsRes, courseRes, pkgRes] = await Promise.all([
+        const [sportsRes, courseRes] = await Promise.all([
           sportsIds.length
             ? supabase.from('sports').select('id,name').in('id', sportsIds)
             : Promise.resolve({ data: [] as Sport[], error: null } as any),
           coachSportIds.length
             ? supabase.from('course_detail').select('*').in('coach_sport_id', coachSportIds)
             : Promise.resolve({ data: [] as CourseDetail[], error: null } as any),
-          coachSportIds.length
-            ? supabase.from('coach_package_prices').select('*').in('coach_sport_id', coachSportIds)
-            : Promise.resolve({ data: [] as CoachPackagePrice[], error: null } as any),
         ])
 
         if (sportsRes.error) throw sportsRes.error
         if (courseRes.error) throw courseRes.error
-        if (pkgRes.error) throw pkgRes.error
+        
+        // 获取包信息通过 course service
+        const courseIds = (courseRes.data ?? []).map((c: CourseDetail) => c.id)
+        const pkgData = courseIds.length > 0 ? await getPackagesByCourseIds(courseIds) : []
 
         const sportsMapNext: Record<string, Sport> = {}
         for (const s of (sportsRes.data ?? []) as Sport[]) sportsMapNext[s.id] = s
@@ -94,10 +95,16 @@ export default function CoachDashboard() {
         }
 
         const packagesMapNext: Record<string, CoachPackagePrice[]> = {}
-        for (const p of (pkgRes.data ?? []) as CoachPackagePrice[]) {
-          const key = p.coach_sport_id
+        for (const p of pkgData) {
+          const key = p.courseId
           if (!packagesMapNext[key]) packagesMapNext[key] = []
-          packagesMapNext[key].push(p)
+          packagesMapNext[key].push({
+            id: p.id,
+            coach_sport_id: p.courseId, // 保持兼容性，因为 CoachPackagePrice 类型仍使用 coach_sport_id
+            lessons_count: p.lessonsCount,
+            lesson_duration_minutes: p.lessonDurationMinutes,
+            price: p.price
+          })
         }
 
         setCoachSports((coachSportsData ?? []) as CoachSport[])
@@ -144,7 +151,8 @@ export default function CoachDashboard() {
           {coachSports.map((cs) => {
             const sport = sportsMap[cs.sport_id]
             const course = courseByCoachSport[cs.id]
-            const pkgCount = (packagesByCoachSport[cs.id] || []).length
+            // 包现在按 course_id 分组，需要根据课程ID统计
+            const pkgCount = course ? (packagesByCoachSport[course.id] || []).length : 0
             return (
               <Card key={cs.id} className="border">
                 <CardHeader>

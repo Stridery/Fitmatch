@@ -3,7 +3,6 @@ package com.fitmatch.courseservice.controller;
 import com.fitmatch.courseservice.dto.CourseCardDto;
 import com.fitmatch.courseservice.dto.CourseSearchRequest;
 import com.fitmatch.courseservice.dto.CourseSearchResponse;
-import com.fitmatch.courseservice.entity.CourseSearchView;
 import com.fitmatch.courseservice.repository.CourseSearchRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
