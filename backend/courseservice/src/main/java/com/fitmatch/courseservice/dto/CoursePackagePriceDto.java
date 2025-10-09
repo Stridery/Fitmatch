@@ -15,3 +15,4 @@ public class CoursePackagePriceDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
+
