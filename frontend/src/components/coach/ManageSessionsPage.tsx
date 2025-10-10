@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -13,20 +13,54 @@ import {
   addDays,
   getBrowserTimezoneLabel 
 } from '@/lib/timeGrid';
+import { 
+  getCoachCalendarEventsForWeek, 
+  createCoachCalendarEvent, 
+  updateCoachCalendarEvent, 
+  deleteCoachCalendarEvent,
+  getCoachCourses
+} from '@/api/coachCalendar';
+import type { CoachCalendarEvent, CoachCourse } from '@/api/coachCalendar';
+import { supabase } from '@/lib/supabase';
 import WeekView from './WeekView';
 import ListView from './ListView';
 import FiltersBar from './FiltersBar';
 import NewEventDialog from './NewEventDialog';
 
-interface EventData {
-  id: string;
-  kind: 'session' | 'availability';
-  title: string;
-  course?: string;
-  location?: string;
-  startTime: string;
-  endTime: string;
-  capacity?: string;
+// Convert database event to UI event format
+function convertDbEventToUI(dbEvent: CoachCalendarEvent) {
+  // Convert UTC from database to local time for UI display
+  const startDate = new Date(dbEvent.start_ts);
+  const endDate = new Date(dbEvent.end_ts);
+  
+  return {
+    id: dbEvent.id,
+    kind: dbEvent.kind,
+    title: dbEvent.title || '',
+    course: dbEvent.course_id || '',
+    location: dbEvent.location || '',
+    startTime: startDate.toISOString().slice(0, 16), // Format for datetime-local input
+    endTime: endDate.toISOString().slice(0, 16), // Format for datetime-local input
+    capacity: dbEvent.capacity?.toString() || ''
+  };
+}
+
+// Convert UI event to database format
+function convertUIEventToDb(uiEvent: any, coachId: string) {
+  // Convert local datetime to UTC for database storage
+  const startDate = new Date(uiEvent.startTime);
+  const endDate = new Date(uiEvent.endTime);
+  
+  return {
+    coach_id: coachId,
+    kind: uiEvent.kind,
+    course_id: uiEvent.course || null,
+    title: uiEvent.title || null,
+    location: uiEvent.location || null,
+    start_ts: startDate.toISOString(),
+    end_ts: endDate.toISOString(),
+    capacity: uiEvent.capacity ? parseInt(uiEvent.capacity) : null
+  };
 }
 
 export default function ManageSessionsPage() {
@@ -43,11 +77,14 @@ export default function ManageSessionsPage() {
     startTs: '',
     endTs: ''
   });
-  const [events, setEvents] = useState<EventData[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [coachId, setCoachId] = useState<string>('');
+  const [courses, setCourses] = useState<CoachCourse[]>([]);
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<EventData | null>(null);
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
 
   // Cleanup function
   const cleanupModalStyles = () => {
@@ -94,6 +131,52 @@ export default function ManageSessionsPage() {
   const weekRangeLabel = formatRangeLabel(weekStart, weekEnd);
   const timezoneLabel = getBrowserTimezoneLabel();
 
+  // Load events from database
+  const loadEvents = async () => {
+    if (!coachId) return;
+    
+    setLoading(true);
+    try {
+      const dbEvents = await getCoachCalendarEventsForWeek(coachId, weekStart);
+      const uiEvents = dbEvents.map(convertDbEventToUI);
+      setEvents(uiEvents);
+    } catch (error) {
+      console.error('Error loading events:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load coach courses
+  const loadCourses = async () => {
+    if (!coachId) return;
+    
+    try {
+      const coachCourses = await getCoachCourses(coachId);
+      setCourses(coachCourses);
+    } catch (error) {
+      console.error('Error loading courses:', error);
+    }
+  };
+
+  // Load coach ID and events on component mount and week change
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCoachId(user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
+  useEffect(() => {
+    if (coachId) {
+      loadEvents();
+      loadCourses();
+    }
+  }, [coachId, weekStart]);
+
   const handlePrevWeek = () => {
     setWeekStart(addDays(weekStart, -7));
   };
@@ -116,53 +199,59 @@ export default function ManageSessionsPage() {
     setNewDialogOpen(true);
   };
 
-  const handleSaveEvent = (eventData: any) => {
-    const newEvent: EventData = {
-      id: Date.now().toString(),
-      kind: newDialogKind!,
-      title: eventData.title || 'Untitled Event',
-      course: eventData.course,
-      location: eventData.location,
-      startTime: eventData.startTime,
-      endTime: eventData.endTime,
-      capacity: eventData.capacity
-    };
+  const handleSaveEvent = async (eventData: any) => {
+    if (!coachId) return;
     
-    setEvents(prev => [...prev, newEvent]);
-    setNewDialogOpen(false);
-    setNewDialogKind(null);
-    setNewDialogDefaults({ startTs: '', endTs: '' });
+    try {
+      const dbEventData = convertUIEventToDb({
+        ...eventData,
+        kind: newDialogKind!
+      }, coachId);
+      
+      await createCoachCalendarEvent(dbEventData);
+      await loadEvents(); // Reload events from database
+      
+      setNewDialogOpen(false);
+      setNewDialogKind(null);
+      setNewDialogDefaults({ startTs: '', endTs: '' });
+    } catch (error) {
+      console.error('Error saving event:', error);
+      // You could add a toast notification here
+    }
   };
 
-  const handleEditEvent = (event: EventData) => {
+  const handleEditEvent = (event: any) => {
     setEditingEvent(event);
     setEditDialogOpen(true);
   };
 
-  const handleUpdateEvent = (eventData: any) => {
-    if (!editingEvent) return;
+  const handleUpdateEvent = async (eventData: any) => {
+    if (!editingEvent || !coachId) return;
     
-    const updatedEvent: EventData = {
-      ...editingEvent,
-      title: eventData.title || 'Untitled Event',
-      course: eventData.course,
-      location: eventData.location,
-      startTime: eventData.startTime,
-      endTime: eventData.endTime,
-      capacity: eventData.capacity
-    };
-    
-    setEvents(prev => prev.map(event => 
-      event.id === editingEvent.id ? updatedEvent : event
-    ));
-    setEditDialogOpen(false);
-    setEditingEvent(null);
+    try {
+      const dbEventData = convertUIEventToDb(eventData, coachId);
+      await updateCoachCalendarEvent(editingEvent.id, dbEventData);
+      await loadEvents(); // Reload events from database
+      
+      setEditDialogOpen(false);
+      setEditingEvent(null);
+    } catch (error) {
+      console.error('Error updating event:', error);
+      // You could add a toast notification here
+    }
   };
 
-  const handleDeleteEvent = (eventId: string) => {
-    setEvents(prev => prev.filter(event => event.id !== eventId));
-    setEditDialogOpen(false);
-    setEditingEvent(null);
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      await deleteCoachCalendarEvent(eventId);
+      await loadEvents(); // Reload events from database
+      
+      setEditDialogOpen(false);
+      setEditingEvent(null);
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      // You could add a toast notification here
+    }
   };
 
   return (
@@ -242,6 +331,7 @@ export default function ManageSessionsPage() {
           setNewDialogDefaults({ startTs: '', endTs: '' });
           setNewDialogOpen(true);
         }}
+        courses={courses}
       />
 
       {/* Main Content */}
@@ -254,18 +344,26 @@ export default function ManageSessionsPage() {
             </TabsList>
           </div>
 
-          <TabsContent value="week" className="h-full m-0">
-            <WeekView
-              weekStart={weekStart}
-              events={events}
-              onNewEvent={handleNewEvent}
-              onEditEvent={handleEditEvent}
-            />
-          </TabsContent>
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-gray-500 dark:text-gray-400">Loading events...</div>
+            </div>
+          ) : (
+            <>
+              <TabsContent value="week" className="h-full m-0">
+                <WeekView
+                  weekStart={weekStart}
+                  events={events}
+                  onNewEvent={handleNewEvent}
+                  onEditEvent={handleEditEvent}
+                />
+              </TabsContent>
 
-          <TabsContent value="list" className="h-full m-0">
-            <ListView weekStart={weekStart} events={events} onEditEvent={handleEditEvent} />
-          </TabsContent>
+              <TabsContent value="list" className="h-full m-0">
+                <ListView weekStart={weekStart} events={events} onEditEvent={handleEditEvent} />
+              </TabsContent>
+            </>
+          )}
         </Tabs>
       </div>
 
@@ -283,6 +381,7 @@ export default function ManageSessionsPage() {
         kind={newDialogKind}
         defaults={newDialogDefaults}
         onSave={handleSaveEvent}
+        courses={courses}
       />
 
       {/* Edit Event Dialog */}
@@ -302,6 +401,7 @@ export default function ManageSessionsPage() {
         onSave={handleUpdateEvent}
         onDelete={handleDeleteEvent}
         editingEvent={editingEvent}
+        courses={courses}
       />
     </div>
   );

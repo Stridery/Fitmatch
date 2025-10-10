@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, Users, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
+import type { CoachCourse } from '@/api/coachCalendar';
 
 interface NewEventDialogProps {
   open: boolean;
@@ -20,9 +21,10 @@ interface NewEventDialogProps {
   onSave?: (eventData: any) => void;
   onDelete?: (eventId: string) => void;
   editingEvent?: any;
+  courses?: CoachCourse[];
 }
 
-export default function NewEventDialog({ open, onOpenChange, kind, defaults, onSave, onDelete, editingEvent }: NewEventDialogProps) {
+export default function NewEventDialog({ open, onOpenChange, kind, defaults, onSave, onDelete, editingEvent, courses = [] }: NewEventDialogProps) {
   const [formData, setFormData] = useState({
     title: '',
     course: '',
@@ -276,9 +278,15 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
                     <SelectValue placeholder="Select course" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="course1">Yoga Basics</SelectItem>
-                    <SelectItem value="course2">Advanced Pilates</SelectItem>
-                    <SelectItem value="course3">HIIT Training</SelectItem>
+                    {courses.length > 0 ? (
+                      courses.map((course) => (
+                        <SelectItem key={course.id} value={course.id}>
+                          {course.title}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none">No courses available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -344,7 +352,12 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
                   <SelectValue placeholder="Select course" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No courses available</SelectItem>
+                  <SelectItem value="">No course</SelectItem>
+                  {courses.map((course) => (
+                    <SelectItem key={course.id} value={course.id}>
+                      {course.title}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

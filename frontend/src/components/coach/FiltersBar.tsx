@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Filter } from 'lucide-react';
+import type { CoachCourse } from '@/api/coachCalendar';
 
 interface FiltersBarProps {
   filters: {
@@ -18,9 +19,10 @@ interface FiltersBarProps {
     locationKeyword: string;
   }) => void;
   onNewEvent: (kind: 'session' | 'availability') => void;
+  courses: CoachCourse[];
 }
 
-export default function FiltersBar({ filters, onFiltersChange, onNewEvent }: FiltersBarProps) {
+export default function FiltersBar({ filters, onFiltersChange, onNewEvent, courses }: FiltersBarProps) {
   const handleKindToggle = (kind: string) => {
     const newKinds = filters.kinds.includes(kind)
       ? filters.kinds.filter(k => k !== kind)
@@ -65,7 +67,11 @@ export default function FiltersBar({ filters, onFiltersChange, onNewEvent }: Fil
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All courses</SelectItem>
-                {/* Placeholder - no options for now */}
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={course.id}>
+                    {course.title}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
