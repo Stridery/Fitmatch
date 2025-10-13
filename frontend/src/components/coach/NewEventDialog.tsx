@@ -352,7 +352,7 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
                   <SelectValue placeholder="Select course" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No course</SelectItem>
+                  <SelectItem value="none">No course</SelectItem>
                   {courses.map((course) => (
                     <SelectItem key={course.id} value={course.id}>
                       {course.title}

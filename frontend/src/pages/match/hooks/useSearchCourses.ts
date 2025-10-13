@@ -37,7 +37,7 @@ export function useSearchCourses() {
         ...params.filters,
         page: Math.floor(params.offset / params.limit),
         size: params.limit,
-        sort: 'match_desc'
+        sort: params.filters.sort || 'match_desc'
       });
 
       // Check if request was cancelled

@@ -7,8 +7,7 @@ export interface CourseSearchItem {
   coach_nickname?: string;
   city: string;
   certificates: string[];
-  price_per_session?: number;
-  price_per_hour?: number;
+  price_per_lesson?: number;
   styles?: string[];
   comm_styles?: string[];
   pace_intensities?: string[];
@@ -34,6 +33,7 @@ export interface SearchFilters {
   city?: string;
   coachGender: 'any' | 'male' | 'female';
   maxPrice: number;
+  sort?: 'match_desc' | 'price_asc' | 'price_desc' | 'updated_desc';
   
   // Advanced filters
   has_certificate?: boolean;

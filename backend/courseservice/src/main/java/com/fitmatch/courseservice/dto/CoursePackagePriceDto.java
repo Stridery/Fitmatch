@@ -12,6 +12,7 @@ public class CoursePackagePriceDto {
     private Integer lessonsCount;
     private Integer lessonDurationMinutes;
     private BigDecimal price;
+    private String trainingMode;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

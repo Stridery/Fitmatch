@@ -21,9 +21,9 @@ public class CourseSearchRepository {
     
     private final NamedParameterJdbcTemplate jdbcTemplate;
     
-    private static Long uuidToLong(String uuid) {
+    private static String uuidToString(String uuid) {
         if (uuid == null) return null;
-        return UUID.fromString(uuid).getMostSignificantBits();
+        return uuid; // Keep UUID as string instead of converting to Long
     }
     
     private static final RowMapper<CourseSearchView> COURSE_MAPPER = new RowMapper<>() {
@@ -32,16 +32,16 @@ public class CourseSearchRepository {
             CourseSearchView view = new CourseSearchView();
             
             // 基本信息
-            view.setCourseId(uuidToLong(rs.getString("course_id")));
+            view.setCourseId(uuidToString(rs.getString("course_id")));
             view.setCourseTitle(rs.getString("course_title"));
             view.setCourseDesc(rs.getString("course_desc"));
             
             // 运动相关
-            view.setSportId(uuidToLong(rs.getString("sport_id")));
+            view.setSportId(uuidToString(rs.getString("sport_id")));
             view.setSportName(rs.getString("sport_name"));
             
             // 教练相关
-            view.setCoachId(uuidToLong(rs.getString("coach_id")));
+            view.setCoachId(uuidToString(rs.getString("coach_id")));
             view.setCoachName(rs.getString("coach_name"));
             view.setCoachGender(rs.getString("coach_gender"));
             view.setCity(rs.getString("city"));
@@ -67,9 +67,7 @@ public class CourseSearchRepository {
             view.setCourseExperienceBucket(rs.getString("course_experience_bucket"));
             
             // 价格信息
-            view.setSinglePriceMin(rs.getBigDecimal("single_price_min"));
             view.setPricePerLessonMin(rs.getBigDecimal("price_per_lesson_min"));
-            view.setPricePerHourMin(rs.getBigDecimal("price_per_hour_min"));
             view.setLessonOptions(pgIntArray(rs, "lesson_options"));
             view.setDurationOptions(pgIntArray(rs, "duration_options"));
             Object packageCount = rs.getObject("package_count");
@@ -113,6 +111,7 @@ public class CourseSearchRepository {
         params.addValue("minExp", request.getMinExp(), Types.INTEGER);
         params.addValue("skillLevel", request.getSkillLevel(), Types.VARCHAR);
         params.addValue("preferredFrequency", request.getPreferredFrequency(), Types.VARCHAR);
+        params.addValue("excludeCoachId", request.getExcludeCoachId(), Types.VARCHAR);
         
         // 证书相关
         params.addValue("requireCert", request.getHasCertificate(), Types.BOOLEAN);
@@ -139,6 +138,7 @@ public class CourseSearchRepository {
         MapSqlParameterSource params = createParams(request);
         
         CourseSearchQueryBuilder queryBuilder = new CourseSearchQueryBuilder(params)
+            .withExcludeCoachId(request.getExcludeCoachId())
             .withSport(request.getSport())
             .withCity(request.getCity())
             .withCoachGender(request.getCoachGender())
@@ -175,6 +175,7 @@ public class CourseSearchRepository {
         MapSqlParameterSource params = createParams(request);
         
         CourseSearchQueryBuilder queryBuilder = new CourseSearchQueryBuilder(params)
+            .withExcludeCoachId(request.getExcludeCoachId())
             .withSport(request.getSport())
             .withCity(request.getCity())
             .withCoachGender(request.getCoachGender())

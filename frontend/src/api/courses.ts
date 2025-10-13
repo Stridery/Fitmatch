@@ -26,8 +26,7 @@ function mapResponseItem(item: any): CourseSearchItem {
     coach_nickname: item.coachNickname,
     city: item.city,
     certificates: item.certificates || [],
-    price_per_session: item.pricePerSession ? Number(item.pricePerSession) : undefined,
-    price_per_hour: item.pricePerHour ? Number(item.pricePerHour) : undefined,
+    price_per_lesson: item.pricePerLessonMin ? Number(item.pricePerLessonMin) : undefined,
     styles: item.styles || [],
     comm_styles: item.commStyles || [],
     pace_intensities: item.paceIntensities || [],
@@ -63,6 +62,7 @@ export async function searchCourses(params: CourseSearchParams): Promise<CourseS
       preferredFrequency: params.preferred_frequency,
       skillLevel: params.skill_level,
       minExp: params.min_exp,
+      sort: params.sort || 'match_desc',  // 确保 sort 参数传递到后端
       // 移除前端特有的参数
       has_certificate: undefined,
       cert_type: undefined,
@@ -109,6 +109,7 @@ export interface CoursePackagePrice {
   lessonsCount: number;  // 后端返回的是 lessonsCount
   lessonDurationMinutes: number;  // 后端返回的是 lessonDurationMinutes
   price: number;
+  trainingMode?: string;  // 后端返回的是 trainingMode，可能为空（旧数据）
   createdAt: string;  // 后端返回的是 createdAt
   updatedAt: string;  // 后端返回的是 updatedAt
 }
@@ -117,6 +118,7 @@ export interface PackageItem {
   lessons_count: number;
   lesson_duration_minutes: number;
   price: number;
+  training_mode?: string;
 }
 
 // 根据课程ID获取包价格列表

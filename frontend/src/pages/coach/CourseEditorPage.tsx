@@ -261,7 +261,8 @@ export default function CourseEditorPage() {
           setPkgItems(pkgData.map(pkg => ({
             lessons_count: pkg.lessonsCount,
             lesson_duration_minutes: pkg.lessonDurationMinutes,
-            price: pkg.price
+            price: pkg.price,
+            training_mode: pkg.trainingMode || '1v1'
           })))
         }
       } catch (e) {

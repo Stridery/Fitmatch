@@ -5,6 +5,7 @@ import com.fitmatch.courseservice.dto.CourseSearchRequest;
 import com.fitmatch.courseservice.dto.CourseSearchResponse;
 import com.fitmatch.courseservice.repository.CourseSearchRepository;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,7 +22,15 @@ public class CourseSearchController {
     }
     
     @GetMapping("/search")
-    public CourseSearchResponse search(CourseSearchRequest request) {
+    public CourseSearchResponse search(
+            CourseSearchRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        
+        // 如果用户已登录，自动排除用户自己创建的课程
+        if (userId != null && !userId.isEmpty()) {
+            request.setExcludeCoachId(userId);
+        }
+        
         // 执行查询
         var results = repository.search(request);
         var total = repository.count(request);
@@ -39,8 +48,7 @@ public class CourseSearchController {
                 dto.setCertificates(view.getHasCertificate() && view.getCertificateType() != null 
                     ? List.of(view.getCertificateType()) 
                     : List.of());
-                dto.setPricePerSession(view.getPricePerLessonMin());
-                dto.setPricePerHour(view.getPricePerHourMin());
+                dto.setPricePerLessonMin(view.getPricePerLessonMin());
                 dto.setStyles(view.getStyles());
                 dto.setCommStyles(view.getCommStyles());
                 dto.setPaceIntensities(view.getPaceIntensities());

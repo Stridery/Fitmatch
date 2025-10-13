@@ -166,3 +166,94 @@ export async function getCoachCourses(coachId: string): Promise<CoachCourse[]> {
     sport_name: course.coach_sports?.[0]?.sports?.[0]?.name || ''
   }));
 }
+
+// Get user's calendar events for a specific week (both as coach and as participant)
+export async function getUserCalendarEventsForWeek(userId: string, weekStart: Date, isCoach: boolean) {
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const startISO = weekStart.toISOString();
+  const endISO = weekEnd.toISOString();
+
+  // If user is a coach, get their coach calendar events
+  if (isCoach) {
+    return getCoachCalendarEvents(userId, startISO, endISO);
+  }
+
+  // If user is not a coach, return empty array (no events to show)
+  // TODO: In the future, add logic to fetch booked sessions for regular users
+  return [];
+}
+
+// Get coach's sessions and availabilities for a specific course
+export async function getCoachSessionsByCourse(courseId: string, startDate?: Date) {
+  const now = startDate || new Date();
+  
+  console.log('[getCoachSessionsByCourse] Fetching events for course:', courseId);
+  
+  const { data, error } = await supabase
+    .from('coach_calendar_event')
+    .select(`
+      id,
+      coach_id,
+      kind,
+      course_id,
+      title,
+      location,
+      start_ts,
+      end_ts,
+      capacity,
+      booked_count,
+      created_at
+    `)
+    .eq('course_id', courseId)
+    .gte('start_ts', now.toISOString())
+    .order('start_ts', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching coach sessions:', error);
+    throw error;
+  }
+
+  console.log('[getCoachSessionsByCourse] Found events:', data?.length || 0);
+  return data as CoachCalendarEvent[];
+}
+
+// Get all upcoming sessions and availabilities for a coach (for students to view)
+export async function getCoachUpcomingEvents(coachId: string, courseId?: string) {
+  const now = new Date();
+  
+  let query = supabase
+    .from('coach_calendar_event')
+    .select(`
+      id,
+      coach_id,
+      kind,
+      course_id,
+      title,
+      location,
+      start_ts,
+      end_ts,
+      capacity,
+      booked_count,
+      created_at
+    `)
+    .eq('coach_id', coachId)
+    .gte('start_ts', now.toISOString())
+    .order('start_ts', { ascending: true });
+
+  // If courseId is provided, filter by course
+  if (courseId) {
+    query = query.eq('course_id', courseId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching coach upcoming events:', error);
+    throw error;
+  }
+
+  return data as CoachCalendarEvent[];
+}

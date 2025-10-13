@@ -11,6 +11,7 @@ public class CourseSearchRequest {
     private String city;
     private String coachGender;
     private BigDecimal maxPrice;
+    private String excludeCoachId;  // 排除指定教练的课程（用于排除用户自己的课程）
     
     // 证书相关
     private Boolean hasCertificate;

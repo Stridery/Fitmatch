@@ -10,10 +10,19 @@ const api = axios.create({
 api.interceptors.request.use(async (config) => {
   const { data } = await supabase.auth.getSession(); // cached by supabase-js
   const accessToken = data.session?.access_token;
+  const user = data.session?.user;
+  
   if (accessToken) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
+  
+  // Add user ID header for course search filtering
+  if (user?.id) {
+    config.headers = config.headers ?? {};
+    config.headers['X-User-Id'] = user.id;
+  }
+  
   return config;
 });
 

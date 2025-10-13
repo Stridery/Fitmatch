@@ -24,7 +24,7 @@ public class CourseSearchQueryBuilder {
                 CASE 
                     WHEN CAST(:maxPrice AS numeric) IS NULL OR CAST(:maxPrice AS numeric) <= 0 THEN 11.0
                     ELSE LEAST(22.0, GREATEST(0, 
-                        22.0 * (1 - COALESCE(c.single_price_min, c.price_per_lesson_min, c.price_per_hour_min) 
+                        22.0 * (1 - COALESCE(c.price_per_lesson_min, 0) 
                             / NULLIF(CAST(:maxPrice AS numeric), 0))
                     ))
                 END +
@@ -207,6 +207,7 @@ public class CourseSearchQueryBuilder {
         params.addValue("preferredFrequency", null, Types.VARCHAR);
         params.addValue("sport", null, Types.VARCHAR);
         params.addValue("city", null, Types.VARCHAR);
+        params.addValue("excludeCoachId", null, Types.VARCHAR);
         params.addValue("isTest", false, Types.BOOLEAN);
         
         // 初始化数组参数的默认值
@@ -222,6 +223,14 @@ public class CourseSearchQueryBuilder {
         params.addValue("certTypes", toPgTextArray(null));
     }
 
+
+    public CourseSearchQueryBuilder withExcludeCoachId(String coachId) {
+        if (StringUtils.hasText(coachId)) {
+            conditions.add("c.coach_id::text != CAST(:excludeCoachId AS text)");
+            params.addValue("excludeCoachId", coachId, Types.VARCHAR);
+        }
+        return this;
+    }
 
     public CourseSearchQueryBuilder withSport(String sport) {
         if (StringUtils.hasText(sport)) {
@@ -249,7 +258,7 @@ public class CourseSearchQueryBuilder {
 
     public CourseSearchQueryBuilder withMaxPrice(BigDecimal maxPrice) {
         if (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) > 0) {
-            conditions.add("COALESCE(c.single_price_min, c.price_per_lesson_min, c.price_per_hour_min) <= CAST(:maxPrice AS numeric)");
+            conditions.add("c.price_per_lesson_min <= CAST(:maxPrice AS numeric)");
             params.addValue("maxPrice", maxPrice, Types.NUMERIC);
         }
         return this;
@@ -339,8 +348,8 @@ public class CourseSearchQueryBuilder {
 
     public CourseSearchQueryBuilder withSort(String sort) {
         this.orderByClause = switch (sort) {
-            case "price_asc" -> " ORDER BY COALESCE(c.single_price_min, c.price_per_lesson_min, c.price_per_hour_min) ASC NULLS LAST";
-            case "price_desc" -> " ORDER BY COALESCE(c.single_price_min, c.price_per_lesson_min, c.price_per_hour_min) DESC NULLS LAST";
+            case "price_asc" -> " ORDER BY c.price_per_lesson_min ASC NULLS LAST";
+            case "price_desc" -> " ORDER BY c.price_per_lesson_min DESC NULLS LAST";
             case "updated_desc" -> " ORDER BY c.updated_at DESC NULLS LAST";
             default -> " ORDER BY match_score DESC, c.updated_at DESC NULLS LAST";
         };

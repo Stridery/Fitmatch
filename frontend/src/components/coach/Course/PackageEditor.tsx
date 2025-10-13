@@ -2,12 +2,14 @@ import { useMemo } from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export type PackageItem = {
   id?: string
   lessons_count?: number
   lesson_duration_minutes?: number
   price?: number
+  training_mode?: string
 }
 
 const numberRequiredOrTypeError = (issue: any) =>
@@ -24,6 +26,8 @@ export const rowSchema = z.object({
 
   price: z.number({ error: numberRequiredOrTypeError })
     .min(0, { error: 'Must be ≥ 0' }),
+
+  training_mode: z.string().min(1, { error: 'Mode is required' }).default('1v1'),
 });
 
 function getRowErrors(row: PackageItem) {
@@ -31,6 +35,7 @@ function getRowErrors(row: PackageItem) {
     lessons_count: row.lessons_count,
     lesson_duration_minutes: row.lesson_duration_minutes,
     price: row.price,
+    training_mode: row.training_mode,
   })
   if (result.success) return {}
   const issues: Record<string, string> = {}
@@ -46,7 +51,9 @@ export function PackageEditor({ items, onChange, disabled }: { items: PackageIte
 
   const handleChange = (idx: number, field: keyof PackageItem, raw: string) => {
     const next = [...items]
-    if (raw === '') {
+    if (field === 'training_mode') {
+      ;(next[idx] as any)[field] = raw
+    } else if (raw === '') {
       ;(next[idx] as any)[field] = undefined
     } else {
       const n = field === 'price' ? Number(raw) : Math.trunc(Number(raw))
@@ -58,7 +65,7 @@ export function PackageEditor({ items, onChange, disabled }: { items: PackageIte
   const addRow = () => {
     onChange([
       ...items,
-      { lessons_count: 1, lesson_duration_minutes: 60, price: 0 },
+      { lessons_count: 1, lesson_duration_minutes: 60, price: 0, training_mode: '1v1' },
     ])
   }
 
@@ -84,7 +91,29 @@ export function PackageEditor({ items, onChange, disabled }: { items: PackageIte
           return (
             <div key={key} className="border rounded-lg p-3">
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
-                <div className="sm:col-span-3">
+                <div className="sm:col-span-2">
+                  <div className="text-xs text-muted-foreground mb-1">Mode</div>
+                  <Select 
+                    value={row.training_mode || '1v1'} 
+                    onValueChange={(value) => handleChange(idx, 'training_mode', value)}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1v1">1v1</SelectItem>
+                      <SelectItem value="1v2">1v2</SelectItem>
+                      <SelectItem value="group">Group</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {e.training_mode ? (
+                    <div className="text-xs text-red-600 mt-1">{e.training_mode}</div>
+                  ) : null}
+                </div>
+
+                <div className="sm:col-span-2">
                   <div className="text-xs text-muted-foreground mb-1">Lessons</div>
                   <Input
                     type="number"
@@ -100,7 +129,7 @@ export function PackageEditor({ items, onChange, disabled }: { items: PackageIte
                   ) : null}
                 </div>
 
-                <div className="sm:col-span-3">
+                <div className="sm:col-span-2">
                   <div className="text-xs text-muted-foreground mb-1">Duration (min)</div>
                   <Input
                     type="number"
@@ -123,7 +152,7 @@ export function PackageEditor({ items, onChange, disabled }: { items: PackageIte
                   ) : null}
                 </div>
 
-                <div className="sm:col-span-3">
+                <div className="sm:col-span-2">
                   <div className="text-xs text-muted-foreground mb-1">Price</div>
                   <Input
                     type="number"
@@ -139,7 +168,7 @@ export function PackageEditor({ items, onChange, disabled }: { items: PackageIte
                   ) : null}
                 </div>
 
-                <div className="sm:col-span-3 flex sm:justify-end items-end">
+                <div className="sm:col-span-4 flex sm:justify-end items-end">
                   <Button type="button" variant="destructive" onClick={() => removeRow(idx)} disabled={disabled}>Delete</Button>
                 </div>
               </div>

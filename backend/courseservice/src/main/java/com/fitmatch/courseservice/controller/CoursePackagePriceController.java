@@ -70,6 +70,7 @@ public class CoursePackagePriceController {
                         entity.setLessonsCount(pkg.getLessons_count());
                         entity.setLessonDurationMinutes(pkg.getLesson_duration_minutes());
                         entity.setPrice(pkg.getPrice());
+                        entity.setTrainingMode(pkg.getTraining_mode() != null ? pkg.getTraining_mode() : "1v1");
                         return entity;
                     })
                     .collect(Collectors.toList());
@@ -105,6 +106,7 @@ public class CoursePackagePriceController {
         dto.setLessonsCount(entity.getLessonsCount());
         dto.setLessonDurationMinutes(entity.getLessonDurationMinutes());
         dto.setPrice(entity.getPrice());
+        dto.setTrainingMode(entity.getTrainingMode());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         return dto;

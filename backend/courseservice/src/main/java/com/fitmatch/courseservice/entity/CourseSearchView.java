@@ -15,16 +15,16 @@ import java.util.List;
 @Table(name = "v_course_search")
 public class CourseSearchView {
     @Id
-    private Long courseId;
+    private String courseId;  // Changed from Long to String to keep UUID format
     private String courseTitle;
     private String courseDesc;
     
     // 运动相关
-    private Long sportId;
+    private String sportId;  // Changed from Long to String to keep UUID format
     private String sportName;
     
     // 教练相关
-    private Long coachId;
+    private String coachId;  // Changed from Long to String to keep UUID format
     private String coachName;
     private String coachGender;
     private String city;
@@ -48,9 +48,7 @@ public class CourseSearchView {
     private String courseExperienceBucket;  // lt1|1_2|3_4|5_plus
     
     // 价格信息
-    private BigDecimal singlePriceMin;
     private BigDecimal pricePerLessonMin;
-    private BigDecimal pricePerHourMin;
     private List<Integer> lessonOptions;
     private List<Integer> durationOptions;
     private Integer packageCount;

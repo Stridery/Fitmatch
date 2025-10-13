@@ -34,6 +34,9 @@ public class CoursePackagePrice {
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
     
+    @Column(name = "training_mode", nullable = false)
+    private String trainingMode;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

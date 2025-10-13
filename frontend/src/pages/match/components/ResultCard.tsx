@@ -19,8 +19,7 @@ export function ResultCard({ item, onClick, className = "" }: ResultCardProps) {
     coach_nickname,
     city,
     certificates,
-    price_per_session,
-    price_per_hour,
+    price_per_lesson,
     styles = [],
     comm_styles = [],
     pace_intensities = [],
@@ -78,8 +77,7 @@ export function ResultCard({ item, onClick, className = "" }: ResultCardProps) {
 
         {/* Price */}
         <PriceTag
-          pricePerSession={price_per_session}
-          pricePerHour={price_per_hour}
+          pricePerLesson={price_per_lesson}
           className="mt-2"
         />
       </div>

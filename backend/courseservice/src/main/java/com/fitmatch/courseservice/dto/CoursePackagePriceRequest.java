@@ -15,5 +15,6 @@ public class CoursePackagePriceRequest {
         private Integer lessons_count;
         private Integer lesson_duration_minutes;
         private BigDecimal price;
+        private String training_mode;
     }
 }

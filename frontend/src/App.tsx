@@ -21,6 +21,7 @@ import SportEditor from "./pages/coach/SportEditor";
 import CourseEditor from "./pages/coach/CourseEditor";
 import CourseEditorPage from "./pages/coach/CourseEditorPage";
 import SessionsPage from "./pages/coach/SessionsPage";
+import SchedulePage from "./pages/user/dashboard/SchedulePage";
 import ChatDock from "./pages/community/chatDock/ChatDock";
 //console.log("Rendering App...");
 
@@ -51,6 +52,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<ProfilePage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="schedule" element={<SchedulePage />} />
             <Route path="coach" element={<CoachLayout />}>
               <Route index element={<CoachCenterPage />} />
               <Route path="sports/new" element={<SportEditor />} />

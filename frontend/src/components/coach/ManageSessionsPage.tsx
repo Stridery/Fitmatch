@@ -27,9 +27,19 @@ import ListView from './ListView';
 import FiltersBar from './FiltersBar';
 import NewEventDialog from './NewEventDialog';
 
+// Helper function to format date for datetime-local input (keeps local timezone)
+function formatDateTimeLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 // Convert database event to UI event format
 function convertDbEventToUI(dbEvent: CoachCalendarEvent) {
-  // Convert UTC from database to local time for UI display
+  // Parse UTC timestamp from database and convert to local Date object
   const startDate = new Date(dbEvent.start_ts);
   const endDate = new Date(dbEvent.end_ts);
   
@@ -39,8 +49,8 @@ function convertDbEventToUI(dbEvent: CoachCalendarEvent) {
     title: dbEvent.title || '',
     course: dbEvent.course_id || '',
     location: dbEvent.location || '',
-    startTime: startDate.toISOString().slice(0, 16), // Format for datetime-local input
-    endTime: endDate.toISOString().slice(0, 16), // Format for datetime-local input
+    startTime: formatDateTimeLocal(startDate), // Format for datetime-local input (local time)
+    endTime: formatDateTimeLocal(endDate), // Format for datetime-local input (local time)
     capacity: dbEvent.capacity?.toString() || ''
   };
 }

@@ -47,7 +47,7 @@ export function Filters({ initial, sports, cities, onSubmit, onReset }: FiltersP
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* Sport Select */}
         <Popover>
           <PopoverTrigger asChild>
@@ -165,6 +165,27 @@ export function Filters({ initial, sports, cities, onSubmit, onReset }: FiltersP
             }}
           />
         </div>
+
+        {/* Sort Select */}
+        <Select
+          value={draft.sort || "match_desc"}
+          onValueChange={(value) => {
+            setDraft(prev => ({
+              ...prev,
+              sort: value as SearchFilters["sort"],
+            }));
+          }}
+        >
+          <SelectTrigger className="text-gray-900 bg-white hover:bg-gray-100">
+            <SelectValue placeholder="排序方式" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="match_desc">匹配度降序</SelectItem>
+            <SelectItem value="price_asc">价格升序</SelectItem>
+            <SelectItem value="price_desc">价格降序</SelectItem>
+            <SelectItem value="updated_desc">最近更新</SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* Advanced Filters */}
         <AdvancedFilters
