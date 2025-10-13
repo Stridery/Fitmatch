@@ -50,11 +50,18 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
     setBookingDialogOpen(true);
   };
 
-  const handleConfirmBooking = (startTime: string, endTime: string) => {
+  const handleConfirmBooking = (startTime: string, endTime: string, packageId: string) => {
     // TODO: Implement booking logic
-    console.log('Booking confirmed:', { startTime, endTime, availability: selectedAvailability });
+    console.log('Booking confirmed:', { 
+      startTime, 
+      endTime, 
+      packageId,
+      courseId: course?.course_id,
+      availability: selectedAvailability 
+    });
     // For now, just show confirmation
-    alert(`预约成功！\n开始时间: ${new Date(startTime).toLocaleString('zh-CN')}\n结束时间: ${new Date(endTime).toLocaleString('zh-CN')}`);
+    alert(`预约成功！\n开始时间: ${new Date(startTime).toLocaleString('zh-CN')}\n结束时间: ${new Date(endTime).toLocaleString('zh-CN')}\n套餐ID: ${packageId}`);
+    setBookingDialogOpen(false);
   };
 
   if (!course) return null;
@@ -181,6 +188,7 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
           open={bookingDialogOpen}
           onOpenChange={setBookingDialogOpen}
           availability={selectedAvailability}
+          courseId={course.course_id}
           onConfirm={handleConfirmBooking}
         />
 

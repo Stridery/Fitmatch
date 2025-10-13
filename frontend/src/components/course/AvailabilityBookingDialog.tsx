@@ -10,14 +10,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Clock, AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Clock, AlertCircle, Package } from 'lucide-react';
 import type { CoachCalendarEvent } from '@/api/coachCalendar';
+import { getPackagesByCourseId } from '@/api/courses';
+import type { CoursePackagePrice } from '@/api/courses';
 
 interface AvailabilityBookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   availability: CoachCalendarEvent | null;
-  onConfirm: (startTime: string, endTime: string) => void;
+  courseId: string;
+  onConfirm: (startTime: string, endTime: string, packageId: string) => void;
 }
 
 function formatDateTimeLocal(dateStr: string): string {
@@ -45,11 +49,37 @@ export default function AvailabilityBookingDialog({
   open,
   onOpenChange,
   availability,
+  courseId,
   onConfirm
 }: AvailabilityBookingDialogProps) {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [selectedPackageId, setSelectedPackageId] = useState('');
+  const [packages, setPackages] = useState<CoursePackagePrice[]>([]);
+  const [loadingPackages, setLoadingPackages] = useState(false);
   const [error, setError] = useState('');
+
+  // Load packages when dialog opens
+  useEffect(() => {
+    if (open && courseId) {
+      setLoadingPackages(true);
+      getPackagesByCourseId(courseId)
+        .then((data) => {
+          setPackages(data);
+          // Auto-select first package if available
+          if (data.length > 0) {
+            setSelectedPackageId(data[0].id);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load packages:', err);
+          setPackages([]);
+        })
+        .finally(() => {
+          setLoadingPackages(false);
+        });
+    }
+  }, [open, courseId]);
 
   useEffect(() => {
     if (availability && open) {
@@ -59,6 +89,26 @@ export default function AvailabilityBookingDialog({
       setError('');
     }
   }, [availability, open]);
+
+  // Auto-adjust end time when package is selected
+  useEffect(() => {
+    if (selectedPackageId && startTime && packages.length > 0) {
+      const selectedPackage = packages.find(pkg => pkg.id === selectedPackageId);
+      if (selectedPackage) {
+        const start = new Date(startTime);
+        const newEnd = new Date(start.getTime() + selectedPackage.lessonDurationMinutes * 60000);
+        
+        // Check if the new end time is within availability range
+        const availabilityEnd = availability ? new Date(availability.end_ts) : null;
+        if (availabilityEnd && newEnd <= availabilityEnd) {
+          setEndTime(formatDateTimeLocal(newEnd.toISOString()));
+          setError('');
+        } else if (availabilityEnd) {
+          setError(`套餐时长（${selectedPackage.lessonDurationMinutes}分钟）超出可用时段，请选择其他套餐或调整开始时间`);
+        }
+      }
+    }
+  }, [selectedPackageId, startTime, packages, availability]);
 
   const handleConfirm = () => {
     if (!availability) return;
@@ -82,15 +132,40 @@ export default function AvailabilityBookingDialog({
     }
 
     // Check minimum duration (e.g., 30 minutes)
-    const durationMinutes = (end.getTime() - start.getTime()) / 60000;
-    if (durationMinutes < 30) {
+    const selectedDurationMinutes = (end.getTime() - start.getTime()) / 60000;
+    if (selectedDurationMinutes < 30) {
       setError('课程时长至少需要30分钟');
       return;
     }
 
+    // Check if package is selected
+    if (!selectedPackageId) {
+      setError('请选择课程套餐');
+      return;
+    }
+
+    // Check if selected duration matches package duration
+    const selectedPackage = packages.find(pkg => pkg.id === selectedPackageId);
+    if (selectedPackage) {
+      const packageDuration = selectedPackage.lessonDurationMinutes;
+      if (selectedDurationMinutes !== packageDuration) {
+        setError(`所选时间长度（${selectedDurationMinutes}分钟）与套餐课程时长（${packageDuration}分钟）不一致，请调整时间`);
+        return;
+      }
+    }
+
     setError('');
-    onConfirm(startTime, endTime);
+    onConfirm(startTime, endTime, selectedPackageId);
     onOpenChange(false);
+  };
+
+  // Format package display
+  const formatPackageDisplay = (pkg: CoursePackagePrice) => {
+    const mode = pkg.trainingMode || '1v1';
+    const lessons = pkg.lessonsCount;
+    const duration = pkg.lessonDurationMinutes;
+    const price = pkg.price;
+    return `${mode} · ${lessons}节课 · ${duration}分钟/课 · ¥${price}`;
   };
 
   if (!availability) return null;
@@ -119,6 +194,36 @@ export default function AvailabilityBookingDialog({
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Package selector */}
+          <div className="space-y-2">
+            <Label htmlFor="package-select">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                <span>选择课程套餐</span>
+              </div>
+            </Label>
+            {loadingPackages ? (
+              <div className="text-sm text-gray-500">加载中...</div>
+            ) : packages.length === 0 ? (
+              <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
+                该课程暂无可用套餐
+              </div>
+            ) : (
+              <Select value={selectedPackageId} onValueChange={setSelectedPackageId}>
+                <SelectTrigger id="package-select">
+                  <SelectValue placeholder="请选择套餐" />
+                </SelectTrigger>
+                <SelectContent>
+                  {packages.map((pkg) => (
+                    <SelectItem key={pkg.id} value={pkg.id}>
+                      {formatPackageDisplay(pkg)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Start time input */}
