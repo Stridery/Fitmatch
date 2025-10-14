@@ -65,10 +65,14 @@ export default function AvailabilityBookingDialog({
       setLoadingPackages(true);
       getPackagesByCourseId(courseId)
         .then((data) => {
-          setPackages(data);
+          // Filter to only show 1v1 and online packages
+          const filteredPackages = data.filter(pkg => 
+            pkg.trainingMode === '1v1' || pkg.trainingMode === 'online'
+          );
+          setPackages(filteredPackages);
           // Auto-select first package if available
-          if (data.length > 0) {
-            setSelectedPackageId(data[0].id);
+          if (filteredPackages.length > 0) {
+            setSelectedPackageId(filteredPackages[0].id);
           }
         })
         .catch((err) => {

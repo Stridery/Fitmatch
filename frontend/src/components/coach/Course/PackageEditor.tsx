@@ -103,7 +103,6 @@ export function PackageEditor({ items, onChange, disabled }: { items: PackageIte
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1v1">1v1</SelectItem>
-                      <SelectItem value="1v2">1v2</SelectItem>
                       <SelectItem value="group">Group</SelectItem>
                       <SelectItem value="online">Online</SelectItem>
                     </SelectContent>
