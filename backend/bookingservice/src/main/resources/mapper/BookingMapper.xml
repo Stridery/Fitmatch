@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fitmatch.bookingservice.mapper.BookingMapper">
+
+    <!-- 预约已有Session -->
+    <select id="bookExistingSession" resultType="string">
+        SELECT public.book_existing_session(
+            #{eventId}::uuid,
+            #{studentId}::uuid,
+            #{userCoursePackageId}::uuid
+        )
+    </select>
+
+    <!-- 取消预约（并尝试自动补位） -->
+    <select id="cancelSessionBooking" resultType="string">
+        SELECT public.cancel_session_booking(
+            #{eventId}::uuid,
+            #{studentId}::uuid
+        )
+    </select>
+
+    <!-- 手动补位等候队列队首 -->
+    <select id="promoteWaitlistHead" resultType="string">
+        SELECT public.promote_waitlist_head(
+            #{eventId}::uuid
+        )
+    </select>
+
+    <!-- 获取学生个人日程 -->
+    <select id="getStudentPersonalSchedule" resultType="com.fitmatch.bookingservice.dto.ScheduleItem">
+        SELECT
+            sb.student_id as studentId,
+            cce.coach_id as coachId,
+            cce.course_id as courseId,
+            sb.user_course_package_id as userCoursePackageId,
+            cce.id as sessionEventId,
+            cce.title,
+            cce.start_ts as startTs,
+            cce.end_ts as endTs,
+            cce.capacity,
+            cce.booked_count as bookedCount,
+            sb.status as bookingStatus,
+            sb.booked_at as bookedAt,
+            sb.cancelled_at as cancelledAt
+        FROM public.session_booking sb
+        JOIN public.coach_calendar_event cce ON cce.id = sb.event_id
+        WHERE cce.kind = 'session'
+        AND sb.student_id = #{studentId}::uuid
+        <if test="fromDate != null and fromDate != ''">
+            AND cce.start_ts >= #{fromDate}::timestamp
+        </if>
+        <if test="toDate != null and toDate != ''">
+            AND cce.start_ts &lt; #{toDate}::timestamp
+        </if>
+        ORDER BY cce.start_ts ASC
+    </select>
+
+</mapper>
