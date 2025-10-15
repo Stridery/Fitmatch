@@ -74,13 +74,14 @@ BEGIN
         
         -- 插入预约记录
         INSERT INTO public.session_booking (
-            event_id, student_id, user_course_package_id, status, booked_at
+            event_id, student_id, user_course_package_id, status, booked_at, created_at, updated_at
         ) VALUES (
-            p_event_id, p_student_id, p_user_course_package_id, 'CONFIRMED', now()
+            p_event_id, p_student_id, p_user_course_package_id, 'CONFIRMED', now(), now(), now()
         ) ON CONFLICT (event_id, student_id) DO UPDATE SET
             status = 'CONFIRMED',
             booked_at = now(),
-            cancelled_at = NULL;
+            cancelled_at = NULL,
+            updated_at = now();
         
         -- 扣减课包余额
         UPDATE public.user_course_package
@@ -177,13 +178,14 @@ BEGIN
             
             -- 为队首创建预约记录
             INSERT INTO public.session_booking (
-                event_id, student_id, user_course_package_id, status, booked_at
+                event_id, student_id, user_course_package_id, status, booked_at, created_at, updated_at
             ) VALUES (
-                p_event_id, v_waitlist_head.student_id, v_waitlist_head.user_course_package_id, 'CONFIRMED', now()
+                p_event_id, v_waitlist_head.student_id, v_waitlist_head.user_course_package_id, 'CONFIRMED', now(), now(), now()
             ) ON CONFLICT (event_id, student_id) DO UPDATE SET
                 status = 'CONFIRMED',
                 booked_at = now(),
-                cancelled_at = NULL;
+                cancelled_at = NULL,
+                updated_at = now();
             
             -- 扣减队首的课包余额
             UPDATE public.user_course_package
@@ -281,13 +283,14 @@ BEGIN
     
     -- 为队首创建预约记录
     INSERT INTO public.session_booking (
-        event_id, student_id, user_course_package_id, status, booked_at
+        event_id, student_id, user_course_package_id, status, booked_at, created_at, updated_at
     ) VALUES (
-        p_event_id, v_waitlist_head.student_id, v_waitlist_head.user_course_package_id, 'CONFIRMED', now()
+        p_event_id, v_waitlist_head.student_id, v_waitlist_head.user_course_package_id, 'CONFIRMED', now(), now(), now()
     ) ON CONFLICT (event_id, student_id) DO UPDATE SET
         status = 'CONFIRMED',
         booked_at = now(),
-        cancelled_at = NULL;
+        cancelled_at = NULL,
+        updated_at = now();
     
     -- 扣减队首的课包余额
     UPDATE public.user_course_package
@@ -301,6 +304,65 @@ BEGIN
     
     v_result := 'PROMOTED:' || v_waitlist_head.student_id::text;
     RETURN v_result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 4. 教练取消Session（Cascade处理所有相关数据）
+CREATE OR REPLACE FUNCTION public.cancel_session_by_coach(
+    p_event_id uuid,
+    p_coach_id uuid
+) RETURNS text AS $$
+DECLARE
+    v_event_record RECORD;
+    v_booking_record RECORD;
+    v_waitlist_record RECORD;
+    v_package_record RECORD;
+    v_refunded_count INTEGER := 0;
+    v_waitlist_cleared_count INTEGER := 0;
+BEGIN
+    -- 锁定 session 行并验证教练权限
+    SELECT * INTO v_event_record
+    FROM public.coach_calendar_event
+    WHERE id = p_event_id AND kind = 'session' AND coach_id = p_coach_id
+    FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Session not found or coach does not have permission to cancel this session';
+    END IF;
+    
+    -- 处理所有已确认的预约：标记为取消并返还课包余额
+    FOR v_booking_record IN 
+        SELECT * FROM public.session_booking 
+        WHERE event_id = p_event_id AND status = 'CONFIRMED'
+        FOR UPDATE
+    LOOP
+        -- 更新预约状态为取消
+        UPDATE public.session_booking
+        SET status = 'CANCELLED', cancelled_at = now()
+        WHERE id = v_booking_record.id;
+        
+        -- 返还课包余额
+        UPDATE public.user_course_package
+        SET remaining_credits = remaining_credits + 1
+        WHERE id = v_booking_record.user_course_package_id;
+        
+        v_refunded_count := v_refunded_count + 1;
+    END LOOP;
+    
+    -- 清除所有waitlist记录
+    FOR v_waitlist_record IN 
+        SELECT * FROM public.session_waitlist 
+        WHERE event_id = p_event_id
+        FOR UPDATE
+    LOOP
+        DELETE FROM public.session_waitlist WHERE id = v_waitlist_record.id;
+        v_waitlist_cleared_count := v_waitlist_cleared_count + 1;
+    END LOOP;
+    
+    -- 删除session事件
+    DELETE FROM public.coach_calendar_event WHERE id = p_event_id;
+    
+    RETURN 'CANCELLED: refunded=' || v_refunded_count || ', waitlist_cleared=' || v_waitlist_cleared_count;
 END;
 $$ LANGUAGE plpgsql;
 

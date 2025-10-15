@@ -23,6 +23,23 @@ public class CoursePackagePriceController {
     }
     
     /**
+     * 根据套餐ID获取单个套餐价格
+     */
+    @GetMapping("/{packageId}")
+    public ResponseEntity<CoursePackagePriceDto> getPackageById(@PathVariable String packageId) {
+        try {
+            UUID packageUuid = UUID.fromString(packageId);
+            CoursePackagePrice packagePrice = repository.findById(packageUuid)
+                .orElseThrow(() -> new RuntimeException("Package not found"));
+            
+            CoursePackagePriceDto dto = convertToDto(packagePrice);
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    /**
      * 根据课程ID获取包价格列表
      */
     @GetMapping("/course/{courseId}")

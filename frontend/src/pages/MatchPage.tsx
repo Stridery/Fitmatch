@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { logEvent } from "./match/utils/analytics";
+//import { logEvent } from "./match/utils/analytics";
 import type { CourseSearchItem, SearchFilters, Sport, City } from "./match/types";
 import { getSports } from "@/api/courses";
 import { Filters } from "./match/components/Filters";
@@ -62,6 +62,7 @@ export default function MatchPage() {
       cancelSearch();
 
       // 记录搜索或加载更多埋点
+      /*
       if (isLoadMore) {
         logEvent("load_more", {
           offset,
@@ -74,6 +75,7 @@ export default function MatchPage() {
           timestamp: Date.now()
         });
       }
+      */
 
       const res = await searchCourses({
         filters: appliedFilters,
@@ -85,12 +87,14 @@ export default function MatchPage() {
       setResults((prev) => {
         const newResults = offset === 0 ? res.items : [...prev, ...res.items];
         // 记录结果卡片曝光埋点
+        /*
         newResults.forEach((item, idx) => {
           logEvent("view_result_card", {
             course_id: item.course_id,
             position: offset + idx
           });
         });
+        */
         return newResults;
       });
       setTotal(res.total);
@@ -99,11 +103,13 @@ export default function MatchPage() {
         const errorMessage = "Failed to load courses";
         setError(errorMessage);
         // 记录错误埋点
+        /*
         logEvent("search_error", {
           filters: appliedFilters,
           error_message: errorMessage,
           isLoadMore
         });
+        */
       }
     } finally {
       if (isLoadMore) {
@@ -207,10 +213,12 @@ export default function MatchPage() {
                   setSelectedCourse(course);
                   setDetailOpen(true);
                   // 记录打开详情埋点
+                  /*
                   logEvent("open_course_detail", {
                     course_id: course.course_id,
                     coach_name: course.coach_name
                   });
+                  */
                 }}
               />
               {isLoadingMore && <LoadMoreSkeleton />}

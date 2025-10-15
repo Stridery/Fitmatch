@@ -143,3 +143,4 @@ CROSS JOIN (
     SELECT user_id, id FROM public.user_course_package WHERE note = 'Test Package B'
 ) ucp_b
 WHERE cce.title = 'Test Session - Capacity 1';
+

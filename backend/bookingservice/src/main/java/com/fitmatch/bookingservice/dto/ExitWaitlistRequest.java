@@ -6,8 +6,8 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class CancelBookingRequest {
+public class ExitWaitlistRequest {
     
-    @NotNull(message = "Event ID is required")
+    @NotNull
     private UUID eventId;
 }

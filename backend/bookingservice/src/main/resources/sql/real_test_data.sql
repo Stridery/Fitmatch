@@ -147,3 +147,4 @@ SELECT
 FROM public.user_course_package ucp 
 WHERE ucp.note IN ('Test Package A', 'Test Package B')
 ORDER BY ucp.note;
+

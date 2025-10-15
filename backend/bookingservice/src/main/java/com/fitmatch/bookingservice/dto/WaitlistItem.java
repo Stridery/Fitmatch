@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-public class ScheduleItem {
+public class WaitlistItem {
     
     private UUID studentId;
     private UUID coachId;
@@ -18,8 +18,6 @@ public class ScheduleItem {
     private LocalDateTime endTs;
     private Integer capacity;
     private Integer bookedCount;
-    private String bookingStatus;
-    private LocalDateTime bookedAt;
-    private LocalDateTime cancelledAt;
+    private Integer waitlistPosition;
+    private LocalDateTime waitlistCreatedAt;
 }
-

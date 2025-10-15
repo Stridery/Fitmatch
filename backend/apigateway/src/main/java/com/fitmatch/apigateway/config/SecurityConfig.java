@@ -20,7 +20,7 @@ public class SecurityConfig {
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeExchange(exchanges -> exchanges
-                .pathMatchers("/auth/**", "/courses/search", "/bookings/**").permitAll()  // 放开课程搜索和所有booking接口
+                .pathMatchers("/auth/**", "/courses/**").permitAll()  // 放开课程搜索、所有课程接口和所有booking接口
                 .anyExchange().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> 

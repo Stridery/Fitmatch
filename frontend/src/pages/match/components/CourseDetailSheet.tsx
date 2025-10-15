@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import type { CourseSearchItem } from "../types";
 import SessionAvailabilityList from "@/components/course/SessionAvailabilityList";
 import AvailabilityBookingDialog from "@/components/course/AvailabilityBookingDialog";
+import SessionBookingDialog from "@/components/course/SessionBookingDialog";
 import { getCoachSessionsByCourse } from "@/api/coachCalendar";
 import type { CoachCalendarEvent } from "@/api/coachCalendar";
+import api from "@/api/client";
 
 interface CourseDetailSheetProps {
   open: boolean;
@@ -19,23 +21,25 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
   const [loading, setLoading] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<CoachCalendarEvent | null>(null);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<CoachCalendarEvent | null>(null);
+  const [sessionBookingDialogOpen, setSessionBookingDialogOpen] = useState(false);
 
   // Load sessions and availabilities when course changes
   useEffect(() => {
     const loadEvents = async () => {
       if (!course?.course_id || !open) {
-        console.log('[CourseDetailSheet] Skipping load - course_id:', course?.course_id, 'open:', open);
+        //console.log('[CourseDetailSheet] Skipping load - course_id:', course?.course_id, 'open:', open);
         return;
       }
       
-      console.log('[CourseDetailSheet] Loading events for course:', course.course_id);
+      //console.log('[CourseDetailSheet] Loading events for course:', course.course_id);
       setLoading(true);
       try {
         const data = await getCoachSessionsByCourse(course.course_id);
-        console.log('[CourseDetailSheet] Loaded events:', data);
+        //console.log('[CourseDetailSheet] Loaded events:', data);
         setEvents(data);
       } catch (error) {
-        console.error('[CourseDetailSheet] Error loading events:', error);
+        //console.error('[CourseDetailSheet] Error loading events:', error);
         setEvents([]);
       } finally {
         setLoading(false);
@@ -62,6 +66,61 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
     // For now, just show confirmation
     alert(`预约成功！\n开始时间: ${new Date(startTime).toLocaleString('zh-CN')}\n结束时间: ${new Date(endTime).toLocaleString('zh-CN')}\n套餐ID: ${packageId}`);
     setBookingDialogOpen(false);
+  };
+
+  const handleBookSession = (session: CoachCalendarEvent) => {
+    // 处理Session报名
+    setSelectedSession(session);
+    setSessionBookingDialogOpen(true);
+  };
+
+  const handleSessionBookingConfirm = async (packageId: string) => {
+    if (!selectedSession) return;
+    
+    try {
+      // 调用预订API
+      const { data: result } = await api.post('/bookings/session', {
+        eventId: selectedSession.id,
+        userCoursePackageId: packageId
+      });
+      
+      console.log('Session booking confirmed:', {
+        session: selectedSession,
+        packageId,
+        courseId: course?.course_id,
+        result
+      });
+      
+      alert(`报名成功！\nSession: ${selectedSession.title}\n时间: ${new Date(selectedSession.start_ts).toLocaleString('zh-CN')} - ${new Date(selectedSession.end_ts).toLocaleString('zh-CN')}\n套餐ID: ${packageId}\n状态: ${result.status}`);
+      
+      // 刷新事件列表
+      refreshEvents();
+      
+    } catch (error) {
+      console.error('Booking error:', error);
+      alert(`报名失败: ${error.message}`);
+    }
+  };
+
+  // 处理取消预订
+  const handleCancelBooking = (eventId: string) => {
+    // 刷新事件列表以更新状态
+    refreshEvents();
+  };
+
+  // 刷新事件列表的通用函数
+  const refreshEvents = async () => {
+    if (!course?.course_id) return;
+    setLoading(true);
+    try {
+      const data = await getCoachSessionsByCourse(course.course_id);
+      setEvents(data);
+    } catch (error) {
+      console.error('Error loading events:', error);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!course) return null;
@@ -172,6 +231,8 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
               <SessionAvailabilityList 
                 events={events}
                 onSelectAvailability={handleSelectAvailability}
+                onBookSession={handleBookSession}
+                onCancelBooking={handleCancelBooking}
               />
             )}
           </TabsContent>
@@ -190,6 +251,15 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
           availability={selectedAvailability}
           courseId={course.course_id}
           onConfirm={handleConfirmBooking}
+        />
+
+        {/* Session Booking Dialog */}
+        <SessionBookingDialog
+          open={sessionBookingDialogOpen}
+          onOpenChange={setSessionBookingDialogOpen}
+          session={selectedSession}
+          courseId={course.course_id}
+          onConfirm={handleSessionBookingConfirm}
         />
 
         {/* CTA */}

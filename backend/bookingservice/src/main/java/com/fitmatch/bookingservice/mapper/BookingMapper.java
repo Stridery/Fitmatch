@@ -1,6 +1,7 @@
 package com.fitmatch.bookingservice.mapper;
 
 import com.fitmatch.bookingservice.dto.ScheduleItem;
+import com.fitmatch.bookingservice.dto.WaitlistItem;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -52,5 +53,34 @@ public interface BookingMapper {
         @Param("studentId") UUID studentId,
         @Param("fromDate") String fromDate,
         @Param("toDate") String toDate
+    );
+    
+    /**
+     * 获取用户waitlist记录
+     * @param studentId 学生ID
+     * @return waitlist列表
+     */
+    List<WaitlistItem> getUserWaitlist(@Param("studentId") UUID studentId);
+    
+    /**
+     * 退出waitlist
+     * @param eventId 事件ID
+     * @param studentId 学生ID
+     * @return 删除的记录数
+     */
+    int exitWaitlist(
+        @Param("eventId") UUID eventId,
+        @Param("studentId") UUID studentId
+    );
+    
+    /**
+     * 教练取消Session（Cascade处理）
+     * @param eventId 事件ID
+     * @param coachId 教练ID
+     * @return 处理结果
+     */
+    String cancelSessionByCoach(
+        @Param("eventId") UUID eventId,
+        @Param("coachId") UUID coachId
     );
 }

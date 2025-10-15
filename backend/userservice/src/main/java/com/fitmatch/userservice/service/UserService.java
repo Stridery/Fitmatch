@@ -58,8 +58,8 @@ public class UserService {
         profile.setHeightCm(request.getHeightCm());
         profile.setWeightKg(request.getWeightKg());
         profile.setCurrentTrainingFrequency(request.getCurrentTrainingFrequency());
-        profile.setIsCoach(request.isCoach());
-        profile.setIsVenue(request.isVenue());
+        profile.setIsCoach(Boolean.valueOf(request.isCoach()));
+        profile.setIsVenue(Boolean.valueOf(request.isVenue()));
 
         profile.setUpdatedAt(Timestamp.from(Instant.now()));
 

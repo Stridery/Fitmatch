@@ -16,6 +16,7 @@ import java.util.UUID;
 public class UserCoursePackage {
     
     @Id
+    @GeneratedValue
     @JdbcTypeCode(SqlTypes.UUID)
     @Column(name = "id")
     private UUID id;
@@ -32,6 +33,13 @@ public class UserCoursePackage {
     @Column(name = "course_id", nullable = false)
     private UUID courseId;
     
+    @JdbcTypeCode(SqlTypes.UUID)
+    @Column(name = "package_price_id", nullable = false)
+    private UUID packagePriceId;
+    
+    @Column(name = "total_credits", nullable = false)
+    private Integer totalCredits;
+    
     @Column(name = "remaining_credits", nullable = false)
     private Integer remainingCredits;
     
@@ -42,6 +50,9 @@ public class UserCoursePackage {
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
     
+    @Column(name = "note")
+    private String note;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -50,16 +61,10 @@ public class UserCoursePackage {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
     
-    @PrePersist
-    protected void onCreate() {
-        if (id == null) {
-            id = UUID.randomUUID();
-        }
-    }
-    
     public enum PackageStatus {
         ACTIVE,
         EXPIRED,
-        CANCELLED
+        FROZEN,
+        REFUNDED
     }
 }

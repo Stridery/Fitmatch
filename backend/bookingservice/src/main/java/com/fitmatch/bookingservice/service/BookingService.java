@@ -24,14 +24,13 @@ public class BookingService {
     @Transactional
     public BookingResponse bookSession(UUID studentId, BookingRequest request) {
         try {
-            log.info("Booking session for student: {}, event: {}, package: {}", 
-                studentId, request.getEventId(), request.getUserCoursePackageId());
-            
             String result = bookingMapper.bookExistingSession(
                 request.getEventId(),
                 studentId,
                 request.getUserCoursePackageId()
             );
+            
+            log.info("Booking function result: {}", result);
             
             if ("CONFIRMED".equals(result)) {
                 log.info("Booking confirmed for student: {}, event: {}", studentId, request.getEventId());
@@ -121,11 +120,80 @@ public class BookingService {
             );
             
             log.info("Found {} schedule items for student: {}", schedule.size(), studentId);
+            for (ScheduleItem item : schedule) {
+                log.info("Schedule item: sessionEventId={}, title={}, status={}", 
+                    item.getSessionEventId(), item.getTitle(), item.getBookingStatus());
+            }
             return schedule;
             
         } catch (Exception e) {
             log.error("Error getting schedule for student: {}", studentId, e);
             throw new BookingException("Failed to get schedule: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 获取用户waitlist记录
+     */
+    public List<WaitlistItem> getUserWaitlist(UUID studentId) {
+        try {
+            log.info("Getting waitlist for student: {}", studentId);
+            
+            List<WaitlistItem> waitlist = bookingMapper.getUserWaitlist(studentId);
+            
+            log.info("Found {} waitlist items for student: {}", waitlist.size(), studentId);
+            for (WaitlistItem item : waitlist) {
+                log.info("Waitlist item: sessionEventId={}, title={}, position={}", 
+                    item.getSessionEventId(), item.getTitle(), item.getWaitlistPosition());
+            }
+            return waitlist;
+            
+        } catch (Exception e) {
+            log.error("Error getting waitlist for student: {}", studentId, e);
+            throw new BookingException("Failed to get waitlist: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 退出waitlist
+     */
+    @Transactional
+    public String exitWaitlist(UUID studentId, UUID eventId) {
+        try {
+            log.info("Exiting waitlist for student: {}, event: {}", studentId, eventId);
+            
+            int deletedCount = bookingMapper.exitWaitlist(eventId, studentId);
+            
+            if (deletedCount > 0) {
+                log.info("Successfully exited waitlist for student: {}, event: {}", studentId, eventId);
+                return "EXITED";
+            } else {
+                log.warn("No waitlist record found for student: {}, event: {}", studentId, eventId);
+                return "NOT_FOUND";
+            }
+            
+        } catch (Exception e) {
+            log.error("Error exiting waitlist for student: {}, event: {}", studentId, eventId, e);
+            throw new BookingException("Failed to exit waitlist: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 教练取消Session（Cascade处理）
+     */
+    @Transactional
+    public String cancelSessionByCoach(UUID coachId, UUID eventId) {
+        try {
+            log.info("Coach cancelling session - Coach: {}, Event: {}", coachId, eventId);
+            
+            String result = bookingMapper.cancelSessionByCoach(eventId, coachId);
+            
+            log.info("Coach session cancellation result: {}", result);
+            return result;
+            
+        } catch (Exception e) {
+            log.error("Error cancelling session by coach: {}, event: {}", coachId, eventId, e);
+            throw new BookingException("Failed to cancel session: " + e.getMessage(), e);
         }
     }
 }

@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, X, Clock3 } from 'lucide-react';
 import type { CoachCalendarEvent } from '@/api/coachCalendar';
+import { getUserSchedule, cancelBooking, getUserWaitlist, exitWaitlist, type BookingRecord, type WaitlistRecord } from '@/api/booking';
 
 interface SessionAvailabilityListProps {
   events: CoachCalendarEvent[];
   onSelectAvailability: (event: CoachCalendarEvent) => void;
+  onBookSession?: (event: CoachCalendarEvent) => void;
+  onCancelBooking?: (eventId: string) => void;
 }
 
 function formatDateTime(dateStr: string): string {
@@ -43,9 +46,86 @@ function calculateDuration(startTs: string, endTs: string): string {
   return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`;
 }
 
-export default function SessionAvailabilityList({ events, onSelectAvailability }: SessionAvailabilityListProps) {
+export default function SessionAvailabilityList({ events, onSelectAvailability, onBookSession, onCancelBooking }: SessionAvailabilityListProps) {
+  const [userBookings, setUserBookings] = useState<BookingRecord[]>([]);
+  const [userWaitlist, setUserWaitlist] = useState<WaitlistRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const sessions = events.filter(e => e.kind === 'session');
   const availabilities = events.filter(e => e.kind === 'availability');
+
+  // 获取用户已预订的Session和waitlist记录
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        setLoading(true);
+        console.log('Loading user bookings and waitlist...');
+        
+        const [bookings, waitlist] = await Promise.all([
+          getUserSchedule(),
+          getUserWaitlist()
+        ]);
+        
+        console.log('User bookings loaded:', bookings);
+        console.log('User waitlist loaded:', waitlist);
+        
+        setUserBookings(bookings);
+        setUserWaitlist(waitlist);
+      } catch (error) {
+        console.error('Failed to load user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  // 检查Session是否已被用户预订
+  const isUserBooked = (sessionId: string): boolean => {
+    const isBooked = userBookings.some(booking => 
+      booking.sessionEventId === sessionId && 
+      booking.bookingStatus === 'CONFIRMED'
+    );
+    console.log(`Session ${sessionId} is booked: ${isBooked}`);
+    return isBooked;
+  };
+
+  // 检查Session是否在waitlist中
+  const getUserWaitlistPosition = (sessionId: string): number | null => {
+    const waitlistItem = userWaitlist.find(item => item.sessionEventId === sessionId);
+    return waitlistItem ? waitlistItem.waitlistPosition : null;
+  };
+
+  // 处理取消预订
+  const handleCancelBooking = async (sessionId: string) => {
+    try {
+      await cancelBooking(sessionId);
+      // 从用户预订列表中移除
+      setUserBookings(prev => prev.filter(booking => booking.sessionEventId !== sessionId));
+      // 通知父组件刷新
+      onCancelBooking?.(sessionId);
+      alert('取消预订成功！');
+    } catch (error) {
+      console.error('Cancel booking error:', error);
+      alert(`取消预订失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  // 处理退出waitlist
+  const handleExitWaitlist = async (sessionId: string) => {
+    try {
+      await exitWaitlist(sessionId);
+      // 从用户waitlist列表中移除
+      setUserWaitlist(prev => prev.filter(item => item.sessionEventId !== sessionId));
+      // 通知父组件刷新
+      onCancelBooking?.(sessionId);
+      alert('退出等待队列成功！');
+    } catch (error) {
+      console.error('Exit waitlist error:', error);
+      alert(`退出等待队列失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
 
   if (events.length === 0) {
     return (
@@ -66,50 +146,127 @@ export default function SessionAvailabilityList({ events, onSelectAvailability }
             固定课程（Session）
           </h3>
           <div className="space-y-3">
-            {sessions.map((session) => (
-              <Card key={session.id} className="border-l-4 border-l-green-500">
-                <CardContent className="pt-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-lg mb-2">{session.title}</h4>
-                      
-                      <div className="space-y-2 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-2" />
-                          <span>{formatDateTime(session.start_ts)} - {formatTime(session.end_ts)}</span>
-                          <Badge variant="outline" className="ml-2">
-                            {calculateDuration(session.start_ts, session.end_ts)}
-                          </Badge>
+            {sessions.map((session) => {
+              const isBooked = isUserBooked(session.id);
+              const waitlistPosition = getUserWaitlistPosition(session.id);
+              const isInWaitlist = waitlistPosition !== null;
+              const isFull = session.capacity && (session.capacity - (session.booked_count || 0) === 0);
+              
+              return (
+                <Card 
+                  key={session.id} 
+                  className={`border-l-4 ${
+                    isBooked 
+                      ? 'border-l-gray-400 bg-gray-50' 
+                      : isInWaitlist
+                      ? 'border-l-blue-500 bg-blue-50'
+                      : 'border-l-green-500'
+                  }`}
+                >
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className={`font-medium text-lg mb-2 ${
+                          isBooked ? 'text-gray-600' : isInWaitlist ? 'text-blue-700' : ''
+                        }`}>
+                          {session.title}
+                          {isBooked && (
+                            <Badge variant="secondary" className="ml-2 bg-gray-200 text-gray-700">
+                              已预订
+                            </Badge>
+                          )}
+                          {isInWaitlist && (
+                            <Badge variant="secondary" className="ml-2 bg-blue-200 text-blue-700">
+                              等待中
+                            </Badge>
+                          )}
+                        </h4>
+                        
+                        <div className={`space-y-2 text-sm ${
+                          isBooked ? 'text-gray-500' : isInWaitlist ? 'text-blue-600' : 'text-gray-600'
+                        }`}>
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-2" />
+                            <span>{formatDateTime(session.start_ts)} - {formatTime(session.end_ts)}</span>
+                            <Badge variant="outline" className="ml-2">
+                              {calculateDuration(session.start_ts, session.end_ts)}
+                            </Badge>
+                          </div>
+                          
+                          {session.location && (
+                            <div className="flex items-center">
+                              <MapPin className="h-4 w-4 mr-2" />
+                              <span>{session.location}</span>
+                            </div>
+                          )}
+                          
+                          {session.capacity && (
+                            <div className="flex items-center">
+                              <Users className="h-4 w-4 mr-2" />
+                              <span>
+                                已预约: {session.booked_count || 0} / {session.capacity}
+                                {isFull && !isBooked && !isInWaitlist && (
+                                  <Badge variant="destructive" className="ml-2">已满</Badge>
+                                )}
+                              </span>
+                            </div>
+                          )}
+
+                          {isInWaitlist && (
+                            <div className="flex items-center">
+                              <Clock3 className="h-4 w-4 mr-2" />
+                              <span className="text-blue-600 font-medium">
+                                等待队列位置: 第 {waitlistPosition} 位
+                              </span>
+                            </div>
+                          )}
                         </div>
+                      </div>
+                      
+                      <div className="flex flex-col items-end space-y-2">
+                        <Badge className={
+                          isBooked 
+                            ? 'bg-gray-200 text-gray-700 hover:bg-gray-200' 
+                            : isInWaitlist
+                            ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+                            : 'bg-green-100 text-green-800 hover:bg-green-100'
+                        }>
+                          {isBooked ? '已预订' : isInWaitlist ? '等待中' : '固定课程'}
+                        </Badge>
                         
-                        {session.location && (
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-2" />
-                            <span>{session.location}</span>
-                          </div>
-                        )}
-                        
-                        {session.capacity && (
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-2" />
-                            <span>
-                              已预约: {session.booked_count || 0} / {session.capacity}
-                              {session.capacity - (session.booked_count || 0) === 0 && (
-                                <Badge variant="destructive" className="ml-2">已满</Badge>
-                              )}
-                            </span>
-                          </div>
+                        {isBooked ? (
+                          <Button 
+                            size="sm"
+                            onClick={() => handleCancelBooking(session.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            取消报名
+                          </Button>
+                        ) : isInWaitlist ? (
+                          <Button 
+                            size="sm"
+                            onClick={() => handleExitWaitlist(session.id)}
+                            className="bg-orange-600 hover:bg-orange-700"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            取消等待
+                          </Button>
+                        ) : (
+                          <Button 
+                            size="sm"
+                            onClick={() => onBookSession?.(session)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            {isFull ? '加入等待' : '立即报名'}
+                          </Button>
                         )}
                       </div>
                     </div>
-                    
-                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                      固定课程
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}
@@ -159,7 +316,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability }
                       <Button 
                         size="sm"
                         onClick={() => onSelectAvailability(availability)}
-                        disabled={availability.capacity && (availability.capacity - (availability.booked_count || 0) === 0)}
+                        disabled={!!(availability.capacity && (availability.capacity - (availability.booked_count || 0) === 0))}
                       >
                         选择时间
                       </Button>

@@ -53,4 +53,9 @@ public interface UserCoursePackageRepository extends JpaRepository<UserCoursePac
         @Param("userId") UUID userId, 
         @Param("coachId") UUID coachId, 
         @Param("courseId") UUID courseId);
+    
+    /**
+     * 根据用户ID和套餐价格ID查找课包
+     */
+    Optional<UserCoursePackage> findByUserIdAndPackagePriceId(UUID userId, UUID packagePriceId);
 }
