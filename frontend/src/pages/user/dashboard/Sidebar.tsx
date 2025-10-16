@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { label: "Schedule", icon: "📅", path: "/dashboard/schedule" },
+  { label: "My Schedule", icon: "📋", path: "/dashboard/my-schedule" },
   { label: "Messages", icon: "💬", path: "/dashboard/messages" },
   { label: "Posts", icon: "📝", path: "/dashboard/posts" },
   { label: "Coach Center", icon: "🎓", path: "/coach" },
