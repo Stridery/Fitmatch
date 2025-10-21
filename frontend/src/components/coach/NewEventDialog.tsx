@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Users, BookOpen } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar, Clock, MapPin, Users, BookOpen, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import type { CoachCourse } from '@/api/coachCalendar';
 
@@ -28,6 +29,7 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
   const [formData, setFormData] = useState({
     title: '',
     course: '',
+    courses: [] as string[], // 新增：多选课程数组
     location: '',
     startTime: '',
     endTime: '',
@@ -42,6 +44,7 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
     const resetFormData = () => ({
       title: '',
       course: '',
+      courses: [] as string[], // 新增：多选课程数组
       location: '',
       startTime: '',
       endTime: '',
@@ -54,6 +57,7 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
       setFormData({
         title: editingEvent.title || '',
         course: editingEvent.course || '',
+        courses: editingEvent.courses || [], // 新增：多选课程数组
         location: editingEvent.location || '',
         startTime: format(new Date(editingEvent.startTime), 'yyyy-MM-dd\'T\'HH:mm'),
         endTime: format(new Date(editingEvent.endTime), 'yyyy-MM-dd\'T\'HH:mm'),
@@ -98,6 +102,16 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
         [field]: ''
       }));
     }
+  };
+
+  // 新增：处理多选课程
+  const handleCourseToggle = (courseId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      courses: prev.courses.includes(courseId)
+        ? prev.courses.filter(id => id !== courseId)
+        : [...prev.courses, courseId]
+    }));
   };
 
   const validateForm = () => {
@@ -343,23 +357,36 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
           {/* Availability-specific fields */}
           {kind === 'availability' && (
             <div className="space-y-2">
-              <Label htmlFor="course" className="flex items-center space-x-1">
+              <Label className="flex items-center space-x-1">
                 <BookOpen className="h-4 w-4" />
-                <span>Course (Optional)</span>
+                <span>Available Courses</span>
               </Label>
-              <Select value={formData.course} onValueChange={(value) => handleInputChange('course', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select course" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No course</SelectItem>
-                  {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                {courses.length > 0 ? (
+                  courses.map((course) => (
+                    <div key={course.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`course-${course.id}`}
+                        checked={formData.courses.includes(course.id)}
+                        onCheckedChange={() => handleCourseToggle(course.id)}
+                      />
+                      <Label
+                        htmlFor={`course-${course.id}`}
+                        className="text-sm font-normal cursor-pointer flex-1"
+                      >
+                        {course.title}
+                      </Label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No courses available</p>
+                )}
+              </div>
+              {formData.courses.length > 0 && (
+                <div className="text-xs text-gray-600">
+                  Selected: {formData.courses.length} course{formData.courses.length > 1 ? 's' : ''}
+                </div>
+              )}
             </div>
           )}
 

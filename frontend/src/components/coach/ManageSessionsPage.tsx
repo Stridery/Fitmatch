@@ -18,8 +18,9 @@ import {
   createCoachCalendarEvent, 
   updateCoachCalendarEvent, 
   deleteCoachCalendarEvent,
-  getCoachCourses
+  getCoachCourses 
 } from '@/api/coachCalendar';
+import { createAvailability, updateAvailability, deleteAvailability } from '@/api/availability';
 import type { CoachCalendarEvent, CoachCourse } from '@/api/coachCalendar';
 import { supabase } from '@/lib/supabase';
 import WeekView from './WeekView';
@@ -43,16 +44,24 @@ function convertDbEventToUI(dbEvent: CoachCalendarEvent) {
   const startDate = new Date(dbEvent.start_ts);
   const endDate = new Date(dbEvent.end_ts);
   
-  return {
+  const uiEvent = {
     id: dbEvent.id,
     kind: dbEvent.kind,
     title: dbEvent.title || '',
     course: dbEvent.course_id || '',
+    courses: [] as string[], // 新增：多选课程数组
     location: dbEvent.location || '',
     startTime: formatDateTimeLocal(startDate), // Format for datetime-local input (local time)
     endTime: formatDateTimeLocal(endDate), // Format for datetime-local input (local time)
     capacity: dbEvent.capacity?.toString() || ''
   };
+
+  // 对于availability，如果有courses数据则添加
+  if (dbEvent.kind === 'availability' && (dbEvent as any).courses) {
+    uiEvent.courses = (dbEvent as any).courses;
+  }
+
+  return uiEvent;
 }
 
 // Convert UI event to database format
@@ -61,16 +70,24 @@ function convertUIEventToDb(uiEvent: any, coachId: string) {
   const startDate = new Date(uiEvent.startTime);
   const endDate = new Date(uiEvent.endTime);
   
-  return {
+  const dbEvent = {
     coach_id: coachId,
     kind: uiEvent.kind,
-    course_id: uiEvent.course || null,
+    course_id: uiEvent.kind === 'session' ? (uiEvent.course || null) : null, // Session使用course_id，availability设为null
     title: uiEvent.title || null,
     location: uiEvent.location || null,
     start_ts: startDate.toISOString(),
     end_ts: endDate.toISOString(),
     capacity: uiEvent.capacity ? parseInt(uiEvent.capacity) : null
   };
+
+  // 暂时注释掉courses字段，避免Supabase错误
+  // TODO: 切换到后端API后启用
+  // if (uiEvent.kind === 'availability' && uiEvent.courses) {
+  //   (dbEvent as any).courses = uiEvent.courses;
+  // }
+
+  return dbEvent;
 }
 
 export default function ManageSessionsPage() {
@@ -213,12 +230,29 @@ export default function ManageSessionsPage() {
     if (!coachId) return;
     
     try {
-      const dbEventData = convertUIEventToDb({
-        ...eventData,
-        kind: newDialogKind!
-      }, coachId);
+      if (newDialogKind === 'availability') {
+        // 使用后端API创建availability
+        const availabilityRequest = {
+          coachId: coachId,
+          title: eventData.title,
+          location: eventData.location,
+          // 修复时区问题：将本地时间当作UTC时间发送
+          startTs: eventData.startTime + ":00.000Z", // 添加秒和毫秒，标记为UTC
+          endTs: eventData.endTime + ":00.000Z",     // 添加秒和毫秒，标记为UTC
+          courseIds: eventData.courses || []
+        };
+        
+        await createAvailability(availabilityRequest);
+      } else {
+        // 使用Supabase API创建session
+        const dbEventData = convertUIEventToDb({
+          ...eventData,
+          kind: newDialogKind!
+        }, coachId);
+        
+        await createCoachCalendarEvent(dbEventData);
+      }
       
-      await createCoachCalendarEvent(dbEventData);
       await loadEvents(); // Reload events from database
       
       setNewDialogOpen(false);
@@ -239,8 +273,26 @@ export default function ManageSessionsPage() {
     if (!editingEvent || !coachId) return;
     
     try {
-      const dbEventData = convertUIEventToDb(eventData, coachId);
-      await updateCoachCalendarEvent(editingEvent.id, dbEventData);
+      if (editingEvent.kind === 'availability') {
+        // 使用后端API更新availability
+        const availabilityRequest = {
+          availabilityId: editingEvent.id,
+          coachId: coachId,
+          title: eventData.title,
+          location: eventData.location,
+          // 修复时区问题：将本地时间当作UTC时间发送
+          startTs: eventData.startTime + ":00.000Z", // 添加秒和毫秒，标记为UTC
+          endTs: eventData.endTime + ":00.000Z",     // 添加秒和毫秒，标记为UTC
+          courseIds: eventData.courses || []
+        };
+        
+        await updateAvailability(availabilityRequest);
+      } else {
+        // 使用Supabase API更新session
+        const dbEventData = convertUIEventToDb(eventData, coachId);
+        await updateCoachCalendarEvent(editingEvent.id, dbEventData);
+      }
+      
       await loadEvents(); // Reload events from database
       
       setEditDialogOpen(false);
@@ -252,8 +304,20 @@ export default function ManageSessionsPage() {
   };
 
   const handleDeleteEvent = async (eventId: string) => {
+    if (!coachId) return;
+    
     try {
-      await deleteCoachCalendarEvent(eventId);
+      // 查找要删除的事件
+      const eventToDelete = events.find(e => e.id === eventId);
+      
+      if (eventToDelete?.kind === 'availability') {
+        // 使用后端API删除availability
+        await deleteAvailability(eventId, coachId);
+      } else {
+        // 使用Supabase API删除session
+        await deleteCoachCalendarEvent(eventId);
+      }
+      
       await loadEvents(); // Reload events from database
       
       setEditDialogOpen(false);
