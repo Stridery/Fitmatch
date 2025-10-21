@@ -174,13 +174,17 @@ export default function ManageSessionsPage() {
     }
   };
 
-  // Load coach courses
+  // Load coach courses (only 1v1 courses for availability)
   const loadCourses = async () => {
     if (!coachId) return;
     
     try {
       const coachCourses = await getCoachCourses(coachId);
-      setCourses(coachCourses);
+      // 过滤出只支持1v1的课程（MVP阶段限制）
+      const oneOnOneCourses = coachCourses.filter(course => 
+        course.training_modes?.includes('1v1')
+      );
+      setCourses(oneOnOneCourses);
     } catch (error) {
       console.error('Error loading courses:', error);
     }

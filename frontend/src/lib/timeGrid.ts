@@ -44,7 +44,7 @@ export function formatRangeLabel(weekStart: Date, weekEnd: Date): string {
 }
 
 /**
- * Generate 30-minute time slots between dayStart and dayEnd (06:00–22:00)
+ * Generate 30-minute time slots between dayStart and dayEnd (06:00–23:30)
  */
 export function halfHourSlotsInRange(dayStart: Date, dayEnd: Date): Date[] {
   const slots: Date[] = [];
@@ -52,10 +52,10 @@ export function halfHourSlotsInRange(dayStart: Date, dayEnd: Date): Date[] {
   start.setHours(6, 0, 0, 0); // 06:00
   
   const end = new Date(dayEnd);
-  end.setHours(22, 0, 0, 0); // 22:00
+  end.setHours(23, 30, 0, 0); // 23:30 (extended range)
   
   const current = new Date(start);
-  while (current < end) {
+  while (current <= end) {
     slots.push(new Date(current));
     current.setMinutes(current.getMinutes() + 30);
   }

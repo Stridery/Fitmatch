@@ -12,8 +12,9 @@ import {
   addDays,
   getBrowserTimezoneLabel 
 } from '@/lib/timeGrid';
-import { getUserSchedule, getUserWaitlist, cancelBooking, exitWaitlist } from '@/api/booking';
-import type { BookingRecord, WaitlistRecord } from '@/api/booking';
+import { getUserSchedule, getUserWaitlist, cancelBooking, exitWaitlist, getUserAvailabilityBookings } from '@/api/booking';
+import { cancelAvailabilityBooking } from '@/api/availability';
+import type { BookingRecord, WaitlistRecord, AvailabilityBookingRecord } from '@/api/booking';
 import { supabase } from '@/lib/supabase';
 import UserScheduleWeekView from '@/components/user/UserScheduleWeekView';
 
@@ -63,6 +64,24 @@ function convertWaitlistToUIEvent(waitlist: WaitlistRecord) {
   };
 }
 
+// Convert availability booking record to UI event format for calendar
+function convertAvailabilityBookingToUIEvent(booking: AvailabilityBookingRecord) {
+  const startDate = new Date(booking.bookedStartTime);
+  const endDate = new Date(booking.bookedEndTime);
+  
+  return {
+    id: booking.availabilityEventId,
+    kind: 'availability' as const,
+    title: booking.title,
+    course: 'Availability', // Availability预约没有具体课程
+    location: booking.location || '',
+    startTime: formatDateTimeLocal(startDate), // 使用本地时间格式
+    endTime: formatDateTimeLocal(endDate),
+    capacity: '1', // Availability预约通常是1对1
+    status: 'CONFIRMED' as const
+  };
+}
+
 function formatDateTime(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleString('zh-CN', {
@@ -100,6 +119,7 @@ export default function StudentSchedulePage() {
   const [weekStart, setWeekStart] = useState(() => startOfWeekMonday(new Date()));
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistRecord[]>([]);
+  const [availabilityBookings, setAvailabilityBookings] = useState<AvailabilityBookingRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>('');
 
@@ -125,13 +145,15 @@ export default function StudentSchedulePage() {
       
       setLoading(true);
       try {
-        const [bookingsData, waitlistData] = await Promise.all([
+        const [bookingsData, waitlistData, availabilityBookingsData] = await Promise.all([
           getUserSchedule(),
-          getUserWaitlist()
+          getUserWaitlist(),
+          getUserAvailabilityBookings()
         ]);
         
         setBookings(bookingsData);
         setWaitlist(waitlistData);
+        setAvailabilityBookings(availabilityBookingsData);
       } catch (error) {
         console.error('Error loading schedule data:', error);
       } finally {
@@ -147,7 +169,10 @@ export default function StudentSchedulePage() {
     ...bookings
       .filter(booking => booking.bookingStatus === 'CONFIRMED') // Only show confirmed bookings in calendar
       .map(convertBookingToUIEvent),
-    ...waitlist.map(convertWaitlistToUIEvent)
+    ...waitlist.map(convertWaitlistToUIEvent),
+    ...availabilityBookings
+      .filter(booking => booking.bookingStatus === 'CONFIRMED') // Only show confirmed availability bookings
+      .map(convertAvailabilityBookingToUIEvent)
   ];
 
   const handlePrevWeek = () => {
@@ -198,12 +223,41 @@ export default function StudentSchedulePage() {
     }
   };
 
+  // Handle cancel availability booking
+  const handleCancelAvailabilityBooking = async (availabilityId: string) => {
+    try {
+      await cancelAvailabilityBooking(availabilityId, userId);
+      // Refresh data
+      const [bookingsData, waitlistData, availabilityBookingsData] = await Promise.all([
+        getUserSchedule(),
+        getUserWaitlist(),
+        getUserAvailabilityBookings()
+      ]);
+      setBookings(bookingsData);
+      setWaitlist(waitlistData);
+      setAvailabilityBookings(availabilityBookingsData);
+      alert('取消Availability预约成功！');
+    } catch (error) {
+      console.error('Cancel availability booking error:', error);
+      alert(`取消Availability预约失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
   // Combine and sort all sessions by time (filter out cancelled bookings)
   const allSessions = [
     ...bookings
       .filter(booking => booking.bookingStatus === 'CONFIRMED') // Only show confirmed bookings
       .map(booking => ({ ...booking, type: 'booking' as const })),
-    ...waitlist.map(item => ({ ...item, type: 'waitlist' as const }))
+    ...waitlist.map(item => ({ ...item, type: 'waitlist' as const })),
+    ...availabilityBookings
+      .filter(booking => booking.bookingStatus === 'CONFIRMED') // Only show confirmed availability bookings
+      .map(booking => ({ 
+        ...booking, 
+        type: 'availability' as const,
+        sessionEventId: booking.availabilityEventId, // Map availabilityEventId to sessionEventId for consistency
+        startTs: booking.bookedStartTime,
+        endTs: booking.bookedEndTime
+      }))
   ].sort((a, b) => new Date(a.startTs).getTime() - new Date(b.startTs).getTime());
 
   return (
@@ -293,7 +347,9 @@ export default function StudentSchedulePage() {
               我的课程
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              已预订: {bookings.filter(b => b.bookingStatus === 'CONFIRMED').length} | 等待中: {waitlist.length}
+              已预订: {bookings.filter(b => b.bookingStatus === 'CONFIRMED').length} | 
+              等待中: {waitlist.length} | 
+              Availability: {availabilityBookings.filter(b => b.bookingStatus === 'CONFIRMED').length}
             </p>
           </div>
 
@@ -314,14 +370,17 @@ export default function StudentSchedulePage() {
                   className={`border-l-4 ${
                     session.type === 'booking' 
                       ? 'border-l-green-500' 
-                      : 'border-l-blue-500'
+                      : session.type === 'waitlist'
+                      ? 'border-l-blue-500'
+                      : 'border-l-purple-500' // availability
                   }`}
                 >
                   <CardContent className="pt-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h4 className={`font-medium text-lg mb-2 ${
-                          session.type === 'waitlist' ? 'text-blue-700' : ''
+                          session.type === 'waitlist' ? 'text-blue-700' : 
+                          session.type === 'availability' ? 'text-purple-700' : ''
                         }`}>
                           {session.title}
                           {session.type === 'booking' && (
@@ -334,10 +393,17 @@ export default function StudentSchedulePage() {
                               等待中
                             </Badge>
                           )}
+                          {session.type === 'availability' && (
+                            <Badge variant="secondary" className="ml-2 bg-purple-200 text-purple-700">
+                              Availability
+                            </Badge>
+                          )}
                         </h4>
                         
                         <div className={`space-y-2 text-sm ${
-                          session.type === 'waitlist' ? 'text-blue-600' : 'text-gray-600'
+                          session.type === 'waitlist' ? 'text-blue-600' : 
+                          session.type === 'availability' ? 'text-purple-600' : 
+                          'text-gray-600'
                         }`}>
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-2" />
@@ -347,12 +413,14 @@ export default function StudentSchedulePage() {
                             </Badge>
                           </div>
                           
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-2" />
-                            <span>
-                              已预约: {session.bookedCount || 0} / {session.capacity}
-                            </span>
-                          </div>
+                          {session.type !== 'availability' && (
+                            <div className="flex items-center">
+                              <Users className="h-4 w-4 mr-2" />
+                              <span>
+                                已预约: {session.bookedCount || 0} / {session.capacity}
+                              </span>
+                            </div>
+                          )}
 
                           {session.type === 'waitlist' && (
                             <div className="flex items-center">
@@ -369,9 +437,12 @@ export default function StudentSchedulePage() {
                         <Badge className={
                           session.type === 'booking' 
                             ? 'bg-green-100 text-green-800' 
-                            : 'bg-blue-100 text-blue-800'
+                            : session.type === 'waitlist'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-purple-100 text-purple-800'
                         }>
-                          {session.type === 'booking' ? '已预订' : '等待中'}
+                          {session.type === 'booking' ? '已预订' : 
+                           session.type === 'waitlist' ? '等待中' : 'Availability'}
                         </Badge>
                         
                         <Button 
@@ -379,16 +450,21 @@ export default function StudentSchedulePage() {
                           onClick={() => 
                             session.type === 'booking' 
                               ? handleCancelBooking(session.sessionEventId)
-                              : handleExitWaitlist(session.sessionEventId)
+                              : session.type === 'waitlist'
+                              ? handleExitWaitlist(session.sessionEventId)
+                              : handleCancelAvailabilityBooking(session.sessionEventId)
                           }
                           className={
                             session.type === 'booking' 
                               ? 'bg-red-600 hover:bg-red-700'
-                              : 'bg-orange-600 hover:bg-orange-700'
+                              : session.type === 'waitlist'
+                              ? 'bg-orange-600 hover:bg-orange-700'
+                              : 'bg-red-600 hover:bg-red-700'
                           }
                         >
                           <X className="h-4 w-4 mr-1" />
-                          {session.type === 'booking' ? '取消报名' : '取消等待'}
+                          {session.type === 'booking' ? '取消报名' : 
+                           session.type === 'waitlist' ? '取消等待' : '取消预约'}
                         </Button>
                       </div>
                     </div>

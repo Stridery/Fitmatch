@@ -41,6 +41,32 @@ export interface AvailabilityCourse {
   createdAt: string;
 }
 
+export interface AvailabilityBookingRequest {
+  availabilityId: string;
+  studentId: string;
+  userCoursePackageId: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface AvailabilityBookingResponse {
+  bookingId?: string;
+  availabilityId: string;
+  studentId: string;
+  userCoursePackageId?: string;
+  status: string;
+  startTime?: string;
+  endTime?: string;
+  bookedAt?: string;
+  message: string;
+}
+
+export interface AvailableSlot {
+  slotStart: string;
+  slotEnd: string;
+  durationMinutes: number;
+}
+
 // Create availability event using backend API
 export async function createAvailability(request: CreateAvailabilityRequest): Promise<CoachCalendarEvent> {
   try {
@@ -91,6 +117,43 @@ export async function getAvailabilityCourses(availabilityId: string): Promise<Av
     return response.data;
   } catch (error) {
     console.error('Error getting availability courses:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// Availability Booking API Functions
+// ============================================
+
+// Book availability slot using booking service API
+export async function bookAvailability(request: AvailabilityBookingRequest): Promise<AvailabilityBookingResponse> {
+  try {
+    const response = await api.post('/bookings/availability/book', request);
+    return response.data;
+  } catch (error) {
+    console.error('Error booking availability:', error);
+    throw error;
+  }
+}
+
+// Cancel availability booking using booking service API
+export async function cancelAvailabilityBooking(availabilityId: string, studentId: string): Promise<AvailabilityBookingResponse> {
+  try {
+    const response = await api.delete(`/bookings/availability/${availabilityId}/cancel/${studentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error cancelling availability booking:', error);
+    throw error;
+  }
+}
+
+// Get available slots for availability using booking service API
+export async function getAvailableSlots(availabilityId: string): Promise<AvailableSlot[]> {
+  try {
+    const response = await api.get(`/bookings/availability/${availabilityId}/available-slots`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting available slots:', error);
     throw error;
   }
 }

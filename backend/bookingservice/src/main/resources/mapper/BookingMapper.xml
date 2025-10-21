@@ -91,4 +91,120 @@
         )
     </select>
 
+    <!-- ============================================
+         Availability Booking Methods
+         ============================================ -->
+
+    <!-- 预约Availability时段 -->
+    <select id="bookAvailability" resultType="string">
+        SELECT public.book_availability(
+            #{availabilityId},
+            #{studentId},
+            #{userCoursePackageId},
+            #{startTime},
+            #{endTime}
+        )
+    </select>
+
+    <!-- 取消Availability预约 -->
+    <select id="cancelAvailabilityBooking" resultType="string">
+        SELECT public.cancel_availability_booking(
+            #{availabilityId},
+            #{studentId}
+        )
+    </select>
+
+    <!-- 获取Availability可用时段 -->
+    <select id="getAvailabilityAvailableSlots" resultType="com.fitmatch.bookingservice.dto.AvailableSlot">
+        SELECT slot_start as "slotStart", slot_end as "slotEnd", duration_minutes as "durationMinutes" 
+        FROM public.get_availability_available_slots(#{availabilityId}) 
+        ORDER BY slot_start ASC
+    </select>
+
+    <!-- 获取用户Availability预约记录 -->
+    <select id="getUserAvailabilityBookings" resultType="com.fitmatch.bookingservice.dto.AvailabilityBookingRecord">
+        SELECT
+            sb.student_id as "studentId",
+            cce.coach_id as "coachId",
+            sb.user_course_package_id as "userCoursePackageId",
+            cce.id as "availabilityEventId",
+            cce.title as "title",
+            sb.booked_start_time as "bookedStartTime",
+            sb.booked_end_time as "bookedEndTime",
+            sb.status as "bookingStatus",
+            sb.booked_at as "bookedAt",
+            sb.cancelled_at as "cancelledAt",
+            cce.location as "location"
+        FROM public.session_booking sb
+        JOIN public.coach_calendar_event cce ON cce.id = sb.event_id
+        WHERE cce.kind = 'availability'
+        AND sb.student_id = #{studentId}
+        AND sb.status = 'CONFIRMED'
+        ORDER BY sb.booked_start_time ASC
+    </select>
+
+    <!-- 获取教练的有学生的课程（session和availability） -->
+    <select id="getCoachBookedSessions" resultType="com.fitmatch.bookingservice.dto.CoachBookedSessionRecord">
+        WITH booked_sessions AS (
+            -- Session预约
+            SELECT 
+                cce.id,
+                'session' as kind,
+                cce.title,
+                cce.course_id as courseId,
+                cce.title as courseName,  -- 使用coach_calendar_event的title作为课程名称
+                cce.location,
+                cce.start_ts as startTime,
+                cce.end_ts as endTime,
+                COUNT(sb.id) as studentCount,
+                cce.capacity as maxCapacity,
+                ARRAY_AGG(up.user_id::text) as studentNames
+            FROM public.coach_calendar_event cce
+            JOIN public.session_booking sb ON cce.id = sb.event_id
+            JOIN public.user_course_package ucp ON sb.user_course_package_id = ucp.id
+            JOIN public.user_profile up ON ucp.user_id = up.user_id
+            WHERE cce.coach_id = #{coachId}
+            AND cce.kind = 'session'
+            AND sb.status = 'CONFIRMED'
+            GROUP BY cce.id, cce.title, cce.course_id, cce.location, cce.start_ts, cce.end_ts, cce.capacity
+            
+            UNION ALL
+            
+            -- Availability预约
+            SELECT 
+                cce.id,
+                'availability' as kind,
+                cce.title,
+                NULL as courseId,
+                'Availability' as courseName,
+                cce.location,
+                sb.booked_start_time as startTime,
+                sb.booked_end_time as endTime,
+                1 as studentCount,
+                1 as maxCapacity,
+                ARRAY[up.user_id::text] as studentNames
+            FROM public.coach_calendar_event cce
+            JOIN public.session_booking sb ON cce.id = sb.event_id
+            JOIN public.user_course_package ucp ON sb.user_course_package_id = ucp.id
+            JOIN public.user_profile up ON ucp.user_id = up.user_id
+            WHERE cce.coach_id = #{coachId}
+            AND cce.kind = 'availability'
+            AND sb.status = 'CONFIRMED'
+        )
+        SELECT 
+            id as "id",
+            kind as "kind",
+            title as "title",
+            courseId as "courseId",
+            courseName as "courseName",
+            location as "location",
+            startTime as "startTime",
+            endTime as "endTime",
+            studentCount as "studentCount",
+            maxCapacity as "maxCapacity",
+            studentNames as "studentNames"
+        FROM booked_sessions
+        ORDER BY startTime ASC
+    </select>
+
 </mapper>

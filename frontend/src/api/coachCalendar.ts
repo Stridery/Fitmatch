@@ -5,6 +5,7 @@ export interface CoachCourse {
   title: string;
   description?: string;
   sport_name?: string;
+  training_modes?: string[];
 }
 
 export interface CoachCalendarEvent {
@@ -146,6 +147,7 @@ export async function getCoachCourses(coachId: string): Promise<CoachCourse[]> {
       id,
       summary,
       about,
+      training_modes,
       coach_sports!inner(
         coach_id,
         sports(name)
@@ -163,7 +165,8 @@ export async function getCoachCourses(coachId: string): Promise<CoachCourse[]> {
     id: course.id,
     title: course.summary || 'Untitled Course',
     description: course.about || '',
-    sport_name: course.coach_sports?.[0]?.sports?.[0]?.name || ''
+    sport_name: course.coach_sports?.[0]?.sports?.[0]?.name || '',
+    training_modes: course.training_modes || []
   }));
 }
 
@@ -192,7 +195,8 @@ export async function getCoachSessionsByCourse(courseId: string, startDate?: Dat
   
   console.log('[getCoachSessionsByCourse] Fetching events for course:', courseId);
   
-  const { data, error } = await supabase
+  // 1. 获取该课程的sessions（course_id = courseId）
+  const { data: sessions, error: sessionsError } = await supabase
     .from('coach_calendar_event')
     .select(`
       id,
@@ -208,16 +212,50 @@ export async function getCoachSessionsByCourse(courseId: string, startDate?: Dat
       created_at
     `)
     .eq('course_id', courseId)
+    .eq('kind', 'session')
     .gte('start_ts', now.toISOString())
     .order('start_ts', { ascending: true });
 
-  if (error) {
-    console.error('Error fetching coach sessions:', error);
-    throw error;
+  if (sessionsError) {
+    console.error('Error fetching coach sessions:', sessionsError);
+    throw sessionsError;
   }
 
-  console.log('[getCoachSessionsByCourse] Found events:', data?.length || 0);
-  return data as CoachCalendarEvent[];
+  // 2. 获取包含该课程的availability（通过availability_courses关联表）
+  const { data: availabilities, error: availabilitiesError } = await supabase
+    .from('coach_calendar_event')
+    .select(`
+      id,
+      coach_id,
+      kind,
+      course_id,
+      title,
+      location,
+      start_ts,
+      end_ts,
+      capacity,
+      booked_count,
+      created_at,
+      availability_courses!inner(course_id)
+    `)
+    .eq('kind', 'availability')
+    .eq('availability_courses.course_id', courseId)
+    .gte('start_ts', now.toISOString())
+    .order('start_ts', { ascending: true });
+
+  if (availabilitiesError) {
+    console.error('Error fetching coach availabilities:', availabilitiesError);
+    throw availabilitiesError;
+  }
+
+  // 3. 合并结果
+  const allEvents = [
+    ...(sessions || []),
+    ...(availabilities || [])
+  ].sort((a, b) => new Date(a.start_ts).getTime() - new Date(b.start_ts).getTime());
+
+  console.log('[getCoachSessionsByCourse] Found events:', allEvents.length);
+  return allEvents as CoachCalendarEvent[];
 }
 
 // Get all upcoming sessions and availabilities for a coach (for students to view)

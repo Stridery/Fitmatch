@@ -359,8 +359,11 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
             <div className="space-y-2">
               <Label className="flex items-center space-x-1">
                 <BookOpen className="h-4 w-4" />
-                <span>Available Courses</span>
+                <span>Available Courses (1v1 Only)</span>
               </Label>
+              <p className="text-xs text-gray-500 mb-2">
+                MVP阶段只支持1v1课程的availability预约
+              </p>
               <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
                 {courses.length > 0 ? (
                   courses.map((course) => (

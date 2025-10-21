@@ -40,10 +40,11 @@ export default function UserScheduleWeekView({ weekStart, events }: UserSchedule
     if (dayIndex === -1) return null;
     
     // Calculate time position (each slot is 30 minutes, starting from 6:00)
+    // 使用本地时间计算位置
     const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
     const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
-    const startSlot = (startMinutes - 360) / 30; // 360 = 6:00 in minutes
-    const endSlot = (endMinutes - 360) / 30;
+    const startSlot = Math.max(0, (startMinutes - 360) / 30); // 360 = 6:00 in minutes, ensure non-negative
+    const endSlot = Math.max(startSlot + 1, (endMinutes - 360) / 30); // Ensure end is after start
     const duration = endSlot - startSlot;
     
     return {
@@ -54,20 +55,14 @@ export default function UserScheduleWeekView({ weekStart, events }: UserSchedule
   };
 
   const getEventColor = (kind: string) => {
-    switch (kind) {
-      case 'session':
-        return 'bg-green-500';
-      case 'availability':
-        return 'bg-blue-500';
-      default:
-        return 'bg-gray-500';
-    }
+    // 统一使用session的颜色，不区分session和availability
+    return 'bg-green-500';
   };
 
   return (
     <div className="flex-1 overflow-auto bg-white dark:bg-gray-800">
       {/* Grid Container */}
-      <div className="min-h-full">
+      <div className="min-h-full" style={{ minHeight: `${timeSlots.length * 24 + 100}px` }}>
         {/* Header Row */}
         <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <div className="grid grid-cols-8 gap-px">

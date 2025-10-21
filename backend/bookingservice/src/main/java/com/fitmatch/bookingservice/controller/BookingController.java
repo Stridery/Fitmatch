@@ -7,6 +7,7 @@ import com.fitmatch.bookingservice.service.UserCoursePackageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -253,6 +254,25 @@ public class BookingController {
         }
     }
     
+    
+    /**
+     * 获取教练的有学生的课程（session和availability）
+     * GET /bookings/coach/{coachId}/booked-sessions
+     */
+    @GetMapping("/coach/{coachId}/booked-sessions")
+    public ResponseEntity<?> getCoachBookedSessions(@PathVariable UUID coachId) {
+        log.info("Getting booked sessions for coach: {}", coachId);
+        
+        try {
+            List<CoachBookedSessionRecord> sessions = bookingService.getCoachBookedSessions(coachId);
+            return ResponseEntity.ok(sessions);
+            
+        } catch (Exception e) {
+            log.error("Error getting coach booked sessions: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Failed to get coach booked sessions: " + e.getMessage()));
+        }
+    }
     
     @lombok.Data
     public static class UseCreditsRequest {

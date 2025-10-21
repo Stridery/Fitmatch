@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# 测试取消Availability预约功能
+echo "🧪 测试取消Availability预约功能"
+echo "=============================="
+
+echo "📋 功能检查："
+echo "1. ✅ 前端取消按钮 - My Schedule页面有取消按钮"
+echo "2. ✅ 前端API调用 - cancelAvailabilityBooking(availabilityId, userId)"
+echo "3. ✅ 后端API端点 - DELETE /bookings/availability/{availabilityId}/cancel/{studentId}"
+echo "4. ✅ 后端服务逻辑 - AvailabilityBookingService.cancelAvailabilityBooking()"
+echo "5. ✅ 数据库函数 - cancel_availability_booking()"
+echo "6. ✅ 课包余额返还 - remaining_credits + 1"
+echo ""
+
+echo "🔧 修复内容："
+echo "- 前端调用添加userId参数: cancelAvailabilityBooking(availabilityId, userId)"
+echo "- 确保API参数匹配: availabilityId + studentId"
+echo ""
+
+echo "📊 业务流程："
+echo "1. 用户点击取消按钮"
+echo "2. 前端调用API: DELETE /bookings/availability/{id}/cancel/{userId}"
+echo "3. 后端调用数据库函数: cancel_availability_booking()"
+echo "4. 数据库操作:"
+echo "   - 更新session_booking状态为CANCELLED"
+echo "   - 减少coach_calendar_event的booked_count"
+echo "   - 增加user_course_package的remaining_credits"
+echo "5. 前端刷新数据并显示成功消息"
+echo ""
+
+echo "🎯 预期结果："
+echo "- 取消按钮正常工作"
+echo "- 预约状态更新为CANCELLED"
+echo "- 课包剩余次数+1"
+echo "- 页面数据自动刷新"
+echo "- 显示成功提示"
+echo ""
+
+echo "🚀 测试步骤："
+echo "1. 确保有已确认的availability预约"
+echo "2. 在My Schedule页面点击取消按钮"
+echo "3. 检查数据库中的状态更新"
+echo "4. 验证课包余额是否正确增加"
+echo "5. 确认页面数据刷新"
+echo ""
+
+echo "💡 注意事项："
+echo "- 确保userId正确传递"
+echo "- 检查API路径是否正确"
+echo "- 验证数据库事务完整性"

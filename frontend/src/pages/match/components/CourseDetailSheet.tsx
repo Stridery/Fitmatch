@@ -68,6 +68,11 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
     setBookingDialogOpen(false);
   };
 
+  const handleBookingSuccess = () => {
+    // 刷新事件列表
+    refreshEvents();
+  };
+
   const handleBookSession = (session: CoachCalendarEvent) => {
     // 处理Session报名
     setSelectedSession(session);
@@ -98,12 +103,13 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
       
     } catch (error) {
       console.error('Booking error:', error);
-      alert(`报名失败: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`报名失败: ${errorMessage}`);
     }
   };
 
   // 处理取消预订
-  const handleCancelBooking = (eventId: string) => {
+  const handleCancelBooking = (_eventId: string) => {
     // 刷新事件列表以更新状态
     refreshEvents();
   };
@@ -228,12 +234,14 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
                 加载中...
               </div>
             ) : (
-              <SessionAvailabilityList 
-                events={events}
-                onSelectAvailability={handleSelectAvailability}
-                onBookSession={handleBookSession}
-                onCancelBooking={handleCancelBooking}
-              />
+            <SessionAvailabilityList
+              events={events}
+              onSelectAvailability={handleSelectAvailability}
+              onBookSession={handleBookSession}
+              onCancelBooking={handleCancelBooking}
+              onBookingSuccess={handleBookingSuccess}
+              courseId={course?.course_id}
+            />
             )}
           </TabsContent>
 
@@ -250,7 +258,7 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
           onOpenChange={setBookingDialogOpen}
           availability={selectedAvailability}
           courseId={course.course_id}
-          onConfirm={handleConfirmBooking}
+          onBookingSuccess={handleBookingSuccess}
         />
 
         {/* Session Booking Dialog */}

@@ -32,6 +32,20 @@ export interface WaitlistRecord {
   waitlistCreatedAt: string; // ISO 8601格式的时间字符串
 }
 
+export interface AvailabilityBookingRecord {
+  studentId: string;
+  coachId: string;
+  userCoursePackageId: string;
+  availabilityEventId: string;
+  title: string;
+  bookedStartTime: string; // ISO 8601格式的时间字符串
+  bookedEndTime: string;   // ISO 8601格式的时间字符串
+  bookingStatus: 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW';
+  bookedAt: string; // ISO 8601格式的时间字符串
+  cancelledAt?: string; // ISO 8601格式的时间字符串
+  location?: string;
+}
+
 // 获取用户个人日程（已预订的Session）
 export async function getUserSchedule(): Promise<BookingRecord[]> {
   try {
@@ -74,6 +88,46 @@ export async function exitWaitlist(eventId: string): Promise<void> {
     console.log('Exited waitlist successfully');
   } catch (error) {
     console.error('Exit waitlist error:', error);
+    throw error;
+  }
+}
+
+// 获取用户Availability预约记录
+export async function getUserAvailabilityBookings(): Promise<AvailabilityBookingRecord[]> {
+  try {
+    const { data } = await api.get<AvailabilityBookingRecord[]>('/bookings/availability/user/me');
+    return data;
+  } catch (error) {
+    console.error('Get user availability bookings error:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// Coach Booked Sessions API
+// ============================================
+
+export interface CoachBookedSession {
+  id: string;
+  kind: 'session' | 'availability';
+  title: string;
+  courseId?: string;
+  courseName?: string;
+  location?: string;
+  startTime: string;
+  endTime: string;
+  studentCount: number;
+  maxCapacity?: number;
+  studentNames: string[];
+}
+
+// 获取教练的有学生的课程（session和availability）
+export async function getCoachBookedSessions(coachId: string): Promise<CoachBookedSession[]> {
+  try {
+    const response = await api.get(`/bookings/coach/${coachId}/booked-sessions`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting coach booked sessions:', error);
     throw error;
   }
 }

@@ -196,4 +196,22 @@ public class BookingService {
             throw new BookingException("Failed to cancel session: " + e.getMessage(), e);
         }
     }
+    
+    /**
+     * 获取教练的有学生的课程（session和availability）
+     * @param coachId 教练ID
+     * @return 有学生的课程列表
+     */
+    public List<CoachBookedSessionRecord> getCoachBookedSessions(UUID coachId) {
+        log.info("Getting booked sessions for coach: {}", coachId);
+        
+        try {
+            List<CoachBookedSessionRecord> sessions = bookingMapper.getCoachBookedSessions(coachId);
+            log.info("Found {} booked sessions for coach {}", sessions.size(), coachId);
+            return sessions;
+        } catch (Exception e) {
+            log.error("Error getting coach booked sessions: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to get coach booked sessions: " + e.getMessage(), e);
+        }
+    }
 }

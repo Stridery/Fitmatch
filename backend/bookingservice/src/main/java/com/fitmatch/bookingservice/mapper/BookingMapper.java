@@ -1,10 +1,14 @@
 package com.fitmatch.bookingservice.mapper;
 
+import com.fitmatch.bookingservice.dto.AvailableSlot;
+import com.fitmatch.bookingservice.dto.AvailabilityBookingRecord;
+import com.fitmatch.bookingservice.dto.CoachBookedSessionRecord;
 import com.fitmatch.bookingservice.dto.ScheduleItem;
 import com.fitmatch.bookingservice.dto.WaitlistItem;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -83,4 +87,57 @@ public interface BookingMapper {
         @Param("eventId") UUID eventId,
         @Param("coachId") UUID coachId
     );
+    
+    // ============================================
+    // Availability Booking Methods
+    // ============================================
+    
+    /**
+     * 预约Availability时段
+     * @param availabilityId availability ID
+     * @param studentId 学生ID
+     * @param userCoursePackageId 用户课包ID
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 'CONFIRMED'
+     */
+    String bookAvailability(
+        @Param("availabilityId") UUID availabilityId,
+        @Param("studentId") UUID studentId,
+        @Param("userCoursePackageId") UUID userCoursePackageId,
+        @Param("startTime") Instant startTime,
+        @Param("endTime") Instant endTime
+    );
+    
+    /**
+     * 取消Availability预约
+     * @param availabilityId availability ID
+     * @param studentId 学生ID
+     * @return 'CANCELLED' | 'NOOP'
+     */
+    String cancelAvailabilityBooking(
+        @Param("availabilityId") UUID availabilityId,
+        @Param("studentId") UUID studentId
+    );
+    
+    /**
+     * 获取Availability可用时段
+     * @param availabilityId availability ID
+     * @return 可用时段列表
+     */
+    List<AvailableSlot> getAvailabilityAvailableSlots(@Param("availabilityId") UUID availabilityId);
+    
+    /**
+     * 获取用户Availability预约记录
+     * @param studentId 学生ID
+     * @return Availability预约记录列表
+     */
+    List<AvailabilityBookingRecord> getUserAvailabilityBookings(@Param("studentId") UUID studentId);
+    
+    /**
+     * 获取教练的有学生的课程（session和availability）
+     * @param coachId 教练ID
+     * @return 有学生的课程列表
+     */
+    List<CoachBookedSessionRecord> getCoachBookedSessions(@Param("coachId") UUID coachId);
 }
