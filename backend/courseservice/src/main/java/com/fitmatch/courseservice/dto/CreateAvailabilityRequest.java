@@ -4,9 +4,6 @@ import lombok.Data;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotEmpty;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,31 +20,37 @@ public class CreateAvailabilityRequest {
     private String location;
     
     @NotNull(message = "Start time is required")
-    private Instant startTs; // 使用Instant处理UTC时间
+    private String startTs; // UTC时间字符串，格式：2024-01-15T18:00:00.000Z
     
     @NotNull(message = "End time is required")
-    private Instant endTs; // 使用Instant处理UTC时间
+    private String endTs; // UTC时间字符串，格式：2024-01-15T19:00:00.000Z
     
     // 多选课程列表
     private List<UUID> courseIds;
     
     // 验证方法
     public boolean isValidTimeRange() {
-        return startTs != null && endTs != null && startTs.isBefore(endTs);
+        return startTs != null && endTs != null && !startTs.isEmpty() && !endTs.isEmpty();
     }
     
     // 验证时间不重叠（需要在service层实现）
     public boolean hasValidDuration() {
-        if (startTs == null || endTs == null) return false;
-        return java.time.Duration.between(startTs, endTs).toMinutes() >= 30; // 至少30分钟
+        if (startTs == null || endTs == null || startTs.isEmpty() || endTs.isEmpty()) return false;
+        try {
+            java.time.Instant start = java.time.Instant.parse(startTs);
+            java.time.Instant end = java.time.Instant.parse(endTs);
+            return java.time.Duration.between(start, end).toMinutes() >= 30; // 至少30分钟
+        } catch (Exception e) {
+            return false;
+        }
     }
     
-    // 转换为LocalDateTime（UTC）
-    public LocalDateTime getStartTsAsLocalDateTime() {
-        return startTs != null ? LocalDateTime.ofInstant(startTs, ZoneOffset.UTC) : null;
+    // 直接返回字符串，不做时区转换
+    public String getStartTs() {
+        return startTs;
     }
     
-    public LocalDateTime getEndTsAsLocalDateTime() {
-        return endTs != null ? LocalDateTime.ofInstant(endTs, ZoneOffset.UTC) : null;
+    public String getEndTs() {
+        return endTs;
     }
 }

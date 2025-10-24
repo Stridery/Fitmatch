@@ -2,6 +2,11 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        - VITE_SUPABASE_URL=https://sppzmqwocajtdvazhehp.supabase.co
+        - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHptcXdvY2FqdGR2YXpoZWhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxOTYyMTYsImV4cCI6MjA2NTc3MjIxNn0.9lcnqX_b3as2TYIXX-nRGrr8pP3qo7PZbOq3LjcUDlQ
+        - VITE_API_BASE=/api
+        - VITE_SOCKET_URL=/socket.io
     ports:
       - "80:80"
     depends_on:

@@ -70,7 +70,7 @@ const mockUserPackages: UserCoursePackage[] = [
 
 function formatDateTime(dateStr: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleString('zh-CN', {
+  return date.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
     weekday: 'short',
@@ -81,7 +81,7 @@ function formatDateTime(dateStr: string): string {
 
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleTimeString('zh-CN', {
+  return date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   });
@@ -191,7 +191,7 @@ export default function SessionBookingDialog({
       console.log('Original selectedPackageId:', selectedPackageId);
       
       if (result.success) {
-        alert(`购买成功！\n套餐: ${purchasePackage.lessonsCount}节课\n价格: ¥${purchasePackage.price}\n获得: ${purchasePackage.lessonsCount}次上课机会\n用户套餐ID: ${result.userPackageId}`);
+        alert(`Purchase successful!\nPackage: ${purchasePackage.lessonsCount} lessons\nPrice: ¥${purchasePackage.price}\nCredits: ${purchasePackage.lessonsCount} sessions\nUser Package ID: ${result.userPackageId}`);
         
         // 重新加载用户课包数据
         try {
@@ -210,7 +210,7 @@ export default function SessionBookingDialog({
       }
     } catch (error) {
       console.error('Purchase failed:', error);
-      alert(`购买失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      alert(`Purchase failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setPurchasing(false);
     }
@@ -223,9 +223,9 @@ export default function SessionBookingDialog({
       <Dialog open={open && !showPurchaseDialog} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>报名课程</DialogTitle>
+            <DialogTitle>Book Session</DialogTitle>
             <DialogDescription>
-              选择您要使用的课程套餐来报名这个Session
+              Select the course package you want to use to book this session
             </DialogDescription>
           </DialogHeader>
 
@@ -249,9 +249,9 @@ export default function SessionBookingDialog({
                     <div className="flex items-center">
                       <Users className="h-4 w-4 mr-2" />
                       <span>
-                        已预约: {session.booked_count || 0} / {session.capacity}
+                        Booked: {session.booked_count || 0} / {session.capacity}
                         {session.capacity - (session.booked_count || 0) === 0 && (
-                          <Badge variant="destructive" className="ml-2">已满</Badge>
+                          <Badge variant="destructive" className="ml-2">Full</Badge>
                         )}
                       </span>
                     </div>
@@ -264,16 +264,16 @@ export default function SessionBookingDialog({
             <div className="space-y-4">
               <h4 className="font-medium flex items-center">
                 <Package className="h-5 w-5 mr-2" />
-                选择课程套餐
+                Select Course Package
               </h4>
               
               {loadingPackages ? (
                 <div className="text-center py-8 text-gray-500">
-                  加载套餐中...
+                  Loading packages...
                 </div>
               ) : packages.length === 0 ? (
                 <div className="text-center py-8 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg">
-                  该课程暂无可用套餐
+                  No packages available for this course
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -296,7 +296,7 @@ export default function SessionBookingDialog({
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                 <h5 className="font-medium">
-                                  {pkg.trainingMode || '1v1'} · {pkg.lessonsCount}节课 · {pkg.lessonDurationMinutes}分钟/课
+                                  {pkg.trainingMode || '1v1'} · {pkg.lessonsCount} lessons · {pkg.lessonDurationMinutes} min/lesson
                                 </h5>
                                 <Badge variant="outline">¥{pkg.price}</Badge>
                               </div>
@@ -304,15 +304,15 @@ export default function SessionBookingDialog({
                               {userPackage ? (
                                 <div className="text-sm text-gray-600">
                                   <div className="flex items-center gap-4">
-                                    <span>剩余次数: {userPackage.remainingCredits} / {userPackage.totalCredits}</span>
+                                    <span>Remaining: {userPackage.remainingCredits} / {userPackage.totalCredits}</span>
                                     {userPackage.expiresAt && (
-                                      <span>到期: {new Date(userPackage.expiresAt).toLocaleDateString('zh-CN')}</span>
+                                      <span>Expires: {new Date(userPackage.expiresAt).toLocaleDateString('en-US')}</span>
                                     )}
                                   </div>
                                   {userPackage.remainingCredits === 0 && (
                                     <div className="flex items-center text-amber-600 mt-1">
                                       <AlertCircle className="h-4 w-4 mr-1" />
-                                      <span>次数已用完，需要购买</span>
+                                      <span>Credits exhausted, need to purchase</span>
                                     </div>
                                   )}
                                 </div>
@@ -320,7 +320,7 @@ export default function SessionBookingDialog({
                                 <div className="text-sm text-gray-600">
                                   <div className="flex items-center text-blue-600">
                                     <ShoppingCart className="h-4 w-4 mr-1" />
-                                    <span>您还没有这个套餐，点击购买</span>
+                                    <span>You don't have this package yet, click to purchase</span>
                                   </div>
                                 </div>
                               )}
@@ -329,11 +329,11 @@ export default function SessionBookingDialog({
                             <div className="flex flex-col items-end space-y-2">
                               {userPackage && hasCredits ? (
                                 <Badge className="bg-green-100 text-green-800">
-                                  可用
+                                  Available
                                 </Badge>
                               ) : (
                                 <Badge variant="outline" className="text-amber-600 border-amber-300">
-                                  需购买
+                                  Need to Purchase
                                 </Badge>
                               )}
                               
@@ -353,14 +353,14 @@ export default function SessionBookingDialog({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              取消
+              Cancel
             </Button>
             <Button 
               onClick={handleConfirm}
               disabled={!selectedPackageId}
               className="bg-green-600 hover:bg-green-700"
             >
-              确认报名
+              Confirm Booking
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -370,9 +370,9 @@ export default function SessionBookingDialog({
       <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>购买课程套餐</DialogTitle>
+            <DialogTitle>Purchase Course Package</DialogTitle>
             <DialogDescription>
-              购买套餐后即可报名课程
+              Purchase a package to book courses
             </DialogDescription>
           </DialogHeader>
 
@@ -381,13 +381,13 @@ export default function SessionBookingDialog({
               <Card>
                 <CardContent className="pt-4">
                   <h4 className="font-medium text-lg mb-2">
-                    {purchasePackage.trainingMode || '1v1'} · {purchasePackage.lessonsCount}节课
+                    {purchasePackage.trainingMode || '1v1'} · {purchasePackage.lessonsCount} lessons
                   </h4>
                   <div className="space-y-2 text-sm text-gray-600">
-                    <p>课程时长: {purchasePackage.lessonDurationMinutes}分钟/课</p>
-                    <p>训练模式: {purchasePackage.trainingMode || '1v1'}</p>
+                    <p>Course Duration: {purchasePackage.lessonDurationMinutes} minutes/lesson</p>
+                    <p>Training Mode: {purchasePackage.trainingMode || '1v1'}</p>
                     <p className="text-lg font-semibold text-green-600">
-                      价格: ¥{purchasePackage.price}
+                    Price: ¥{purchasePackage.price}
                     </p>
                   </div>
                 </CardContent>
@@ -397,8 +397,8 @@ export default function SessionBookingDialog({
                 <div className="flex items-start">
                   <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
                   <div className="text-sm text-blue-700">
-                    <p className="font-medium mb-1">购买说明</p>
-                    <p>购买后将获得 {purchasePackage.lessonsCount} 次上课机会，可用于报名该教练的所有课程。</p>
+                    <p className="font-medium mb-1">Purchase Information</p>
+                    <p>After purchase, you will get {purchasePackage.lessonsCount} lesson credits that can be used to book all courses from this coach.</p>
                   </div>
                 </div>
               </div>
@@ -407,14 +407,14 @@ export default function SessionBookingDialog({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPurchaseDialog(false)}>
-              取消
+              Cancel
             </Button>
             <Button 
               onClick={handlePurchaseConfirm}
               disabled={purchasing}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {purchasing ? '购买中...' : '确认购买'}
+              {purchasing ? 'Purchasing...' : 'Confirm Purchase'}
             </Button>
           </DialogFooter>
         </DialogContent>

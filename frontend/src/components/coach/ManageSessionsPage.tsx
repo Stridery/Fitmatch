@@ -20,9 +20,10 @@ import {
   deleteCoachCalendarEvent,
   getCoachCourses 
 } from '@/api/coachCalendar';
-import { createAvailability, updateAvailability, deleteAvailability } from '@/api/availability';
+import { createAvailability, updateAvailability, deleteAvailability, getCoachAvailabilities } from '@/api/availability';
 import type { CoachCalendarEvent, CoachCourse } from '@/api/coachCalendar';
 import { supabase } from '@/lib/supabase';
+import { useUser } from '@/contexts/UserContext';
 import WeekView from './WeekView';
 import ListView from './ListView';
 import FiltersBar from './FiltersBar';
@@ -39,20 +40,31 @@ function formatDateTimeLocal(date: Date): string {
 }
 
 // Convert database event to UI event format
-function convertDbEventToUI(dbEvent: CoachCalendarEvent) {
-  // Parse UTC timestamp from database and convert to local Date object
-  const startDate = new Date(dbEvent.start_ts);
-  const endDate = new Date(dbEvent.end_ts);
+function convertDbEventToUI(dbEvent: any) {
+  // 处理不同的字段名：Supabase使用start_ts/end_ts，availability API使用startTs/endTs
+  const startTs = dbEvent.start_ts || dbEvent.startTs;
+  const endTs = dbEvent.end_ts || dbEvent.endTs;
+  
+  // 将UTC时间字符串转换为本地时间字符串，用于datetime-local输入
+  const formatUtcToLocal = (utcString: string) => {
+    const date = new Date(utcString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
   
   const uiEvent = {
     id: dbEvent.id,
     kind: dbEvent.kind,
     title: dbEvent.title || '',
-    course: dbEvent.course_id || '',
+    course: dbEvent.course_id || dbEvent.courseId || '',
     courses: [] as string[], // 新增：多选课程数组
     location: dbEvent.location || '',
-    startTime: formatDateTimeLocal(startDate), // Format for datetime-local input (local time)
-    endTime: formatDateTimeLocal(endDate), // Format for datetime-local input (local time)
+    startTime: formatUtcToLocal(startTs), // 将UTC时间转换为本地时间字符串
+    endTime: formatUtcToLocal(endTs),     // 将UTC时间转换为本地时间字符串
     capacity: dbEvent.capacity?.toString() || ''
   };
 
@@ -66,9 +78,11 @@ function convertDbEventToUI(dbEvent: CoachCalendarEvent) {
 
 // Convert UI event to database format
 function convertUIEventToDb(uiEvent: any, coachId: string) {
-  // Convert local datetime to UTC for database storage
-  const startDate = new Date(uiEvent.startTime);
-  const endDate = new Date(uiEvent.endTime);
+  // 修复时区问题：将datetime-local格式当作本地时间处理
+  // datetime-local格式：2024-01-15T14:30 (本地时间)
+  // 直接使用ISO字符串，避免双重时区转换
+  const startDate = new Date(uiEvent.startTime + ':00'); // 添加秒数
+  const endDate = new Date(uiEvent.endTime + ':00');     // 添加秒数
   
   const dbEvent = {
     coach_id: coachId,
@@ -76,8 +90,8 @@ function convertUIEventToDb(uiEvent: any, coachId: string) {
     course_id: uiEvent.kind === 'session' ? (uiEvent.course || null) : null, // Session使用course_id，availability设为null
     title: uiEvent.title || null,
     location: uiEvent.location || null,
-    start_ts: startDate.toISOString(),
-    end_ts: endDate.toISOString(),
+    start_ts: startDate.toISOString(), // 转换为UTC时间字符串
+    end_ts: endDate.toISOString(),     // 转换为UTC时间字符串
     capacity: uiEvent.capacity ? parseInt(uiEvent.capacity) : null
   };
 
@@ -91,6 +105,7 @@ function convertUIEventToDb(uiEvent: any, coachId: string) {
 }
 
 export default function ManageSessionsPage() {
+  const { user } = useUser(); // 使用UserContext获取用户信息
   const [weekStart, setWeekStart] = useState(() => startOfWeekMonday(new Date()));
   const [activeTab, setActiveTab] = useState<'week' | 'list'>('week');
   const [filters, setFilters] = useState({
@@ -106,8 +121,9 @@ export default function ManageSessionsPage() {
   });
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [coachId, setCoachId] = useState<string>('');
   const [courses, setCourses] = useState<CoachCourse[]>([]);
+  const [allCourses, setAllCourses] = useState<CoachCourse[]>([]); // 所有课程（用于Session）
+  const [oneOnOneCourses, setOneOnOneCourses] = useState<CoachCourse[]>([]); // 1v1课程（用于Availability）
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -160,12 +176,33 @@ export default function ManageSessionsPage() {
 
   // Load events from database
   const loadEvents = async () => {
-    if (!coachId) return;
+    if (!user?.id) return;
     
     setLoading(true);
     try {
-      const dbEvents = await getCoachCalendarEventsForWeek(coachId, weekStart);
-      const uiEvents = dbEvents.map(convertDbEventToUI);
+      // 计算当前周的结束时间
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+      
+            // 并行加载session和availability数据，都按周过滤
+            const [sessionEvents, availabilityEvents] = await Promise.all([
+              getCoachCalendarEventsForWeek(user.id, weekStart),
+              getCoachAvailabilities(user.id, weekStart.toISOString(), weekEnd.toISOString())
+            ]);
+      
+      console.log('Loaded events:', {
+        sessionCount: sessionEvents.length,
+        availabilityCount: availabilityEvents.length,
+        sessionEvents: sessionEvents.map(e => ({ id: e.id, kind: e.kind, title: e.title })),
+        availabilityEvents: availabilityEvents.map(e => ({ id: e.id, kind: e.kind, title: e.title }))
+      });
+      
+      // 合并所有事件
+      const allDbEvents = [...sessionEvents, ...availabilityEvents];
+      
+      // 转换为UI格式
+      const uiEvents = allDbEvents.map(convertDbEventToUI);
       setEvents(uiEvents);
     } catch (error) {
       console.error('Error loading events:', error);
@@ -174,39 +211,39 @@ export default function ManageSessionsPage() {
     }
   };
 
-  // Load coach courses (only 1v1 courses for availability)
+  // Load coach courses
   const loadCourses = async () => {
-    if (!coachId) return;
+    if (!user?.id) return;
     
+    console.log('loadCourses: loading courses for user', user.id);
     try {
-      const coachCourses = await getCoachCourses(coachId);
-      // 过滤出只支持1v1的课程（MVP阶段限制）
+      const coachCourses = await getCoachCourses(user.id);
+      console.log('loadCourses: loaded courses', coachCourses.length, coachCourses);
+      
+      // 存储所有课程（用于Session）
+      setAllCourses(coachCourses);
+      
+      // 过滤出只支持1v1的课程（用于Availability）
       const oneOnOneCourses = coachCourses.filter(course => 
         course.training_modes?.includes('1v1')
       );
+      setOneOnOneCourses(oneOnOneCourses);
+      
+      // 保持向后兼容，默认使用1v1课程
       setCourses(oneOnOneCourses);
     } catch (error) {
       console.error('Error loading courses:', error);
     }
   };
 
-  // Load coach ID and events on component mount and week change
+  // Load events and courses when user changes
   useEffect(() => {
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setCoachId(user.id);
-      }
-    };
-    getCurrentUser();
-  }, []);
-
-  useEffect(() => {
-    if (coachId) {
+    console.log('ManageSessionsPage: user changed', user?.id, user?.email);
+    if (user?.id) {
       loadEvents();
       loadCourses();
     }
-  }, [coachId, weekStart]);
+  }, [user?.id, weekStart]);
 
   const handlePrevWeek = () => {
     setWeekStart(addDays(weekStart, -7));
@@ -231,20 +268,32 @@ export default function ManageSessionsPage() {
   };
 
   const handleSaveEvent = async (eventData: any) => {
-    if (!coachId) return;
+    if (!user?.id) return;
     
     try {
       if (newDialogKind === 'availability') {
-        // 使用后端API创建availability
+        // 对于availability，使用与session相同的时区转换逻辑
+        // 将datetime-local格式转换为UTC时间字符串，使用浏览器时区
+        
+        const startDate = new Date(eventData.startTime + ':00'); // 添加秒数
+        const endDate = new Date(eventData.endTime + ':00');     // 添加秒数
+        
         const availabilityRequest = {
-          coachId: coachId,
+          coachId: user.id,
           title: eventData.title,
+          startTs: startDate.toISOString(), // 转换为UTC时间字符串，使用浏览器时区
+          endTs: endDate.toISOString(),     // 转换为UTC时间字符串，使用浏览器时区
           location: eventData.location,
-          // 修复时区问题：将本地时间当作UTC时间发送
-          startTs: eventData.startTime + ":00.000Z", // 添加秒和毫秒，标记为UTC
-          endTs: eventData.endTime + ":00.000Z",     // 添加秒和毫秒，标记为UTC
           courseIds: eventData.courses || []
         };
+        
+        console.log('Availability time (Local -> UTC):', {
+          localStart: eventData.startTime,
+          localEnd: eventData.endTime,
+          utcStart: startDate.toISOString(),
+          utcEnd: endDate.toISOString(),
+          request: availabilityRequest
+        });
         
         await createAvailability(availabilityRequest);
       } else {
@@ -252,7 +301,7 @@ export default function ManageSessionsPage() {
         const dbEventData = convertUIEventToDb({
           ...eventData,
           kind: newDialogKind!
-        }, coachId);
+        }, user.id);
         
         await createCoachCalendarEvent(dbEventData);
       }
@@ -274,26 +323,31 @@ export default function ManageSessionsPage() {
   };
 
   const handleUpdateEvent = async (eventData: any) => {
-    if (!editingEvent || !coachId) return;
+    if (!editingEvent || !user?.id) return;
     
     try {
       if (editingEvent.kind === 'availability') {
-        // 使用后端API更新availability
+        // 使用和session一样的数据格式更新availability
+        const dbEventData = convertUIEventToDb({
+          ...eventData,
+          kind: 'availability'
+        }, user.id);
+        
+        // 转换为后端API格式
         const availabilityRequest = {
           availabilityId: editingEvent.id,
-          coachId: coachId,
-          title: eventData.title,
-          location: eventData.location,
-          // 修复时区问题：将本地时间当作UTC时间发送
-          startTs: eventData.startTime + ":00.000Z", // 添加秒和毫秒，标记为UTC
-          endTs: eventData.endTime + ":00.000Z",     // 添加秒和毫秒，标记为UTC
+          coachId: user.id,
+          title: dbEventData.title,
+          location: dbEventData.location,
+          startTs: dbEventData.start_ts,
+          endTs: dbEventData.end_ts,
           courseIds: eventData.courses || []
         };
         
         await updateAvailability(availabilityRequest);
       } else {
         // 使用Supabase API更新session
-        const dbEventData = convertUIEventToDb(eventData, coachId);
+        const dbEventData = convertUIEventToDb(eventData, user.id);
         await updateCoachCalendarEvent(editingEvent.id, dbEventData);
       }
       
@@ -308,7 +362,7 @@ export default function ManageSessionsPage() {
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    if (!coachId) return;
+    if (!user?.id) return;
     
     try {
       // 查找要删除的事件
@@ -316,7 +370,7 @@ export default function ManageSessionsPage() {
       
       if (eventToDelete?.kind === 'availability') {
         // 使用后端API删除availability
-        await deleteAvailability(eventId, coachId);
+        await deleteAvailability(eventId, user.id);
       } else {
         // 使用Supabase API删除session
         await deleteCoachCalendarEvent(eventId);
@@ -333,19 +387,19 @@ export default function ManageSessionsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+      <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-white">
               Manage Sessions
             </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-400 mt-1">
               Week-by-week schedule (30-min grid)
             </p>
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-sm text-gray-400">
             All times in <span className="font-medium">{timezoneLabel}</span>
           </div>
         </div>
@@ -353,7 +407,7 @@ export default function ManageSessionsPage() {
         {/* Week Navigation */}
         <div className="flex items-center justify-between mt-6">
           <div className="flex items-center space-x-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold text-white">
               {weekRangeLabel}
             </h2>
           </div>
@@ -363,18 +417,17 @@ export default function ManageSessionsPage() {
               variant="outline"
               size="sm"
               onClick={handlePrevWeek}
-              className="flex items-center space-x-1"
+              className="flex items-center space-x-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500"
             >
               <ChevronLeft className="h-4 w-4" />
               <span>Prev Week</span>
             </Button>
 
-
             <Button
               variant="outline"
               size="sm"
               onClick={handleNextWeek}
-              className="flex items-center space-x-1"
+              className="flex items-center space-x-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500"
             >
               <span>Next Week</span>
               <ChevronRight className="h-4 w-4" />
@@ -382,17 +435,18 @@ export default function ManageSessionsPage() {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                <Button variant="outline" size="sm" className="flex items-center space-x-2 bg-gray-700 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500">
                   <CalendarIcon className="h-4 w-4" />
                   <span>Jump to Week</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
+              <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700" align="end">
                 <Calendar
                   mode="single"
                   selected={weekStart}
                   onSelect={(date) => date && handleJumpToWeek(date)}
                   initialFocus
+                  className="[&_button]:text-white [&_button]:hover:bg-gray-700"
                 />
               </PopoverContent>
             </Popover>
@@ -415,16 +469,16 @@ export default function ManageSessionsPage() {
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'week' | 'list')} className="h-full">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <TabsList className="grid w-64 grid-cols-2">
-              <TabsTrigger value="week">Week</TabsTrigger>
-              <TabsTrigger value="list">List</TabsTrigger>
+          <div className="px-6 py-4 border-b border-gray-700">
+            <TabsList className="grid w-64 grid-cols-2 bg-gray-800 border-gray-700">
+              <TabsTrigger value="week" className="text-gray-300 data-[state=active]:text-white data-[state=active]:bg-gray-700">Week</TabsTrigger>
+              <TabsTrigger value="list" className="text-gray-300 data-[state=active]:text-white data-[state=active]:bg-gray-700">List</TabsTrigger>
             </TabsList>
           </div>
 
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-gray-500 dark:text-gray-400">Loading events...</div>
+              <div className="text-gray-400">Loading events...</div>
             </div>
           ) : (
             <>
@@ -459,7 +513,7 @@ export default function ManageSessionsPage() {
         kind={newDialogKind}
         defaults={newDialogDefaults}
         onSave={handleSaveEvent}
-        courses={courses}
+        courses={newDialogKind === 'session' ? allCourses : oneOnOneCourses}
       />
 
       {/* Edit Event Dialog */}
@@ -479,7 +533,7 @@ export default function ManageSessionsPage() {
         onSave={handleUpdateEvent}
         onDelete={handleDeleteEvent}
         editingEvent={editingEvent}
-        courses={courses}
+        courses={editingEvent?.kind === 'session' ? allCourses : oneOnOneCourses}
       />
     </div>
   );

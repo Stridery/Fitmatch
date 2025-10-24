@@ -22,26 +22,36 @@ export default function HomePage() {
   const avatarUrl = ""; // 如果将来 profile 里有头像字段，替换这里
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-gray-900 w-full">
-      {/* Header */}
-      <header className="w-full bg-white shadow-sm border-b">
-        <div className="w-full flex items-center justify-between px-6 py-4">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white w-full">
+      {/* Dark Header */}
+      <header className="w-full bg-black/95 backdrop-blur-xl border-b border-gray-800/50 sticky top-0 z-50 shadow-lg">
+        <div className="w-full flex items-center justify-between px-4 sm:px-6 py-3 max-w-7xl mx-auto">
           <div
-            className="text-2xl font-bold text-blue-600 tracking-tight cursor-pointer"
+            className="text-lg sm:text-xl font-bold text-white tracking-wider cursor-pointer hover:text-gray-300 transition-colors duration-200"
             onClick={() => navigate("/")}
           >
-            FITMATCH
+            SportaX
           </div>
-
-          {/* 用户菜单 */}
+          
+          {/* Center Navigation */}
+          <nav className="flex gap-6 sm:gap-8 text-sm font-medium text-gray-300">
+            <button onClick={() => navigate("/home/match")} className="hover:text-white transition-colors duration-200 hover:scale-105 transform">
+              Match Coaches
+            </button>
+            <button onClick={() => navigate("/home/community")} className="hover:text-white transition-colors duration-200 hover:scale-105 transform">
+              Community
+            </button>
+          </nav>
+          
+          {/* Right User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="focus:outline-none bg-transparent hover:bg-transparent p-0">
-                <Avatar className="w-8 h-8 border bg-transparent">
+                <Avatar className="w-8 h-8 border border-gray-600 bg-gray-700">
                   {avatarUrl ? (
                     <AvatarImage src={avatarUrl} alt={username} />
                   ) : (
-                    <AvatarFallback className="bg-gray-200 text-gray-500">
+                    <AvatarFallback className="bg-gray-600 text-gray-300">
                       {username?.charAt(0)?.toUpperCase() || "?"}
                     </AvatarFallback>
                   )}
@@ -49,44 +59,32 @@ export default function HomePage() {
               </button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent className="w-48 mt-2" align="end">
+            <DropdownMenuContent className="w-48 mt-2 bg-gray-800 border-gray-700" align="end">
               {loading ? (
-                <DropdownMenuItem disabled>Loading…</DropdownMenuItem>
+                <DropdownMenuItem disabled className="text-gray-400">Loading…</DropdownMenuItem>
               ) : user ? (
                 <>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard")} className="text-gray-300 hover:bg-gray-700 hover:text-white">
                     Personal Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/coach-application")}>
+                  <DropdownMenuItem onClick={() => navigate("/coach-application")} className="text-gray-300 hover:bg-gray-700 hover:text-white">
                     Become a Coach
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/manage-venue")}>
+                  <DropdownMenuItem onClick={() => navigate("/manage-venue")} className="text-gray-300 hover:bg-gray-700 hover:text-white">
                     Manage a Venue
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setLogoutOpen(true)}>
+                  <DropdownMenuItem onClick={() => setLogoutOpen(true)} className="text-gray-300 hover:bg-gray-700 hover:text-white">
                     Logout
                   </DropdownMenuItem>
                 </>
               ) : (
-                <DropdownMenuItem onClick={() => navigate("/login")}>
+                <DropdownMenuItem onClick={() => navigate("/login")} className="text-gray-300 hover:bg-gray-700 hover:text-white">
                   Register/Login
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        {/* 顶部菜单栏 */}
-        <nav className="w-full border-t border-gray-200 bg-white">
-          <div className="flex justify-center gap-10 px-4 py-2 text-sm font-medium text-gray-600">
-            <button onClick={() => navigate("/home/match")} className="text-gray-600 hover:text-blue-600">
-              Match Coaches
-            </button>
-            <button onClick={() => navigate("/home/community")} className="text-gray-600 hover:text-blue-600">
-              Community
-            </button>
-          </div>
-        </nav>
       </header>
 
       {/* 主体内容 */}

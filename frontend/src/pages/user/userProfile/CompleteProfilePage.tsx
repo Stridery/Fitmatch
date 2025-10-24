@@ -47,10 +47,7 @@ export function formStateToUserProfile(
     country: form.country.trim() || null,
     city: form.city.trim() || null,
     mbtiType: form.mbtiType.trim() || null,
-    behavioralAnswers:
-      Object.keys(form.behavioralAnswers || {}).length > 0
-        ? form.behavioralAnswers
-        : null,
+    behavioralAnswers: null,
     heightCm:
       form.height !== "" ? Number(form.height) : null,
     weightKg:
@@ -184,10 +181,10 @@ const CompleteProfilePage = () => {
   }
 
   return (
-    <div className="flex h-screen">
-      <div className="w-1/2 bg-gray-100 flex flex-col items-center justify-center">
-        <div className="text-4xl font-bold text-blue-600 mb-2">FITMATCH</div>
-        <p className="text-gray-500 text-center px-4">
+    <div className="flex h-screen bg-gray-900">
+      <div className="w-1/2 bg-gray-800 flex flex-col items-center justify-center">
+        <div className="text-4xl font-bold text-white mb-2">SportaX</div>
+        <p className="text-gray-400 text-center px-4">
           Where coaches and students connect
         </p>
       </div>
@@ -195,9 +192,9 @@ const CompleteProfilePage = () => {
       <div className="w-1/2 flex items-center justify-center">
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md"
+          className="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-lg shadow-md border border-gray-700"
         >
-          <h2 className="text-2xl font-semibold text-center">
+          <h2 className="text-2xl font-semibold text-center text-white">
             Complete Your Profile
           </h2>
 
@@ -225,7 +222,7 @@ const CompleteProfilePage = () => {
                   e.preventDefault()
                   handleBack()
                 }}
-                className="bg-gray-200 text-black hover:bg-gray-300"
+                className="bg-gray-700 text-white hover:bg-gray-600 border-gray-600"
               >
                 Back
               </Button>
@@ -239,15 +236,16 @@ const CompleteProfilePage = () => {
                   e.preventDefault()
                   handleNext()
                 }}
+                className="bg-white hover:bg-gray-100 text-black"
               >
                 Next
               </Button>
             ) : (
-              <Button type="submit">Submit</Button>
+              <Button type="submit" className="bg-white hover:bg-gray-100 text-black">Submit</Button>
             )}
           </div>
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-red-400 text-sm">{error}</p>}
         </form>
       </div>
     </div>

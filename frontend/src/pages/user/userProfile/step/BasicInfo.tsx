@@ -69,28 +69,29 @@ const BasicInfo: React.FC<Props> = ({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Basic Information</h2>
+      <h2 className="text-xl font-semibold text-white">Basic Information</h2>
 
-      <Label className="block text-sm font-medium">Upload your avatar</Label>
+      <Label className="block text-sm font-medium text-gray-300">Upload your avatar</Label>
       <AvatarUploader
         onFileSelect={(file) => setAvatarFile(file)}
       />
 
       {/* Nickname */}
       <div className="space-y-2">
-        <Label htmlFor="nickname">Nickname</Label>
+        <Label htmlFor="nickname" className="text-gray-300">Nickname</Label>
         <Input
           id="nickname"
           value={profile.nickname}
           onChange={(e) => setProfile({ ...profile, nickname: e.target.value })}
           placeholder="Your nickname"
+          className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-white focus:ring-white"
           required
         />
       </div>
 
       {/* Phone */}
       <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number</Label>
+        <Label htmlFor="phone" className="text-gray-300">Phone Number</Label>
         <Input
           id="phone"
           type="tel"
@@ -99,61 +100,62 @@ const BasicInfo: React.FC<Props> = ({
           placeholder="e.g. +1 555 123 4567"
           pattern="^\+?[0-9\s\-]{7,15}$"
           autoComplete="tel"
+          className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-white focus:ring-white"
           required
         />
       </div>
 
       {/* isFor */}
       <div className="space-y-2">
-        <Label htmlFor="isFor">Registering For</Label>
+        <Label htmlFor="isFor" className="text-gray-300">Registering For</Label>
         <Select
           value={profile.isFor}
           onValueChange={(value) => setProfile({ ...profile, isFor: value })}
         >
-          <SelectTrigger className="w-full text-black bg-white dark:text-white dark:bg-gray-900">
+          <SelectTrigger className="w-full text-white bg-gray-700 border-gray-600">
             <SelectValue placeholder="Select a registrant" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="self">Myself</SelectItem>
-            <SelectItem value="child">My Child</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
+          <SelectContent className="bg-gray-800 border-gray-700">
+            <SelectItem value="self" className="text-white hover:bg-gray-700">Myself</SelectItem>
+            <SelectItem value="child" className="text-white hover:bg-gray-700">My Child</SelectItem>
+            <SelectItem value="other" className="text-white hover:bg-gray-700">Other</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* gender */}
       <div className="space-y-2">
-        <Label htmlFor="gender">Gender</Label>
+        <Label htmlFor="gender" className="text-gray-300">Gender</Label>
         <Select
           value={profile.gender}
           onValueChange={(value) => setProfile({ ...profile, gender: value })}
         >
-          <SelectTrigger className="w-full text-black bg-white dark:text-white dark:bg-gray-900">
+          <SelectTrigger className="w-full text-white bg-gray-700 border-gray-600">
             <SelectValue placeholder="Your gender" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="M">Male</SelectItem>
-            <SelectItem value="F">Female</SelectItem>
-            <SelectItem value="O">Other</SelectItem>
-            <SelectItem value="U">Prefer not to say</SelectItem>
+          <SelectContent className="bg-gray-800 border-gray-700">
+            <SelectItem value="M" className="text-white hover:bg-gray-700">Male</SelectItem>
+            <SelectItem value="F" className="text-white hover:bg-gray-700">Female</SelectItem>
+            <SelectItem value="O" className="text-white hover:bg-gray-700">Other</SelectItem>
+            <SelectItem value="U" className="text-white hover:bg-gray-700">Prefer not to say</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* birthday */}
       <div className="space-y-2">
-        <Label htmlFor="birthday">Select Birthday</Label>
+        <Label htmlFor="birthday" className="text-gray-300">Select Birthday</Label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between text-black bg-white dark:text-white dark:bg-gray-900"
+              className="w-full justify-between text-white bg-gray-700 border-gray-600 hover:bg-gray-600"
             >
               {selectedDate ? format(selectedDate, "yyyy-MM-dd") : "Pick a date"}
               <CalendarIcon className="ml-2 h-4 w-4 text-gray-400" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700" align="start">
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -164,7 +166,7 @@ const BasicInfo: React.FC<Props> = ({
                 }
               }}
               captionLayout="dropdown"
-              className="rounded-md border [&_button]:text-black dark:[&_button]:text-white"
+              className="rounded-md border [&_button]:text-white [&_button]:hover:bg-gray-700"
             />
           </PopoverContent>
         </Popover>
@@ -172,23 +174,23 @@ const BasicInfo: React.FC<Props> = ({
 
       {/* country */}
       <div className="space-y-2">
-        <Label htmlFor="country">Country</Label>
+        <Label htmlFor="country" className="text-gray-300">Country</Label>
         <Popover open={countryPopoverOpen} onOpenChange={setCountryPopoverOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={countryPopoverOpen}
-              className="w-full justify-between text-black"
+              className="w-full justify-between text-white bg-gray-700 border-gray-600 hover:bg-gray-600"
             >
               {profile.country ? profile.country : <span className="text-gray-400">Select country</span>}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0">
+          <PopoverContent className="w-full p-0 bg-gray-800 border-gray-700">
             <Command>
-              <CommandInput placeholder="Search countries..." />
-              <CommandEmpty>No matching result</CommandEmpty>
+              <CommandInput placeholder="Search countries..." className="text-white" />
+              <CommandEmpty className="text-gray-400">No matching result</CommandEmpty>
               <CommandGroup>
                 {countries.map((c) => (
                   <CommandItem
@@ -199,8 +201,8 @@ const BasicInfo: React.FC<Props> = ({
                       setCountryPopoverOpen(false)
                     }}
                     className={cn(
-                      "!text-black hover:bg-gray-100",
-                      profile.country === c && "bg-gray-100"
+                      "!text-white hover:bg-gray-700",
+                      profile.country === c && "bg-gray-700"
                     )}
                   >
                     <Check
@@ -217,28 +219,30 @@ const BasicInfo: React.FC<Props> = ({
 
       {/* city */}
       <div className="space-y-2">
-        <Label htmlFor="city">City</Label>
+        <Label htmlFor="city" className="text-gray-300">City</Label>
         <Input
           id="city"
           value={profile.city}
           onChange={(e) => setProfile({ ...profile, city: e.target.value })}
           placeholder="Input a city"
+          className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-white focus:ring-white"
           required
         />
       </div>
 
       {/* mbti */}
       <div className="space-y-2">
-        <Label htmlFor="mbtiType">MBTI (Optional)</Label>
+        <Label htmlFor="mbtiType" className="text-gray-300">MBTI (Optional)</Label>
         <Input
           id="mbtiType"
           value={profile.mbtiType}
           onChange={(e) => setProfile({ ...profile, mbtiType: e.target.value })}
           placeholder="Example: INFP、ESTJ"
+          className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-white focus:ring-white"
         />
       </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-red-400 text-sm">{error}</p>}
     </div>
   )
 }

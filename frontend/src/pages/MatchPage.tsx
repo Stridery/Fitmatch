@@ -165,7 +165,7 @@ export default function MatchPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-gray-900 w-full">
+    <div className="w-full">
       <main className="px-6 pt-10">
         {/* Filters */}
         <div className="mb-8">
@@ -192,10 +192,10 @@ export default function MatchPage() {
         </div>
 
         {/* Error Message */}
-        {error && <div className="text-red-500 mb-4 text-center">{error}</div>}
+        {error && <div className="text-red-400 mb-4 text-center bg-red-900/20 border border-red-500/50 px-4 py-2 rounded-lg">{error}</div>}
 
         {/* Results */}
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {isLoading ? (
             <ResultSkeleton />
           ) : error ? (

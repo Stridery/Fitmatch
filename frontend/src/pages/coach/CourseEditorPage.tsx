@@ -90,7 +90,12 @@ const isPref  = (v: string): v is PreferStudent => PREF_SET.has(v as PreferStude
 
 function Chip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
-    <Button type="button" variant={active ? 'default' : 'outline'} className="text-black" onClick={onClick}>
+    <Button 
+      type="button" 
+      variant={active ? 'default' : 'outline'} 
+      className={active ? 'text-black' : 'text-white border-gray-600 hover:bg-gray-700 hover:border-gray-500'} 
+      onClick={onClick}
+    >
       {label}
     </Button>
   )
@@ -132,7 +137,7 @@ function ChipGroupSingleNullable({
         )
       })}
       {value ? (
-        <Button type="button" variant="outline" className="text-black" onClick={() => onChange(null)}>Clear</Button>
+        <Button type="button" variant="outline" className="text-white border-gray-600 hover:bg-gray-700 hover:border-gray-500" onClick={() => onChange(null)}>Clear</Button>
       ) : null}
     </div>
   )}
@@ -389,24 +394,24 @@ export default function CourseEditorPage() {
   const attributes = form.watch('attributes')
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gray-900 min-h-screen">
       <div className="mb-4">
-        <Button type="button" variant="outline" className="text-black" onClick={handleBack}>{'←'} Back</Button>
+        <Button type="button" variant="outline" className="text-white border-gray-600 hover:bg-gray-700 hover:border-gray-500" onClick={handleBack}>{'←'} Back</Button>
       </div>
 
-      <h1 className="text-xl font-semibold mb-4">{courseId ? 'Edit Course' : 'Create Course'}</h1>
+      <h1 className="text-xl font-semibold mb-4 text-white">{courseId ? 'Edit Course' : 'Create Course'}</h1>
       {initialLoading ? (
         <div className="space-y-2">
-          <div className="h-6 w-40 bg-gray-100 rounded" />
-          <div className="h-5 w-72 bg-gray-100 rounded" />
-          <div className="h-64 bg-gray-100 rounded" />
+          <div className="h-6 w-40 bg-gray-700 rounded" />
+          <div className="h-5 w-72 bg-gray-700 rounded" />
+          <div className="h-64 bg-gray-700 rounded" />
         </div>
       ) : (
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-6 pb-24">
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Basics</CardTitle>
+                <CardTitle className="text-white">Basics</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <FormField
@@ -414,7 +419,7 @@ export default function CourseEditorPage() {
                   name={"detail.training_modes"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Training modes</FormLabel>
+                      <FormLabel className="text-gray-300">Training modes</FormLabel>
                       <ChipGroupMulti value={(field.value ?? []) as string[]} onChange={field.onChange} options={trainingModes} />
                       <FormMessage />
                     </FormItem>
@@ -426,7 +431,7 @@ export default function CourseEditorPage() {
                   name={"detail.training_goals"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Goals</FormLabel>
+                      <FormLabel className="text-gray-300">Goals</FormLabel>
                       <ChipGroupMulti value={(field.value ?? []) as string[]} onChange={field.onChange} options={goals} />
                       <FormMessage />
                     </FormItem>
@@ -438,8 +443,8 @@ export default function CourseEditorPage() {
                   name={"detail.summary"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Summary</FormLabel>
-                      <Textarea value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)} rows={3} />
+                      <FormLabel className="text-gray-300">Summary</FormLabel>
+                      <Textarea value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)} rows={3} className="bg-gray-700 border-gray-600 text-white placeholder-gray-400" />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -447,9 +452,9 @@ export default function CourseEditorPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Availability</CardTitle>
+                <CardTitle className="text-white">Availability</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <FormField
@@ -457,7 +462,7 @@ export default function CourseEditorPage() {
                   name={"detail.available_time_slots"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Time slots</FormLabel>
+                      <FormLabel className="text-gray-300">Time slots</FormLabel>
                       <ChipGroupMulti value={(field.value ?? []) as string[]} onChange={field.onChange} options={timeSlots} />
                       <FormMessage />
                     </FormItem>
@@ -469,7 +474,7 @@ export default function CourseEditorPage() {
                   name={"detail.preferred_frequency"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Preferred frequency</FormLabel>
+                      <FormLabel className="text-gray-300">Preferred frequency</FormLabel>
                       <ChipGroupSingleNullable value={(field.value ?? null) as string | null} onChange={(v) => field.onChange(v)} options={frequency} />
                       <FormMessage />
                     </FormItem>
@@ -478,9 +483,9 @@ export default function CourseEditorPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Audience</CardTitle>
+                <CardTitle className="text-white">Audience</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <FormField
@@ -488,7 +493,7 @@ export default function CourseEditorPage() {
                   name={"detail.skill_level"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Skill level</FormLabel>
+                      <FormLabel className="text-gray-300">Skill level</FormLabel>
                       <ChipGroupSingleNullable value={(field.value ?? null) as string | null} onChange={(v) => field.onChange(v)} options={skillLevels} />
                       <FormMessage />
                     </FormItem>
@@ -500,7 +505,7 @@ export default function CourseEditorPage() {
                   name={"detail.experience_years"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Experience years</FormLabel>
+                      <FormLabel className="text-gray-300">Experience years</FormLabel>
                       <ChipGroupSingleNullable value={(field.value ?? null) as string | null} onChange={(v) => field.onChange(v)} options={expYears} />
                       <FormMessage />
                     </FormItem>
@@ -512,7 +517,7 @@ export default function CourseEditorPage() {
                   name={"detail.age_groups"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Age groups</FormLabel>
+                      <FormLabel className="text-gray-300">Age groups</FormLabel>
                       <ChipGroupMulti value={(field.value ?? []) as string[]} onChange={field.onChange} options={ageGroups} />
                       <FormMessage />
                     </FormItem>
@@ -521,9 +526,9 @@ export default function CourseEditorPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Coach Profile</CardTitle>
+                <CardTitle className="text-white">Coach Profile</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <FormField
@@ -531,8 +536,8 @@ export default function CourseEditorPage() {
                   name={"detail.about"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>About</FormLabel>
-                      <Textarea value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)} rows={6} />
+                      <FormLabel className="text-gray-300">About</FormLabel>
+                      <Textarea value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)} rows={6} className="bg-gray-700 border-gray-600 text-white placeholder-gray-400" />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -540,22 +545,22 @@ export default function CourseEditorPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Packages</CardTitle>
+                <CardTitle className="text-white">Packages</CardTitle>
               </CardHeader>
               <CardContent>
                 {pkgLoading ? (
-                  <div className="h-24 bg-gray-100 rounded" />
+                  <div className="h-24 bg-gray-700 rounded" />
                 ) : (
                   <PackageEditor items={pkgItems} onChange={setPkgItems} disabled={saving} />
                 )}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Styles & Preferences</CardTitle>
+                <CardTitle className="text-white">Styles & Preferences</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <FormField
@@ -563,7 +568,7 @@ export default function CourseEditorPage() {
                   name={"attributes.style"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Style</FormLabel>
+                      <FormLabel className="text-gray-300">Style</FormLabel>
                       <ChipGroupMulti value={(field.value ?? []) as string[]} onChange={field.onChange} options={styleTags} />
                       <FormMessage />
                     </FormItem>
@@ -575,7 +580,7 @@ export default function CourseEditorPage() {
                   name={"attributes.communication_style"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Communication style</FormLabel>
+                      <FormLabel className="text-gray-300">Communication style</FormLabel>
                       <ChipGroupMulti value={(field.value ?? []) as string[]} onChange={field.onChange} options={commTags} />
                       <FormMessage />
                     </FormItem>
@@ -587,7 +592,7 @@ export default function CourseEditorPage() {
                   name={"attributes.pace_intensity"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pace & intensity</FormLabel>
+                      <FormLabel className="text-gray-300">Pace & intensity</FormLabel>
                       <ChipGroupMulti value={(field.value ?? []) as string[]} onChange={field.onChange} options={paceTags} />
                       <FormMessage />
                     </FormItem>
@@ -599,7 +604,7 @@ export default function CourseEditorPage() {
                   name={"attributes.prefer_student"}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Preferred students</FormLabel>
+                      <FormLabel className="text-gray-300">Preferred students</FormLabel>
                       <ChipGroupMulti value={(field.value ?? []) as string[]} onChange={field.onChange} options={preferTags} />
                       <FormMessage />
                     </FormItem>
@@ -608,10 +613,10 @@ export default function CourseEditorPage() {
               </CardContent>
             </Card>
 
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-sm p-3">
+            <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 shadow-sm p-3">
               <div className="max-w-5xl mx-auto flex items-center justify-between">
-                <Button type="button" variant="outline" className="text-black" onClick={handleBack}>Cancel</Button>
-                <Button type="submit" className="text-black" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+                <Button type="button" variant="outline" className="text-white border-gray-600 hover:bg-gray-700 hover:border-gray-500" onClick={handleBack}>Cancel</Button>
+                <Button type="submit" className="bg-white hover:bg-gray-100 text-black" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
               </div>
             </div>
           </form>

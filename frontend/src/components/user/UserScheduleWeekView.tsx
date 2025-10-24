@@ -60,21 +60,21 @@ export default function UserScheduleWeekView({ weekStart, events }: UserSchedule
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-white dark:bg-gray-800">
+    <div className="flex-1 overflow-auto bg-gray-800">
       {/* Grid Container */}
       <div className="min-h-full" style={{ minHeight: `${timeSlots.length * 24 + 100}px` }}>
         {/* Header Row */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700">
           <div className="grid grid-cols-8 gap-px">
             {/* Time column header */}
-            <div className="bg-gray-50 dark:bg-gray-700 p-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+            <div className="bg-gray-700 p-3 text-sm font-medium text-gray-300">
               Time
             </div>
             {/* Day headers */}
             {weekDays.map((day, index) => (
               <div
                 key={index}
-                className="bg-gray-50 dark:bg-gray-700 p-3 text-center text-sm font-medium text-gray-900 dark:text-white"
+                className="bg-gray-700 p-3 text-center text-sm font-medium text-white"
               >
                 {formatDayHeader(day)}
               </div>
@@ -85,11 +85,11 @@ export default function UserScheduleWeekView({ weekStart, events }: UserSchedule
         {/* Time Grid */}
         <div className="grid grid-cols-8 gap-px">
           {/* Time Column */}
-          <div className="bg-gray-50 dark:bg-gray-700">
+          <div className="bg-gray-700">
             {timeSlots.map((timeSlot, index) => (
               <div
                 key={index}
-                className="h-6 border-b border-gray-200 dark:border-gray-600 flex items-center justify-end pr-2 text-xs text-gray-500 dark:text-gray-400 font-mono tabular-nums"
+                className="h-6 border-b border-gray-600 flex items-center justify-end pr-2 text-xs text-gray-300 font-mono tabular-nums"
               >
                 {formatTimeLabel(timeSlot)}
               </div>
@@ -98,11 +98,11 @@ export default function UserScheduleWeekView({ weekStart, events }: UserSchedule
 
           {/* Day Columns - Read-only, no click interaction */}
           {weekDays.map((day, dayIndex) => (
-            <div key={dayIndex} className="bg-white dark:bg-gray-800 relative">
+            <div key={dayIndex} className="bg-gray-800 relative">
               {timeSlots.map((timeSlot, timeIndex) => (
                 <div
                   key={timeIndex}
-                  className="h-6 border-b border-r border-gray-200 dark:border-gray-600"
+                  className="h-6 border-b border-r border-gray-600"
                 />
               ))}
               

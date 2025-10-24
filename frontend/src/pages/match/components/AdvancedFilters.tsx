@@ -52,19 +52,19 @@ export function AdvancedFilters({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" className="text-gray-900 bg-white hover:bg-gray-100">
+        <Button variant="outline" className="text-white bg-gray-700 border-gray-600 hover:bg-gray-600">
           More Filters
           {Object.keys(draft).length > 4 && (
-            <Badge variant="secondary" className="ml-2">
+            <Badge variant="secondary" className="ml-2 bg-gray-600 text-gray-300">
               {Object.keys(draft).length - 4}
             </Badge>
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-xl">
+      <SheetContent className="w-full sm:max-w-xl bg-gray-800 border-gray-700">
         <SheetHeader>
-          <SheetTitle>Advanced Filters</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-white">Advanced Filters</SheetTitle>
+          <SheetDescription className="text-gray-400">
             Refine your search with additional filters. Changes will be applied when you click Apply Filters.
           </SheetDescription>
         </SheetHeader>
@@ -81,18 +81,18 @@ export function AdvancedFilters({
                     updateDraft({ has_certificate: checked as boolean })
                   }
                 />
-                <Label htmlFor="has_certificate">Has Certification</Label>
+                <Label htmlFor="has_certificate" className="text-gray-300">Has Certification</Label>
               </div>
 
               {draft.has_certificate && (
                 <div className="space-y-2 pl-6">
-                  <Label>Certificate Types</Label>
+                  <Label className="text-gray-300">Certificate Types</Label>
                   <div className="flex flex-wrap gap-2">
                     {MOCK_OPTIONS.cert_type.map((cert) => (
                       <Badge
                         key={cert}
                         variant={draft.cert_type?.includes(cert) ? "default" : "outline"}
-                        className="cursor-pointer"
+                        className={`cursor-pointer ${draft.cert_type?.includes(cert) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                         onClick={() => handleMultiSelect("cert_type", cert)}
                       >
                         {cert}
@@ -105,13 +105,13 @@ export function AdvancedFilters({
 
             {/* Lesson Types */}
             <div className="space-y-2">
-              <Label>Lesson Types</Label>
+              <Label className="text-gray-300">Lesson Types</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.lessons.map((lesson) => (
                   <Badge
                     key={lesson}
                     variant={draft.lessons?.includes(lesson) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.lessons?.includes(lesson) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("lessons", lesson)}
                   >
                     {lesson}
@@ -122,13 +122,13 @@ export function AdvancedFilters({
 
             {/* Duration */}
             <div className="space-y-2">
-              <Label>Duration</Label>
+              <Label className="text-gray-300">Duration</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.duration.map((duration) => (
                   <Badge
                     key={duration}
                     variant={draft.duration?.includes(duration) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.duration?.includes(duration) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("duration", duration)}
                   >
                     {duration}
@@ -139,13 +139,13 @@ export function AdvancedFilters({
 
             {/* Styles */}
             <div className="space-y-2">
-              <Label>Teaching Styles</Label>
+              <Label className="text-gray-300">Teaching Styles</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.styles.map((style) => (
                   <Badge
                     key={style}
                     variant={draft.styles?.includes(style) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.styles?.includes(style) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("styles", style)}
                   >
                     {style}
@@ -156,13 +156,13 @@ export function AdvancedFilters({
 
             {/* Communication Styles */}
             <div className="space-y-2">
-              <Label>Communication Styles</Label>
+              <Label className="text-gray-300">Communication Styles</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.comm_styles.map((style) => (
                   <Badge
                     key={style}
                     variant={draft.comm_styles?.includes(style) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.comm_styles?.includes(style) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("comm_styles", style)}
                   >
                     {style}
@@ -173,13 +173,13 @@ export function AdvancedFilters({
 
             {/* Pace Intensities */}
             <div className="space-y-2">
-              <Label>Pace & Intensity</Label>
+              <Label className="text-gray-300">Pace & Intensity</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.pace_intensities.map((pace) => (
                   <Badge
                     key={pace}
                     variant={draft.pace_intensities?.includes(pace) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.pace_intensities?.includes(pace) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("pace_intensities", pace)}
                   >
                     {pace}
@@ -190,13 +190,13 @@ export function AdvancedFilters({
 
             {/* Preferred Students */}
             <div className="space-y-2">
-              <Label>Preferred Students</Label>
+              <Label className="text-gray-300">Preferred Students</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.prefer_students.map((type) => (
                   <Badge
                     key={type}
                     variant={draft.prefer_students?.includes(type) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.prefer_students?.includes(type) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("prefer_students", type)}
                   >
                     {type}
@@ -207,13 +207,13 @@ export function AdvancedFilters({
 
             {/* Training Modes */}
             <div className="space-y-2">
-              <Label>Training Modes</Label>
+              <Label className="text-gray-300">Training Modes</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.training_modes.map((mode) => (
                   <Badge
                     key={mode}
                     variant={draft.training_modes?.includes(mode) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.training_modes?.includes(mode) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("training_modes", mode)}
                   >
                     {mode}
@@ -224,13 +224,13 @@ export function AdvancedFilters({
 
             {/* Available Time Slots */}
             <div className="space-y-2">
-              <Label>Available Time Slots</Label>
+              <Label className="text-gray-300">Available Time Slots</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.available_time_slots.map((slot) => (
                   <Badge
                     key={slot}
                     variant={draft.available_time_slots?.includes(slot) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.available_time_slots?.includes(slot) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("available_time_slots", slot)}
                   >
                     {slot}
@@ -241,13 +241,13 @@ export function AdvancedFilters({
 
             {/* Goals */}
             <div className="space-y-2">
-              <Label>Goals</Label>
+              <Label className="text-gray-300">Goals</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.goals.map((goal) => (
                   <Badge
                     key={goal}
                     variant={draft.goals?.includes(goal) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.goals?.includes(goal) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("goals", goal)}
                   >
                     {goal}
@@ -258,13 +258,13 @@ export function AdvancedFilters({
 
             {/* Age Groups */}
             <div className="space-y-2">
-              <Label>Age Groups</Label>
+              <Label className="text-gray-300">Age Groups</Label>
               <div className="flex flex-wrap gap-2">
                 {MOCK_OPTIONS.age_groups.map((age) => (
                   <Badge
                     key={age}
                     variant={draft.age_groups?.includes(age) ? "default" : "outline"}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${draft.age_groups?.includes(age) ? 'bg-white text-black' : 'bg-gray-700 text-gray-300 border-gray-600'}`}
                     onClick={() => handleMultiSelect("age_groups", age)}
                   >
                     {age}
@@ -276,7 +276,7 @@ export function AdvancedFilters({
             {/* Numeric Input */}
             <div>
               <div className="space-y-2">
-                <Label>Min. Experience (Years)</Label>
+                <Label className="text-gray-300">Min. Experience (Years)</Label>
                 <Input
                   type="number"
                   min={0}
@@ -284,6 +284,7 @@ export function AdvancedFilters({
                   onChange={(e) =>
                     updateDraft({ min_exp: e.target.value ? Number(e.target.value) : undefined })
                   }
+                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                 />
               </div>
             </div>
@@ -294,14 +295,14 @@ export function AdvancedFilters({
           <div className="flex justify-between w-full gap-4">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 bg-gray-600 text-white hover:bg-gray-500 border-gray-500"
               onClick={onReset}
             >
               Reset All
             </Button>
             <SheetClose asChild>
               <Button
-                className="flex-1"
+                className="flex-1 bg-white hover:bg-gray-100 text-black"
                 onClick={handleSubmit}
               >
                 Apply Filters

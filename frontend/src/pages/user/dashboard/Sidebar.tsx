@@ -15,7 +15,7 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 bg-gray-900 text-white h-full flex flex-col p-6 space-y-8">
-      <div className="text-2xl font-bold tracking-tight">🏋️ FitMatch</div>
+      <div className="text-2xl font-bold tracking-tight">SportaX</div>
       <div className="px-6 pt-2 pb-4">
         <h2 className="text-xl font-semibold text-gray-300">Dashboard</h2>
       </div>

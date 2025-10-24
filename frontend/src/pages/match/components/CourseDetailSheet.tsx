@@ -64,7 +64,7 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
       availability: selectedAvailability 
     });
     // For now, just show confirmation
-    alert(`预约成功！\n开始时间: ${new Date(startTime).toLocaleString('zh-CN')}\n结束时间: ${new Date(endTime).toLocaleString('zh-CN')}\n套餐ID: ${packageId}`);
+    alert(`Booking successful!\nStart time: ${new Date(startTime).toLocaleString('en-US')}\nEnd time: ${new Date(endTime).toLocaleString('en-US')}\nPackage ID: ${packageId}`);
     setBookingDialogOpen(false);
   };
 
@@ -96,7 +96,7 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
         result
       });
       
-      alert(`报名成功！\nSession: ${selectedSession.title}\n时间: ${new Date(selectedSession.start_ts).toLocaleString('zh-CN')} - ${new Date(selectedSession.end_ts).toLocaleString('zh-CN')}\n套餐ID: ${packageId}\n状态: ${result.status}`);
+      alert(`Booking successful!\nSession: ${selectedSession.title}\nTime: ${new Date(selectedSession.start_ts).toLocaleString('en-US')} - ${new Date(selectedSession.end_ts).toLocaleString('en-US')}\nPackage ID: ${packageId}\nStatus: ${result.status}`);
       
       // 刷新事件列表
       refreshEvents();
@@ -104,7 +104,7 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
     } catch (error) {
       console.error('Booking error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`报名失败: ${errorMessage}`);
+      alert(`Booking failed: ${errorMessage}`);
     }
   };
 
@@ -136,7 +136,7 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         {/* 顶部摘要 */}
         <div className="mb-6">
-          <h3 className="text-xl font-semibold">{course.course_title || "未命名课程"}</h3>
+          <h3 className="text-xl font-semibold">{course.course_title || "Untitled Course"}</h3>
           <div className="text-sm text-gray-500 mt-2">
             <span>{course.sport_name || "—"}</span>
             <span className="mx-2">·</span>
@@ -147,82 +147,82 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
         {/* Tabs */}
         <Tabs defaultValue="course" className="w-full">
           <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="course">课程</TabsTrigger>
-            <TabsTrigger value="schedule">排期</TabsTrigger>
-            <TabsTrigger value="coach">教练</TabsTrigger>
+            <TabsTrigger value="course">Course</TabsTrigger>
+            <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="coach">Coach</TabsTrigger>
           </TabsList>
 
           <TabsContent value="course" className="mt-4">
             <div className="space-y-4">
-              {/* 基本信息 */}
+              {/* Basic Information */}
               <div>
-                <h4 className="font-medium mb-2">基本信息</h4>
+                <h4 className="font-medium mb-2">Basic Information</h4>
                 <div className="space-y-2 text-gray-600">
-                  <p>课程ID：{course.course_id}</p>
-                  <p>课程名称：{course.course_title}</p>
-                  <p>运动类型：{course.sport_name}</p>
-                  <p>教练姓名：{course.coach_name}</p>
-                  <p>教练昵称：{course.coach_nickname}</p>
-                  <p>城市：{course.city}</p>
-                  <p>匹配度：{Math.round(course.match_score)}%</p>
+                  <p>Course ID: {course.course_id}</p>
+                  <p>Course Name: {course.course_title}</p>
+                  <p>Sport Type: {course.sport_name}</p>
+                  <p>Coach Name: {course.coach_name}</p>
+                  <p>Coach Nickname: {course.coach_nickname}</p>
+                  <p>City: {course.city}</p>
+                  <p>Match Score: {Math.round(course.match_score)}%</p>
                 </div>
               </div>
 
-              {/* 价格信息 */}
+              {/* Price Information */}
               <div>
-                <h4 className="font-medium mb-2">价格信息</h4>
+                <h4 className="font-medium mb-2">Price Information</h4>
                 <div className="space-y-2 text-gray-600">
-                  <p>每课最低价：{course.price_per_lesson ? `¥${course.price_per_lesson.toFixed(2)}` : '暂无'}</p>
+                  <p>Minimum Price per Lesson: {course.price_per_lesson ? `¥${course.price_per_lesson.toFixed(2)}` : 'Not available'}</p>
                 </div>
               </div>
 
-              {/* 证书信息 */}
+              {/* Certificate Information */}
               <div>
-                <h4 className="font-medium mb-2">证书信息</h4>
+                <h4 className="font-medium mb-2">Certificate Information</h4>
                 <div className="flex flex-wrap gap-2">
                   {course.certificates?.length > 0 ? course.certificates.map(cert => (
                     <Badge key={cert} variant="secondary">{cert}</Badge>
-                  )) : <p className="text-gray-600">暂无证书</p>}
+                  )) : <p className="text-gray-600">No certificates</p>}
                 </div>
               </div>
 
-              {/* 课程风格 */}
+              {/* Course Styles */}
               <div>
-                <h4 className="font-medium mb-2">课程风格</h4>
+                <h4 className="font-medium mb-2">Course Styles</h4>
                 <div className="flex flex-wrap gap-2">
                   {(course.styles?.length ?? 0) > 0 ? course.styles?.map(style => (
                     <Badge key={style} variant="secondary">{style}</Badge>
-                  )) : <p className="text-gray-600">暂无风格信息</p>}
+                  )) : <p className="text-gray-600">No style information</p>}
                 </div>
               </div>
 
-              {/* 沟通风格 */}
+              {/* Communication Styles */}
               <div>
-                <h4 className="font-medium mb-2">沟通风格</h4>
+                <h4 className="font-medium mb-2">Communication Styles</h4>
                 <div className="flex flex-wrap gap-2">
                   {(course.comm_styles?.length ?? 0) > 0 ? course.comm_styles?.map(style => (
                     <Badge key={style} variant="secondary">{style}</Badge>
-                  )) : <p className="text-gray-600">暂无沟通风格信息</p>}
+                  )) : <p className="text-gray-600">No communication style information</p>}
                 </div>
               </div>
 
-              {/* 训练强度 */}
+              {/* Training Intensity */}
               <div>
-                <h4 className="font-medium mb-2">训练强度</h4>
+                <h4 className="font-medium mb-2">Training Intensity</h4>
                 <div className="flex flex-wrap gap-2">
                   {(course.pace_intensities?.length ?? 0) > 0 ? course.pace_intensities?.map(intensity => (
                     <Badge key={intensity} variant="secondary">{intensity}</Badge>
-                  )) : <p className="text-gray-600">暂无强度信息</p>}
+                  )) : <p className="text-gray-600">No intensity information</p>}
                 </div>
               </div>
 
-              {/* 适合学员 */}
+              {/* Preferred Students */}
               <div>
-                <h4 className="font-medium mb-2">适合学员</h4>
+                <h4 className="font-medium mb-2">Preferred Students</h4>
                 <div className="flex flex-wrap gap-2">
                   {(course.prefer_students?.length ?? 0) > 0 ? course.prefer_students?.map(student => (
                     <Badge key={student} variant="secondary">{student}</Badge>
-                  )) : <p className="text-gray-600">暂无学员偏好信息</p>}
+                  )) : <p className="text-gray-600">No student preference information</p>}
                 </div>
               </div>
             </div>
@@ -231,7 +231,7 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
           <TabsContent value="schedule" className="mt-4">
             {loading ? (
               <div className="text-center py-8 text-gray-500">
-                加载中...
+                Loading...
               </div>
             ) : (
             <SessionAvailabilityList
@@ -247,7 +247,7 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
 
           <TabsContent value="coach" className="mt-4">
             <div className="space-y-4">
-              <p className="text-gray-600">教练信息待完善</p>
+              <p className="text-gray-600">Coach information to be completed</p>
             </div>
           </TabsContent>
         </Tabs>
@@ -273,9 +273,9 @@ export function CourseDetailSheet({ open, onOpenChange, course }: CourseDetailSh
         {/* CTA */}
         <div className="mt-8">
           <button
-            className="w-full py-3 px-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            className="w-full py-3 px-4 bg-white hover:bg-gray-100 text-black rounded-lg font-semibold transition-all duration-200 hover:scale-105 transform"
           >
-            请求时间
+            Request Time
           </button>
         </div>
       </SheetContent>

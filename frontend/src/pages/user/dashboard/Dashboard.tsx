@@ -21,7 +21,7 @@ function Dashboard() {
   if (!user) return null;
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black">
       <Sidebar/>
       
       <main className="flex-1 p-6 overflow-auto">

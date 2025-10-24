@@ -84,7 +84,7 @@ function convertAvailabilityBookingToUIEvent(booking: AvailabilityBookingRecord)
 
 function formatDateTime(dateStr: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleString('zh-CN', {
+  return date.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
     weekday: 'short',
@@ -95,7 +95,7 @@ function formatDateTime(dateStr: string): string {
 
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleTimeString('zh-CN', {
+  return date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   });
@@ -107,12 +107,12 @@ function calculateDuration(startTs: string, endTs: string): string {
   const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
   
   if (durationMinutes < 60) {
-    return `${durationMinutes}分钟`;
+    return `${durationMinutes} min`;
   }
   
   const hours = Math.floor(durationMinutes / 60);
   const minutes = durationMinutes % 60;
-  return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`;
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
 }
 
 export default function StudentSchedulePage() {
@@ -198,10 +198,10 @@ export default function StudentSchedulePage() {
       ]);
       setBookings(bookingsData);
       setWaitlist(waitlistData);
-      alert('取消预订成功！');
+      alert('Booking cancelled successfully!');
     } catch (error) {
       console.error('Cancel booking error:', error);
-      alert(`取消预订失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      alert(`Booking cancellation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -216,10 +216,10 @@ export default function StudentSchedulePage() {
       ]);
       setBookings(bookingsData);
       setWaitlist(waitlistData);
-      alert('退出等待队列成功！');
+      alert('Successfully exited waitlist!');
     } catch (error) {
       console.error('Exit waitlist error:', error);
-      alert(`退出等待队列失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      alert(`Failed to exit waitlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -236,10 +236,10 @@ export default function StudentSchedulePage() {
       setBookings(bookingsData);
       setWaitlist(waitlistData);
       setAvailabilityBookings(availabilityBookingsData);
-      alert('取消Availability预约成功！');
+      alert('Availability booking cancelled successfully!');
     } catch (error) {
       console.error('Cancel availability booking error:', error);
-      alert(`取消Availability预约失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      alert(`Failed to cancel availability booking: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -261,27 +261,27 @@ export default function StudentSchedulePage() {
   ].sort((a, b) => new Date(a.startTs).getTime() - new Date(b.startTs).getTime());
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+      <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              我的课程安排
+            <h1 className="text-2xl font-bold text-white">
+              My Course Schedule
             </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              查看您的预订课程和等待队列
+            <p className="text-sm text-gray-400 mt-1">
+              View your booked courses and waitlist
             </p>
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            时区: <span className="font-medium">{timezoneLabel}</span>
+          <div className="text-sm text-gray-400">
+            Timezone: <span className="font-medium">{timezoneLabel}</span>
           </div>
         </div>
 
         {/* Week Navigation */}
         <div className="flex items-center justify-between mt-6">
           <div className="flex items-center space-x-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold text-white">
               {weekRangeLabel}
             </h2>
           </div>
@@ -291,35 +291,36 @@ export default function StudentSchedulePage() {
               variant="outline"
               size="sm"
               onClick={handlePrevWeek}
-              className="flex items-center space-x-1"
+              className="flex items-center space-x-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500"
             >
               <ChevronLeft className="h-4 w-4" />
-              <span>上一周</span>
+              <span>Previous Week</span>
             </Button>
 
             <Button
               variant="outline"
               size="sm"
               onClick={handleNextWeek}
-              className="flex items-center space-x-1"
+              className="flex items-center space-x-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500"
             >
-              <span>下一周</span>
+              <span>Next Week</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                <Button variant="outline" size="sm" className="flex items-center space-x-2 bg-gray-700 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500">
                   <CalendarIcon className="h-4 w-4" />
-                  <span>跳转到周</span>
+                  <span>Jump to Week</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
+              <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700" align="end">
                 <Calendar
                   mode="single"
                   selected={weekStart}
                   onSelect={(date) => date && handleJumpToWeek(date)}
                   initialFocus
+                  className="[&_button]:text-white [&_button]:hover:bg-gray-700"
                 />
               </PopoverContent>
             </Popover>
@@ -333,7 +334,7 @@ export default function StudentSchedulePage() {
         <div className="flex-1 p-6">
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-gray-500 dark:text-gray-400">加载中...</div>
+              <div className="text-gray-400">Loading...</div>
             </div>
           ) : (
             <UserScheduleWeekView weekStart={weekStart} events={calendarEvents} />
@@ -341,26 +342,26 @@ export default function StudentSchedulePage() {
         </div>
 
         {/* Right: Session List */}
-        <div className="w-96 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 overflow-y-auto">
+        <div className="w-96 border-l border-gray-700 bg-gray-800 p-6 overflow-y-auto">
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              我的课程
+            <h3 className="text-lg font-semibold text-white mb-2">
+              My Courses
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              已预订: {bookings.filter(b => b.bookingStatus === 'CONFIRMED').length} | 
-              等待中: {waitlist.length} | 
+            <p className="text-sm text-gray-400">
+              Booked: {bookings.filter(b => b.bookingStatus === 'CONFIRMED').length} | 
+              Waitlist: {waitlist.length} | 
               Availability: {availabilityBookings.filter(b => b.bookingStatus === 'CONFIRMED').length}
             </p>
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500">
-              加载中...
+            <div className="text-center py-8 text-gray-400">
+              Loading...
             </div>
           ) : allSessions.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p>暂无课程安排</p>
-              <p className="text-sm mt-2">去预约课程吧！</p>
+            <div className="text-center py-12 text-gray-400">
+              <p>No course schedule</p>
+              <p className="text-sm mt-2">Go book some courses!</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -385,12 +386,12 @@ export default function StudentSchedulePage() {
                           {session.title}
                           {session.type === 'booking' && (
                             <Badge variant="secondary" className="ml-2 bg-green-200 text-green-700">
-                              已预订
+                              Booked
                             </Badge>
                           )}
                           {session.type === 'waitlist' && (
                             <Badge variant="secondary" className="ml-2 bg-blue-200 text-blue-700">
-                              等待中
+                              Waitlist
                             </Badge>
                           )}
                           {session.type === 'availability' && (
@@ -417,7 +418,7 @@ export default function StudentSchedulePage() {
                             <div className="flex items-center">
                               <Users className="h-4 w-4 mr-2" />
                               <span>
-                                已预约: {session.bookedCount || 0} / {session.capacity}
+                                Booked: {session.bookedCount || 0} / {session.capacity}
                               </span>
                             </div>
                           )}
@@ -426,7 +427,7 @@ export default function StudentSchedulePage() {
                             <div className="flex items-center">
                               <Clock3 className="h-4 w-4 mr-2" />
                               <span className="text-blue-600 font-medium">
-                                等待队列位置: 第 {(session as WaitlistRecord).waitlistPosition} 位
+                                Waitlist Position: #{(session as WaitlistRecord).waitlistPosition}
                               </span>
                             </div>
                           )}
@@ -441,8 +442,8 @@ export default function StudentSchedulePage() {
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-purple-100 text-purple-800'
                         }>
-                          {session.type === 'booking' ? '已预订' : 
-                           session.type === 'waitlist' ? '等待中' : 'Availability'}
+                          {session.type === 'booking' ? 'Booked' : 
+                           session.type === 'waitlist' ? 'Waitlist' : 'Availability'}
                         </Badge>
                         
                         <Button 
@@ -463,8 +464,8 @@ export default function StudentSchedulePage() {
                           }
                         >
                           <X className="h-4 w-4 mr-1" />
-                          {session.type === 'booking' ? '取消报名' : 
-                           session.type === 'waitlist' ? '取消等待' : '取消预约'}
+                          {session.type === 'booking' ? 'Cancel Booking' : 
+                           session.type === 'waitlist' ? 'Exit Waitlist' : 'Cancel Booking'}
                         </Button>
                       </div>
                     </div>

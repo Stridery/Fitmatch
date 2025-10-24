@@ -19,8 +19,16 @@ interface SessionAvailabilityListProps {
 }
 
 function formatDateTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleString('zh-CN', {
+  // 确保时间字符串格式正确，处理不同的时间格式
+  let timeStr = dateStr;
+  
+  // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+  if (timeStr && !timeStr.endsWith('Z') && !timeStr.includes('+')) {
+    timeStr = timeStr + 'Z';
+  }
+  
+  const date = new Date(timeStr);
+  return date.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
     weekday: 'short',
@@ -30,25 +38,45 @@ function formatDateTime(dateStr: string): string {
 }
 
 function formatTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleTimeString('zh-CN', {
+  // 确保时间字符串格式正确，处理不同的时间格式
+  let timeStr = dateStr;
+  
+  // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+  if (timeStr && !timeStr.endsWith('Z') && !timeStr.includes('+')) {
+    timeStr = timeStr + 'Z';
+  }
+  
+  const date = new Date(timeStr);
+  return date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   });
 }
 
 function calculateDuration(startTs: string, endTs: string): string {
-  const start = new Date(startTs);
-  const end = new Date(endTs);
+  // 确保时间字符串格式正确，处理不同的时间格式
+  let startTimeStr = startTs;
+  let endTimeStr = endTs;
+  
+  // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+  if (startTimeStr && !startTimeStr.endsWith('Z') && !startTimeStr.includes('+')) {
+    startTimeStr = startTimeStr + 'Z';
+  }
+  if (endTimeStr && !endTimeStr.endsWith('Z') && !endTimeStr.includes('+')) {
+    endTimeStr = endTimeStr + 'Z';
+  }
+  
+  const start = new Date(startTimeStr);
+  const end = new Date(endTimeStr);
   const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
   
   if (durationMinutes < 60) {
-    return `${durationMinutes}分钟`;
+    return `${durationMinutes} minutes`;
   }
   
   const hours = Math.floor(durationMinutes / 60);
   const minutes = durationMinutes % 60;
-  return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`;
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
 }
 
 export default function SessionAvailabilityList({ events, onSelectAvailability, onBookSession, onCancelBooking, onBookingSuccess, courseId }: SessionAvailabilityListProps) {
@@ -197,10 +225,10 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
       setUserBookings(prev => prev.filter(booking => booking.sessionEventId !== sessionId));
       // 通知父组件刷新
       onCancelBooking?.(sessionId);
-      alert('取消预订成功！');
+      alert('Booking cancelled successfully!');
     } catch (error) {
       console.error('Cancel booking error:', error);
-      alert(`取消预订失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      alert(`Cancel booking failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -212,10 +240,10 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
       setUserWaitlist(prev => prev.filter(item => item.sessionEventId !== sessionId));
       // 通知父组件刷新
       onCancelBooking?.(sessionId);
-      alert('退出等待队列成功！');
+      alert('Successfully exited waitlist!');
     } catch (error) {
       console.error('Exit waitlist error:', error);
-      alert(`退出等待队列失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      alert(`Exit waitlist failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -223,7 +251,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
     return (
       <div className="text-center py-12 text-gray-500">
         <Calendar className="mx-auto h-12 w-12 mb-4 text-gray-400" />
-        <p>暂无可预约的课程时段</p>
+        <p>No bookable course sessions available</p>
       </div>
     );
   }
@@ -235,7 +263,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
         <div>
           <h3 className="text-lg font-semibold mb-4 flex items-center">
             <Calendar className="h-5 w-5 mr-2" />
-            固定课程（Session）
+            Fixed Sessions
           </h3>
           <div className="space-y-3">
             {sessions.map((session) => {
@@ -264,12 +292,12 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                           {session.title}
                           {isBooked && (
                             <Badge variant="secondary" className="ml-2 bg-gray-200 text-gray-700">
-                              已预订
+                              Booked
                             </Badge>
                           )}
                           {isInWaitlist && (
                             <Badge variant="secondary" className="ml-2 bg-blue-200 text-blue-700">
-                              等待中
+                              Waiting
                             </Badge>
                           )}
                         </h4>
@@ -296,9 +324,9 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                             <div className="flex items-center">
                               <Users className="h-4 w-4 mr-2" />
                               <span>
-                                已预约: {session.booked_count || 0} / {session.capacity}
+                                Booked: {session.booked_count || 0} / {session.capacity}
                                 {isFull && !isBooked && !isInWaitlist && (
-                                  <Badge variant="destructive" className="ml-2">已满</Badge>
+                                  <Badge variant="destructive" className="ml-2">Full</Badge>
                                 )}
                               </span>
                             </div>
@@ -308,7 +336,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                             <div className="flex items-center">
                               <Clock3 className="h-4 w-4 mr-2" />
                               <span className="text-blue-600 font-medium">
-                                等待队列位置: 第 {waitlistPosition} 位
+                                Waitlist position: #{waitlistPosition}
                               </span>
                             </div>
                           )}
@@ -323,7 +351,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                             ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
                             : 'bg-green-100 text-green-800 hover:bg-green-100'
                         }>
-                          {isBooked ? '已预订' : isInWaitlist ? '等待中' : '固定课程'}
+                          {isBooked ? 'Booked' : isInWaitlist ? 'Waiting' : 'Fixed Session'}
                         </Badge>
                         
                         {isBooked ? (
@@ -333,7 +361,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                             className="bg-red-600 hover:bg-red-700"
                           >
                             <X className="h-4 w-4 mr-1" />
-                            取消报名
+                            Cancel Booking
                           </Button>
                         ) : isInWaitlist ? (
                           <Button 
@@ -342,7 +370,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                             className="bg-orange-600 hover:bg-orange-700"
                           >
                             <X className="h-4 w-4 mr-1" />
-                            取消等待
+                            Cancel Waitlist
                           </Button>
                         ) : (
                           <Button 
@@ -350,7 +378,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                             onClick={() => onBookSession?.(session)}
                             className="bg-green-600 hover:bg-green-700"
                           >
-                            {isFull ? '加入等待' : '立即报名'}
+                            {isFull ? 'Join Waitlist' : 'Book Now'}
                           </Button>
                         )}
                       </div>
@@ -368,10 +396,10 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
         <div>
           <h3 className="text-lg font-semibold mb-4 flex items-center">
             <Clock className="h-5 w-5 mr-2" />
-            可预约时段（Availability）
+            Available Time Slots
           </h3>
           <p className="text-sm text-gray-600 mb-4">
-            教练在以下时段有空，您可以选择合适的时间预约课程
+            The coach is available during the following time slots, you can choose a suitable time to book a course
           </p>
           <div className="space-y-4">
             {availabilities.map((availability) => {
@@ -382,7 +410,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                 <div key={availability.id} className="space-y-3">
                   {/* Availability标题 */}
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-lg">{availability.title || '可预约时段'}</h4>
+                    <h4 className="font-medium text-lg">{availability.title || 'Available Time Slots'}</h4>
                     {availability.location && (
                       <div className="flex items-center text-sm text-gray-600">
                         <MapPin className="h-4 w-4 mr-1" />
@@ -394,11 +422,11 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                   {/* 可用时段列表 */}
                   {isLoading ? (
                     <div className="text-center py-4 text-gray-500">
-                      加载可用时段中...
+                      Loading available slots...
                     </div>
                   ) : slots.length === 0 ? (
                     <div className="text-center py-4 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
-                      暂无可用时段
+                      No available time slots
                     </div>
                   ) : (
                     <div className="grid gap-3">
@@ -412,7 +440,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                                     <Clock className="h-4 w-4 mr-2" />
                                     <span>{formatDateTime(slot.slotStart)} - {formatTime(slot.slotEnd)}</span>
                                     <Badge variant="outline" className="ml-2">
-                                      {Math.round(slot.durationMinutes / 60)}小时{slot.durationMinutes % 60}分钟
+                                      {Math.round(slot.durationMinutes / 60)}h {slot.durationMinutes % 60}m
                                     </Badge>
                                   </div>
                                 </div>
@@ -420,7 +448,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                               
                               <div className="flex flex-col items-end space-y-2">
                                 <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-                                  可预约
+                                  Available
                                 </Badge>
                                 <Button 
                                   size="sm"
@@ -430,7 +458,7 @@ export default function SessionAvailabilityList({ events, onSelectAvailability, 
                                     end_ts: slot.slotEnd
                                   })}
                                 >
-                                  选择时间
+                                  Select Time
                                 </Button>
                               </div>
                             </div>

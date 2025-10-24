@@ -89,7 +89,7 @@ const InjuriesInfo: React.FC<Props> = ({ injuries, setInjuries }) => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Injuries (Optional)</h2>
+      <h2 className="text-xl font-semibold text-white">Injuries (Optional)</h2>
 
       {injuries.length > 0 ? (
         <div className="space-y-2">
@@ -102,36 +102,36 @@ const InjuriesInfo: React.FC<Props> = ({ injuries, setInjuries }) => {
             return (
               <div
                 key={index}
-                className="border p-3 rounded bg-gray-50 flex flex-col gap-1"
+                className="border border-gray-600 p-3 rounded bg-gray-700 flex flex-col gap-1"
               >
                 <div className="flex gap-1 justify-end">
                   <Button
                     type="button"
                     onClick={() => handleEdit(index)}
-                    className="text-sm text-black bg-gray-200 hover:bg-gray-300"
+                    className="text-sm text-white bg-gray-600 hover:bg-gray-500"
                   >
                     ✏️ Edit
                   </Button>
                   <Button
                     type="button"
                     onClick={() => handleDelete(index)}
-                    className="text-sm text-black bg-gray-200 hover:bg-gray-300"
+                    className="text-sm text-white bg-gray-600 hover:bg-gray-500"
                   >
                     🗑️ Delete
                   </Button>
                 </div>
 
-                <p className="mt-0"><strong>Type:</strong> {label}</p>
+                <p className="mt-0 text-white"><strong>Type:</strong> {label}</p>
                 {injury.injuryTag.length > 0 && (
-                  <p className="mt-0"><strong>Tags:</strong> {injury.injuryTag.join(", ")}</p>
+                  <p className="mt-0 text-white"><strong>Tags:</strong> {injury.injuryTag.join(", ")}</p>
                 )}
-                <p className="mt-0"><strong>Visible to Coach:</strong> {injury.isVisibleToCoach ? "Yes" : "No"}</p>
+                <p className="mt-0 text-white"><strong>Visible to Coach:</strong> {injury.isVisibleToCoach ? "Yes" : "No"}</p>
               </div>
             )
           })}
         </div>
       ) : (
-        <p className="text-gray-500">None</p>
+        <p className="text-gray-400">None</p>
       )}
 
       {!showForm && (
@@ -139,26 +139,26 @@ const InjuriesInfo: React.FC<Props> = ({ injuries, setInjuries }) => {
           onClick={() => setShowForm(true)}
           type="button"
           variant="outline"
-          className="text-black"
+          className="text-white bg-gray-700 border-gray-600 hover:bg-gray-600"
         >
           Add Injury Record
         </Button>
       )}
 
       {showForm && (
-        <div className="space-y-4 border rounded-lg p-4 bg-white shadow-sm">
+        <div className="space-y-4 border border-gray-600 rounded-lg p-4 bg-gray-700 shadow-sm">
           <div className="space-y-2">
-            <Label>Injury Type</Label>
+            <Label className="text-gray-300">Injury Type</Label>
             <Select
               value={newInjury.injuryType}
               onValueChange={(val) => setNewInjury({ ...newInjury, injuryType: val })}
             >
-              <SelectTrigger className="border text-black">
+              <SelectTrigger className="border border-gray-600 text-white bg-gray-700">
                 <SelectValue placeholder="Select injury type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-gray-800 border-gray-700">
                 {injuryTypeOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  <SelectItem key={opt.value} value={opt.value} className="text-white hover:bg-gray-700">{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -166,19 +166,19 @@ const InjuriesInfo: React.FC<Props> = ({ injuries, setInjuries }) => {
 
           {newInjury.injuryType === "other" && (
             <div className="space-y-2">
-              <Label>Custom Injury Type</Label>
+              <Label className="text-gray-300">Custom Injury Type</Label>
               <Input
                 value={newInjury.customInjuryType}
                 onChange={(e) =>
                   setNewInjury({ ...newInjury, customInjuryType: e.target.value })
                 }
-                placeholder="e.g. Hip inflammation"
+                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-white focus:ring-white"
               />
             </div>
           )}
 
           <div className="space-y-2">
-            <Label>Tags (optional, multiple)</Label>
+            <Label className="text-gray-300">Tags (optional, multiple)</Label>
             <div className="flex flex-wrap gap-3">
               {injuryTagOptions.map((tag) => (
                 <div key={tag.value} className="flex items-center space-x-2">
@@ -187,7 +187,7 @@ const InjuriesInfo: React.FC<Props> = ({ injuries, setInjuries }) => {
                     checked={newInjury.injuryTag.includes(tag.value)}
                     onCheckedChange={() => toggleTag(tag.value)}
                   />
-                  <Label htmlFor={tag.value}>{tag.label}</Label>
+                  <Label htmlFor={tag.value} className="text-gray-300">{tag.label}</Label>
                 </div>
               ))}
             </div>
@@ -201,20 +201,20 @@ const InjuriesInfo: React.FC<Props> = ({ injuries, setInjuries }) => {
                 setNewInjury({ ...newInjury, isVisibleToCoach: !!checked })
               }
             />
-            <Label htmlFor="visible">Visible to Coach</Label>
+            <Label htmlFor="visible" className="text-gray-300">Visible to Coach</Label>
           </div>
 
           <div className="flex justify-end space-x-2">
             <Button
               type="button"
-              variant="secondary"
+              className="bg-gray-600 text-white hover:bg-gray-500"
               onClick={resetForm}
             >
               Cancel
             </Button>
             <Button
               type="button"
-              onClick={handleSaveInjury}
+              className="bg-white hover:bg-gray-100 text-black"
             >
               {editingIndex !== null ? "Update" : "Save"}
             </Button>

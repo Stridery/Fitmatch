@@ -62,5 +62,8 @@ public class CoachCalendarEvent {
         if (id == null) {
             id = UUID.randomUUID();
         }
+        if (bookedCount == null) {
+            bookedCount = 0;
+        }
     }
 }

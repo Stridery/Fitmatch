@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Slf4j
 @RestController
@@ -43,8 +45,8 @@ public class CoachCalendarController {
             response.put("course_id", event.getCourseId());
             response.put("title", event.getTitle());
             response.put("location", event.getLocation());
-            response.put("start_ts", event.getStartTs().toString() + "Z"); // 添加Z表示UTC
-            response.put("end_ts", event.getEndTs().toString() + "Z"); // 添加Z表示UTC
+            response.put("start_ts", event.getStartTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
+            response.put("end_ts", event.getEndTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
             response.put("capacity", event.getCapacity());
             response.put("booked_count", event.getBookedCount());
             response.put("created_at", event.getCreatedAt().toString() + "Z");
@@ -79,8 +81,8 @@ public class CoachCalendarController {
             response.put("course_id", event.getCourseId());
             response.put("title", event.getTitle());
             response.put("location", event.getLocation());
-            response.put("start_ts", event.getStartTs().toString() + "Z"); // 添加Z表示UTC
-            response.put("end_ts", event.getEndTs().toString() + "Z"); // 添加Z表示UTC
+            response.put("start_ts", event.getStartTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
+            response.put("end_ts", event.getEndTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
             response.put("capacity", event.getCapacity());
             response.put("booked_count", event.getBookedCount());
             response.put("created_at", event.getCreatedAt().toString() + "Z");
@@ -124,11 +126,26 @@ public class CoachCalendarController {
      * 获取教练的availability列表
      */
     @GetMapping("/availability/coach/{coachId}")
-    public ResponseEntity<?> getCoachAvailabilities(@PathVariable UUID coachId) {
+    public ResponseEntity<?> getCoachAvailabilities(
+            @PathVariable UUID coachId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
         try {
-            log.info("Getting availabilities for coach: {}", coachId);
+            log.info("Getting availabilities for coach: {}, startDate: {}, endDate: {}", coachId, startDate, endDate);
             
-            List<CoachCalendarEvent> availabilities = calendarService.getCoachAvailabilities(coachId);
+            List<CoachCalendarEvent> availabilities;
+            
+            if (startDate != null && endDate != null) {
+                // 按时间范围过滤，直接解析UTC时间字符串
+                LocalDateTime startTime = LocalDateTime.ofInstant(
+                    java.time.Instant.parse(startDate), ZoneOffset.UTC);
+                LocalDateTime endTime = LocalDateTime.ofInstant(
+                    java.time.Instant.parse(endDate), ZoneOffset.UTC);
+                availabilities = calendarService.getCoachAvailabilities(coachId, startTime, endTime);
+            } else {
+                // 获取所有availability
+                availabilities = calendarService.getCoachAvailabilities(coachId);
+            }
             
             // 转换为前端期望的格式
             List<Map<String, Object>> response = availabilities.stream()
@@ -140,8 +157,8 @@ public class CoachCalendarController {
                     eventMap.put("course_id", event.getCourseId());
                     eventMap.put("title", event.getTitle());
                     eventMap.put("location", event.getLocation());
-                    eventMap.put("start_ts", event.getStartTs().toString() + "Z"); // 添加Z表示UTC
-                    eventMap.put("end_ts", event.getEndTs().toString() + "Z"); // 添加Z表示UTC
+                    eventMap.put("start_ts", event.getStartTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
+                    eventMap.put("end_ts", event.getEndTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
                     eventMap.put("capacity", event.getCapacity());
                     eventMap.put("booked_count", event.getBookedCount());
                     eventMap.put("created_at", event.getCreatedAt().toString() + "Z");
@@ -175,6 +192,7 @@ public class CoachCalendarController {
                 .body(new ErrorResponse("Failed to get availability courses: " + e.getMessage()));
         }
     }
+    
     
     /**
      * 错误响应类

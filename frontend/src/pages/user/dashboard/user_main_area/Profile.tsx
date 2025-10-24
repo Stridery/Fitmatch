@@ -323,273 +323,339 @@ console.log("public url: ", publicUrlData);
 
 
   return (
-    <div className="space-y-8">
-      <h2 className="text-2xl font-bold">Basic Profile Information</h2>
-      <div className="grid grid-cols-2 gap-4">
-        <AvatarUploader
-          onFileSelect={(file) => setAvatarFile(file)}
-          currentUrl={profile.avatarUrl}
-        />
-
-        <Input
-          placeholder="Nickname"
-          value={profile.nickname}
-          onChange={(e) => setProfile({ ...profile, nickname: e.target.value })}
-          className="input"
-        />
-        <Input
-          placeholder="Phone Number"
-          value={profile.phone}
-          onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-          className="input"
-        />
-        <Select
-          value={profile.isFor}
-          onValueChange={(value) => setProfile({ ...profile, isFor: value })}
-        >
-          <SelectTrigger className="w-full text-black bg-white dark:text-white dark:bg-gray-900">
-            <SelectValue placeholder="Select a registrant" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="self">Myself</SelectItem>
-            <SelectItem value="child">My Child</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={profile.gender}
-          onValueChange={(value) => setProfile({ ...profile, gender: value })}
-        >
-          <SelectTrigger className="w-full text-black bg-white dark:text-white dark:bg-gray-900">
-            <SelectValue placeholder="Your gender" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="M">Male</SelectItem>
-            <SelectItem value="F">Female</SelectItem>
-            <SelectItem value="O">Other</SelectItem>
-            <SelectItem value="U">Prefer not to say</SelectItem>
-          </SelectContent>
-        </Select>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-between text-black bg-white dark:text-white dark:bg-gray-900"
-            >
-              {selectedDate ? format(selectedDate, "yyyy-MM-dd") : "Pick a date"}
-              <CalendarIcon className="ml-2 h-4 w-4 text-gray-400" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => {
-                if (date) {
-                  setSelectedDate(date)
-                  setProfile({ ...profile, birthday: formatDateLocal(date) })
-                }
-              }}
-              captionLayout="dropdown"
-              className="rounded-md border [&_button]:text-black dark:[&_button]:text-white"
+    <div className="space-y-8 text-white">
+      {/* Basic Profile Section */}
+      <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6 shadow-xl">
+        <h2 className="text-2xl font-bold text-white mb-6">Basic Profile Information</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Avatar Section */}
+          <div className="md:col-span-2 flex justify-center mb-4">
+            <AvatarUploader
+              onFileSelect={(file) => setAvatarFile(file)}
+              currentUrl={profile.avatarUrl}
             />
-          </PopoverContent>
-        </Popover>
-        <Popover open={countryPopoverOpen} onOpenChange={setCountryPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={countryPopoverOpen}
-              className="w-full justify-between text-black"
-            >
-              {profile.country ? profile.country : <span className="text-gray-400">Select country</span>}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full p-0">
-            <Command>
-              <CommandInput placeholder="Search countries..." />
-              <CommandEmpty>No matching result</CommandEmpty>
-              <CommandGroup>
-                {countries.map((c) => (
-                  <CommandItem
-                    key={c}
-                    value={c}
-                    onSelect={(val) => {
-                      setProfile({ ...profile, country: val })
-                      setCountryPopoverOpen(false)
-                    }}
-                    className={cn(
-                      "!text-black hover:bg-gray-100",
-                      profile.country === c && "bg-gray-100"
-                    )}
-                  >
-                    <Check
-                      className={cn("mr-2 h-4 w-4", profile.country === c ? "opacity-100" : "opacity-0")}
-                    />
-                    {c}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        <Input
-          placeholder="City"
-          value={profile.city}
-          onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-          className="input"
-        />
-        <Input
-          placeholder="MBTI Type"
-          value={profile.mbtiType}
-          onChange={(e) => setProfile({ ...profile, mbtiType: e.target.value })}
-          className="input"
-        />
-      </div>
+          </div>
 
-      <div className="col-span-2">
-        <Button
-          onClick={handleUpdateProfile}
-          className="px-4 py-2 bg-green-600 text-white rounded w-full"
-        >
-          Update profile
-        </Button>
-      </div>
+          {/* Personal Information */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300">Nickname</Label>
+              <Input
+                placeholder="Enter your nickname"
+                value={profile.nickname}
+                onChange={(e) => setProfile({ ...profile, nickname: e.target.value })}
+                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-white focus:ring-white"
+              />
+            </div>
 
-      <h2 className="text-2xl font-bold">Injury Information</h2>
-      {injuries.length > 0 ? (
-        <div className="space-y-2">
-          {injuries.map((injury, index) => {
-            const label =
-              injury.injuryType === "other"
-                ? injury.customInjuryType
-                : injuryTypeOptions.find((opt) => opt.value === injury.injuryType)?.label || injury.injuryType
+            <div className="space-y-2">
+              <Label className="text-gray-300">Phone Number</Label>
+              <Input
+                placeholder="Enter your phone number"
+                value={profile.phone}
+                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-white focus:ring-white"
+              />
+            </div>
 
-            return (
-              <div
-                key={index}
-                className="border p-3 rounded bg-gray-50 flex flex-col gap-1"
+            <div className="space-y-2">
+              <Label className="text-gray-300">Registration For</Label>
+              <Select
+                value={profile.isFor}
+                onValueChange={(value) => setProfile({ ...profile, isFor: value })}
               >
-                <div className="flex gap-1 justify-end">
+                <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white hover:bg-gray-600/50 hover:border-gray-500">
+                  <SelectValue placeholder="Select registrant" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectItem value="self" className="text-white hover:bg-gray-700">Myself</SelectItem>
+                  <SelectItem value="child" className="text-white hover:bg-gray-700">My Child</SelectItem>
+                  <SelectItem value="other" className="text-white hover:bg-gray-700">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300">Gender</Label>
+              <Select
+                value={profile.gender}
+                onValueChange={(value) => setProfile({ ...profile, gender: value })}
+              >
+                <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white hover:bg-gray-600/50 hover:border-gray-500">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectItem value="M" className="text-white hover:bg-gray-700">Male</SelectItem>
+                  <SelectItem value="F" className="text-white hover:bg-gray-700">Female</SelectItem>
+                  <SelectItem value="O" className="text-white hover:bg-gray-700">Other</SelectItem>
+                  <SelectItem value="U" className="text-white hover:bg-gray-700">Prefer not to say</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-300">Birthday</Label>
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button
-                    onClick={() => handleEdit(index)}
-                    className="text-sm text-blue-500 bg-gray-100 hover:bg-blue-100 hover:text-blue-700"
+                    variant="outline"
+                    className="w-full justify-between bg-gray-700/50 border-gray-600 text-white hover:bg-gray-600/50 hover:border-gray-500"
                   >
-                    ✏️ Edit
+                    {selectedDate ? format(selectedDate, "yyyy-MM-dd") : "Pick a date"}
+                    <CalendarIcon className="ml-2 h-4 w-4 text-gray-400" />
                   </Button>
-                  <Button
-                    onClick={() => handleDelete(index)}
-                    className="text-sm text-red-500 bg-gray-100 hover:bg-red-100 hover:text-red-700"
-                  >
-                    🗑️ Delete
-                  </Button>
-                </div>
-
-                <p className="mt-0"><strong>Type:</strong> {label}</p>
-                {injury.injuryTag.length > 0 && (
-                  <p className="mt-0"><strong>Tags:</strong> {injury.injuryTag.join(", ")}</p>
-                )}
-                <p className="mt-0"><strong>Visible to Coach:</strong> {injury.isVisibleToCoach ? "Yes" : "No"}</p>
-              </div>
-            )
-          })}
-        </div>
-      ) : (
-        <p className="text-gray-500">None</p>
-      )}
-
-      {!showForm && (
-        <Button onClick={() => setShowForm(true)} type="button" variant="outline" className="text-black">
-          Add Injury Record
-        </Button>
-      )}
-
-      {showForm && (
-              <div className="space-y-4 border rounded-lg p-4 bg-white shadow-sm">
-                <div className="space-y-2">
-                  <Label>Injury Type</Label>
-                  <Select
-                    value={newInjury.injuryType}
-                    onValueChange={(val) => setNewInjury({ ...newInjury, injuryType: val })}
-                  >
-                    <SelectTrigger className="border text-black">
-                      <SelectValue placeholder="Select injury type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {injuryTypeOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-      
-                {newInjury.injuryType === "other" && (
-                  <div className="space-y-2">
-                    <Label>Custom Injury Type</Label>
-                    <Input
-                      value={newInjury.customInjuryType}
-                      onChange={(e) =>
-                        setNewInjury({ ...newInjury, customInjuryType: e.target.value })
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setSelectedDate(date)
+                        setProfile({ ...profile, birthday: formatDateLocal(date) })
                       }
-                      placeholder="e.g. Hip inflammation"
-                    />
-                  </div>
-                )}
-      
-                <div className="space-y-2">
-                  <Label>Tags (optional, multiple)</Label>
-                  <div className="flex flex-wrap gap-3">
-                    {injuryTagOptions.map((tag) => (
-                      <div key={tag.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={tag.value}
-                          checked={newInjury.injuryTag.includes(tag.value)}
-                          onCheckedChange={() => toggleTag(tag.value)}
-                        />
-                        <Label htmlFor={tag.value}>{tag.label}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-      
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="visible"
-                    checked={newInjury.isVisibleToCoach}
-                    onCheckedChange={(checked) =>
-                      setNewInjury({ ...newInjury, isVisibleToCoach: !!checked })
-                    }
+                    }}
+                    captionLayout="dropdown"
+                    className="rounded-md border [&_button]:text-white [&_button]:hover:bg-gray-700"
                   />
-                  <Label htmlFor="visible">Visible to Coach</Label>
-                </div>
-      
-                <div className="flex justify-end space-x-2">
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-300">Country</Label>
+              <Popover open={countryPopoverOpen} onOpenChange={setCountryPopoverOpen}>
+                <PopoverTrigger asChild>
                   <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={resetForm}
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={countryPopoverOpen}
+                    className="w-full justify-between bg-gray-700/50 border-gray-600 text-white hover:bg-gray-600/50 hover:border-gray-500"
                   >
-                    Cancel
+                    {profile.country ? profile.country : <span className="text-gray-400">Select country</span>}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={handleSaveInjury}
-                  >
-                    {editingIndex !== null ? "Update" : "Save"}
-                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0 bg-gray-800 border-gray-700">
+                  <Command>
+                    <CommandInput placeholder="Search countries..." className="text-white" />
+                    <CommandEmpty className="text-gray-400">No matching result</CommandEmpty>
+                    <CommandGroup>
+                      {countries.map((c) => (
+                        <CommandItem
+                          key={c}
+                          value={c}
+                          onSelect={(val) => {
+                            setProfile({ ...profile, country: val })
+                            setCountryPopoverOpen(false)
+                          }}
+                          className={cn(
+                            "text-white hover:bg-gray-700",
+                            profile.country === c && "bg-gray-700"
+                          )}
+                        >
+                          <Check
+                            className={cn("mr-2 h-4 w-4", profile.country === c ? "opacity-100" : "opacity-0")}
+                          />
+                          {c}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Additional Information */}
+          <div className="space-y-4 md:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-300">City</Label>
+                <Input
+                  placeholder="Enter your city"
+                  value={profile.city}
+                  onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-white focus:ring-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-300">MBTI Type</Label>
+                <Input
+                  placeholder="Enter your MBTI type"
+                  value={profile.mbtiType}
+                  onChange={(e) => setProfile({ ...profile, mbtiType: e.target.value })}
+                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-white focus:ring-white"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Update Button */}
+        <div className="mt-6 flex justify-center">
+          <Button
+            onClick={handleUpdateProfile}
+            className="bg-white hover:bg-gray-100 text-black px-8 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105 transform"
+          >
+            Update Profile
+          </Button>
+        </div>
+      </div>
+
+      {/* Injury Information Section */}
+      <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6 shadow-xl">
+        <h2 className="text-2xl font-bold text-white mb-6">Injury Information</h2>
+        
+        {injuries.length > 0 ? (
+          <div className="space-y-4 mb-6">
+            {injuries.map((injury, index) => {
+              const label =
+                injury.injuryType === "other"
+                  ? injury.customInjuryType
+                  : injuryTypeOptions.find((opt) => opt.value === injury.injuryType)?.label || injury.injuryType
+
+              return (
+                <div
+                  key={index}
+                  className="bg-gray-700/50 border border-gray-600 p-4 rounded-lg"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <p className="text-white font-medium mb-2"><strong>Type:</strong> {label}</p>
+                      {injury.injuryTag.length > 0 && (
+                        <p className="text-gray-300 mb-2"><strong>Tags:</strong> {injury.injuryTag.join(", ")}</p>
+                      )}
+                      <p className="text-gray-300"><strong>Visible to Coach:</strong> {injury.isVisibleToCoach ? "Yes" : "No"}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleEdit(index)}
+                        className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(index)}
+                        className="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
                 </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="text-gray-400 mb-6">No injury records</p>
+        )}
+
+        {!showForm && (
+          <Button 
+            onClick={() => setShowForm(true)} 
+            type="button" 
+            variant="outline" 
+            className="bg-transparent text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white hover:border-gray-500 mb-6"
+          >
+            Add Injury Record
+          </Button>
+        )}
+
+        {showForm && (
+          <div className="space-y-4 border border-gray-600 rounded-lg p-6 bg-gray-700/50">
+            <div className="space-y-2">
+              <Label className="text-gray-300">Injury Type</Label>
+              <Select
+                value={newInjury.injuryType}
+                onValueChange={(val) => setNewInjury({ ...newInjury, injuryType: val })}
+              >
+                <SelectTrigger className="bg-gray-600/50 border-gray-500 text-white hover:bg-gray-500/50 hover:border-gray-400">
+                  <SelectValue placeholder="Select injury type" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  {injuryTypeOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-white hover:bg-gray-700">{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {newInjury.injuryType === "other" && (
+              <div className="space-y-2">
+                <Label className="text-gray-300">Custom Injury Type</Label>
+                <Input
+                  value={newInjury.customInjuryType}
+                  onChange={(e) =>
+                    setNewInjury({ ...newInjury, customInjuryType: e.target.value })
+                  }
+                  placeholder="e.g. Hip inflammation"
+                  className="bg-gray-600/50 border-gray-500 text-white placeholder-gray-400 focus:border-gray-400 focus:ring-gray-400"
+                />
               </div>
             )}
 
-      <div className="col-span-2">
-        <Button
-          onClick={handleSaveInjuries}
-          className="px-4 py-2 bg-green-600 text-white rounded w-full"
-        >
-          Update Injuries
-        </Button>
+            <div className="space-y-2">
+              <Label className="text-gray-300">Tags (optional, multiple)</Label>
+              <div className="flex flex-wrap gap-3">
+                {injuryTagOptions.map((tag) => (
+                  <div key={tag.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={tag.value}
+                      checked={newInjury.injuryTag.includes(tag.value)}
+                      onCheckedChange={() => toggleTag(tag.value)}
+                      className="border-gray-500 data-[state=checked]:bg-white data-[state=checked]:text-black"
+                    />
+                    <Label htmlFor={tag.value} className="text-gray-300">{tag.label}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="visible"
+                checked={newInjury.isVisibleToCoach}
+                onCheckedChange={(checked) =>
+                  setNewInjury({ ...newInjury, isVisibleToCoach: !!checked })
+                }
+                className="border-gray-500 data-[state=checked]:bg-white data-[state=checked]:text-black"
+              />
+              <Label htmlFor="visible" className="text-gray-300">Visible to Coach</Label>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={resetForm}
+                className="bg-gray-600 hover:bg-gray-500 text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveInjury}
+                className="bg-white hover:bg-gray-100 text-black"
+              >
+                {editingIndex !== null ? "Update" : "Save"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-center">
+          <Button
+            onClick={handleSaveInjuries}
+            className="bg-white hover:bg-gray-100 text-black px-8 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105 transform"
+          >
+            Update Injuries
+          </Button>
+        </div>
       </div>
     </div>
   )

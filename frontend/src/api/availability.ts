@@ -99,10 +99,17 @@ export async function deleteAvailability(availabilityId: string, coachId: string
   }
 }
 
-// Get coach's availabilities using backend API
-export async function getCoachAvailabilities(coachId: string): Promise<CoachCalendarEvent[]> {
+// Get coach's availabilities using backend API with optional date range filtering
+export async function getCoachAvailabilities(coachId: string, startDate?: string, endDate?: string): Promise<CoachCalendarEvent[]> {
   try {
-    const response = await api.get(`/courses/coach/calendar/availability/coach/${coachId}`);
+    let url = `/courses/coach/calendar/availability/coach/${coachId}`;
+    
+    // Add date range parameters if provided
+    if (startDate && endDate) {
+      url += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+    }
+    
+    const response = await api.get(url);
     return response.data;
   } catch (error) {
     console.error('Error getting coach availabilities:', error);

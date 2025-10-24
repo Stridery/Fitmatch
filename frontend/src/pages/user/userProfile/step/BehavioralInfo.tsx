@@ -10,12 +10,12 @@ const BehavioralInfo: React.FC<Props> = ({ profile: _profile, setProfile: _setPr
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">🧠 Behavioral Questionnaire (Optional)</h2>
+      <h2 className="text-xl font-semibold text-white">🧠 Behavioral Questionnaire (Optional)</h2>
 
       {questions.length === 0 ? (
-        <p className="text-gray-500">Comming soon</p>
+        <p className="text-gray-400">Comming soon</p>
       ) : (
-        <p>（后续渲染题目和选项）</p>
+        <p className="text-gray-400">(Questions and options will be rendered later)</p>
       )}
     </div>
   )

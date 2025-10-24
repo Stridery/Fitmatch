@@ -59,8 +59,8 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
         course: editingEvent.course || '',
         courses: editingEvent.courses || [], // 新增：多选课程数组
         location: editingEvent.location || '',
-        startTime: format(new Date(editingEvent.startTime), 'yyyy-MM-dd\'T\'HH:mm'),
-        endTime: format(new Date(editingEvent.endTime), 'yyyy-MM-dd\'T\'HH:mm'),
+        startTime: editingEvent.startTime, // 直接使用，已经是datetime-local格式
+        endTime: editingEvent.endTime,     // 直接使用，已经是datetime-local格式
         capacity: editingEvent.capacity || '',
         reason: ''
       });
@@ -75,11 +75,9 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
       
       if (defaults.startTs && defaults.endTs) {
         // Pre-fill with defaults for new event
-        const startDate = new Date(defaults.startTs);
-        const endDate = new Date(defaults.endTs);
-        
-        newFormData.startTime = format(startDate, 'yyyy-MM-dd\'T\'HH:mm');
-        newFormData.endTime = format(endDate, 'yyyy-MM-dd\'T\'HH:mm');
+        // defaults.startTs 和 defaults.endTs 已经是 datetime-local 格式
+        newFormData.startTime = defaults.startTs;
+        newFormData.endTime = defaults.endTs;
       }
       
       setFormData(newFormData);
@@ -361,9 +359,6 @@ export default function NewEventDialog({ open, onOpenChange, kind, defaults, onS
                 <BookOpen className="h-4 w-4" />
                 <span>Available Courses (1v1 Only)</span>
               </Label>
-              <p className="text-xs text-gray-500 mb-2">
-                MVP阶段只支持1v1课程的availability预约
-              </p>
               <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
                 {courses.length > 0 ? (
                   courses.map((course) => (

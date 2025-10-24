@@ -29,7 +29,7 @@ public interface AvailabilityCourseRepository extends JpaRepository<Availability
      */
     @Modifying
     @Transactional
-    @Query("DELETE FROM AvailabilityCourse ac WHERE ac.availabilityId = :availabilityId")
+    @Query(value = "DELETE FROM availability_courses WHERE availability_id = :availabilityId", nativeQuery = true)
     void deleteByAvailabilityId(@Param("availabilityId") UUID availabilityId);
     
     /**
@@ -37,7 +37,7 @@ public interface AvailabilityCourseRepository extends JpaRepository<Availability
      */
     @Modifying
     @Transactional
-    @Query("DELETE FROM AvailabilityCourse ac WHERE ac.courseId = :courseId")
+    @Query(value = "DELETE FROM availability_courses WHERE course_id = :courseId", nativeQuery = true)
     void deleteByCourseId(@Param("courseId") UUID courseId);
     
     /**
@@ -51,6 +51,6 @@ public interface AvailabilityCourseRepository extends JpaRepository<Availability
     @Modifying
     @Transactional
     @Query(value = "INSERT INTO availability_courses (id, availability_id, course_id, created_at) VALUES " +
-            "(gen_random_uuid(), :availabilityId, :courseId, now())", nativeQuery = true)
+            "(gen_random_uuid(), :availabilityId, :courseId, CURRENT_TIMESTAMP)", nativeQuery = true)
     void insertAvailabilityCourse(@Param("availabilityId") UUID availabilityId, @Param("courseId") UUID courseId);
 }

@@ -49,26 +49,26 @@ export default function FiltersBar({ filters, onFiltersChange, onNewEvent, cours
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+    <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Left side - Filters */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
+            <Filter className="h-4 w-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-300">Filters:</span>
           </div>
 
           {/* Course Filter */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Course:</span>
+            <span className="text-sm text-gray-400">Course:</span>
             <Select value={filters.courseId || 'all'} onValueChange={handleCourseChange}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48 bg-gray-700 border-gray-600 text-white">
                 <SelectValue placeholder="Select course" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All courses</SelectItem>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectItem value="all" className="text-white hover:bg-gray-700">All courses</SelectItem>
                 {courses.map((course) => (
-                  <SelectItem key={course.id} value={course.id}>
+                  <SelectItem key={course.id} value={course.id} className="text-white hover:bg-gray-700">
                     {course.title}
                   </SelectItem>
                 ))}
@@ -78,7 +78,7 @@ export default function FiltersBar({ filters, onFiltersChange, onNewEvent, cours
 
           {/* Type Filter - Multi-select as checkboxes */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Type:</span>
+            <span className="text-sm text-gray-400">Type:</span>
             <div className="flex items-center space-x-2">
               {['Session', 'Availability'].map((kind) => (
                 <Button
@@ -86,11 +86,11 @@ export default function FiltersBar({ filters, onFiltersChange, onNewEvent, cours
                   variant={filters.kinds.includes(kind) ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleKindToggle(kind)}
-                  className="h-8"
+                  className={`h-8 ${filters.kinds.includes(kind) ? 'bg-white text-black' : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600 hover:border-gray-500'}`}
                 >
                   {kind}
                   {filters.kinds.includes(kind) && (
-                    <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-xs">
+                    <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-xs bg-gray-200 text-gray-800">
                       ✓
                     </Badge>
                   )}
@@ -101,12 +101,12 @@ export default function FiltersBar({ filters, onFiltersChange, onNewEvent, cours
 
           {/* Location Filter */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Location:</span>
+            <span className="text-sm text-gray-400">Location:</span>
             <Input
               placeholder="Search location..."
               value={filters.locationKeyword}
               onChange={(e) => handleLocationChange(e.target.value)}
-              className="w-48"
+              className="w-48 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
             />
           </div>
         </div>
@@ -115,19 +115,19 @@ export default function FiltersBar({ filters, onFiltersChange, onNewEvent, cours
         <div className="flex items-center space-x-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="flex items-center space-x-2">
+              <Button className="flex items-center space-x-2 bg-white hover:bg-gray-100 text-black">
                 <Plus className="h-4 w-4" />
                 <span>New</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onNewEvent('session')}>
+            <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+              <DropdownMenuItem onClick={() => onNewEvent('session')} className="text-white hover:bg-gray-700">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                   <span>Session</span>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onNewEvent('availability')}>
+              <DropdownMenuItem onClick={() => onNewEvent('availability')} className="text-white hover:bg-gray-700">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   <span>Availability</span>
@@ -140,23 +140,23 @@ export default function FiltersBar({ filters, onFiltersChange, onNewEvent, cours
 
       {/* Active Filters Display */}
       {(filters.courseId || filters.kinds.length > 0 || filters.locationKeyword) && (
-        <div className="flex items-center space-x-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Active filters:</span>
+        <div className="flex items-center space-x-2 mt-3 pt-3 border-t border-gray-600">
+          <span className="text-sm text-gray-400">Active filters:</span>
           
           {filters.courseId && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs bg-gray-700 text-gray-300">
               Course: {filters.courseId}
             </Badge>
           )}
           
           {filters.kinds.map((kind) => (
-            <Badge key={kind} variant="secondary" className="text-xs">
+            <Badge key={kind} variant="secondary" className="text-xs bg-gray-700 text-gray-300">
               {kind}
             </Badge>
           ))}
           
           {filters.locationKeyword && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs bg-gray-700 text-gray-300">
               Location: {filters.locationKeyword}
             </Badge>
           )}
@@ -165,7 +165,7 @@ export default function FiltersBar({ filters, onFiltersChange, onNewEvent, cours
             variant="ghost"
             size="sm"
             onClick={() => onFiltersChange({ courseId: '', kinds: [], locationKeyword: '' })}
-            className="text-xs h-6 px-2"
+            className="text-xs h-6 px-2 text-gray-400 hover:text-white hover:bg-gray-700"
           >
             Clear all
           </Button>

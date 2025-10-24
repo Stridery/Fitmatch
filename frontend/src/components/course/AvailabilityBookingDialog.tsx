@@ -72,8 +72,8 @@ const mockUserPackages: UserCoursePackage[] = [
   }
 ];
 
-function formatDateTimeLocal(dateStr: string): string {
-  const date = new Date(dateStr);
+function formatDateTimeLocal(dateInput: string | Date): string {
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -179,7 +179,7 @@ export default function AvailabilityBookingDialog({
         const newEnd = new Date(start.getTime() + selectedPackage.lessonDurationMinutes * 60000);
         
         // Always set the calculated end time
-        setEndTime(formatDateTimeLocal(newEnd.toISOString()));
+        setEndTime(formatDateTimeLocal(newEnd));
         
         // 实时验证时间范围
         const availabilityStart = availability ? new Date(availability.start_ts) : null;
@@ -243,15 +243,15 @@ export default function AvailabilityBookingDialog({
       const response = await bookAvailability(bookingRequest);
       
       if (response.status === 'CONFIRMED') {
-        alert('预约成功！');
+        alert('Booking Successful!');
         onOpenChange(false);
         onBookingSuccess?.();
       } else {
-        setError(response.message || '预约失败');
+        setError(response.message || 'Booking Failed');
       }
     } catch (error) {
       console.error('Booking failed:', error);
-      setError(error instanceof Error ? error.message : '预约失败，请重试');
+      setError(error instanceof Error ? error.message : 'Booking Failed, please try again');
     } finally {
       setBooking(false);
     }
@@ -271,7 +271,7 @@ export default function AvailabilityBookingDialog({
       });
       
       if (result.success) {
-        alert(`购买成功！\n套餐: ${purchasePackage.lessonsCount}节课\n价格: ¥${purchasePackage.price}\n获得: ${purchasePackage.lessonsCount}次上课机会`);
+        alert(`Purchase successful!\nPackage: ${purchasePackage.lessonsCount} lessons\nPrice: ¥${purchasePackage.price}\nCredits: ${purchasePackage.lessonsCount} sessions`);
         
         // 重新加载用户课包数据
         try {
@@ -299,7 +299,7 @@ export default function AvailabilityBookingDialog({
     const lessons = pkg.lessonsCount;
     const duration = pkg.lessonDurationMinutes;
     const price = pkg.price;
-    return `${mode} · ${lessons}节课 · ${duration}分钟/课 · ¥${price}`;
+    return `${mode} · ${lessons} lessons · ${duration} min/lesson · ¥${price}`;
   };
 
   if (!availability) return null;
@@ -339,16 +339,16 @@ export default function AvailabilityBookingDialog({
             <div className="space-y-4">
               <h4 className="font-medium flex items-center">
                 <Package className="h-5 w-5 mr-2" />
-                选择课程套餐
+              Select Course Package
               </h4>
               
               {loadingPackages ? (
                 <div className="text-center py-8 text-gray-500">
-                  加载套餐中...
+                  Loading packages...
                 </div>
               ) : packages.length === 0 ? (
                 <div className="text-center py-8 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg">
-                  该课程暂无可用套餐
+                  No packages available for this course
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -371,7 +371,7 @@ export default function AvailabilityBookingDialog({
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                 <h5 className="font-medium">
-                                  {pkg.trainingMode || '1v1'} · {pkg.lessonsCount}节课 · {pkg.lessonDurationMinutes}分钟/课
+                                  {pkg.trainingMode || '1v1'} · {pkg.lessonsCount} lessons · {pkg.lessonDurationMinutes} min/lesson
                                 </h5>
                                 <Badge variant="outline">¥{pkg.price}</Badge>
                               </div>
@@ -429,12 +429,12 @@ export default function AvailabilityBookingDialog({
             <div className="space-y-4">
               <h4 className="font-medium flex items-center">
                 <Clock className="h-5 w-5 mr-2" />
-                选择上课时间
+                Select Class Time
               </h4>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="start-time">开始时间</Label>
+                  <Label htmlFor="start-time">Start Time</Label>
                   <Input
                     id="start-time"
                     type="datetime-local"
@@ -446,7 +446,7 @@ export default function AvailabilityBookingDialog({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="end-time">结束时间</Label>
+                  <Label htmlFor="end-time">End Time</Label>
                   {endTime ? (
                     <Input
                       id="end-time"
@@ -477,7 +477,7 @@ export default function AvailabilityBookingDialog({
               {startTime && endTime && !error && (
                 <div className="text-sm text-gray-600">
                   <p>
-                    课程时长: {Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000)} 分钟
+                    Course Duration: {Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000)} minutes
                   </p>
                 </div>
               )}
@@ -503,9 +503,9 @@ export default function AvailabilityBookingDialog({
       <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>购买课程套餐</DialogTitle>
+            <DialogTitle>Purchase Course Package</DialogTitle>
             <DialogDescription>
-              购买套餐后即可预约课程
+              Purchase a package to book courses
             </DialogDescription>
           </DialogHeader>
 
@@ -514,13 +514,13 @@ export default function AvailabilityBookingDialog({
               <Card>
                 <CardContent className="pt-4">
                   <h4 className="font-medium text-lg mb-2">
-                    {purchasePackage.trainingMode || '1v1'} · {purchasePackage.lessonsCount}节课
+                    {purchasePackage.trainingMode || '1v1'} · {purchasePackage.lessonsCount} lessons
                   </h4>
                   <div className="space-y-2 text-sm text-gray-600">
-                    <p>课程时长: {purchasePackage.lessonDurationMinutes}分钟/课</p>
-                    <p>训练模式: {purchasePackage.trainingMode || '1v1'}</p>
+                    <p>Course Duration: {purchasePackage.lessonDurationMinutes} minutes/lesson</p>
+                    <p>Training Mode: {purchasePackage.trainingMode || '1v1'}</p>
                     <p className="text-lg font-semibold text-green-600">
-                      价格: ¥{purchasePackage.price}
+                      Price: ¥{purchasePackage.price}
                     </p>
                   </div>
                 </CardContent>
@@ -530,8 +530,8 @@ export default function AvailabilityBookingDialog({
                 <div className="flex items-start">
                   <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
                   <div className="text-sm text-blue-700">
-                    <p className="font-medium mb-1">购买说明</p>
-                    <p>购买后将获得 {purchasePackage.lessonsCount} 次上课机会，可用于预约该教练的所有课程。</p>
+                    <p className="font-medium mb-1">Purchase Information</p>
+                    <p>After purchase, you will get {purchasePackage.lessonsCount} lesson credits that can be used to book all courses from this coach.</p>
                   </div>
                 </div>
               </div>

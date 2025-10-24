@@ -42,12 +42,13 @@ export interface UpdateEventData {
   capacity?: number | null;
 }
 
-// Get current user's coach calendar events
+// Get current user's coach calendar events (only sessions)
 export async function getCoachCalendarEvents(coachId: string, startDate?: string, endDate?: string) {
   let query = supabase
     .from('coach_calendar_event')
     .select('*')
     .eq('coach_id', coachId)
+    .eq('kind', 'session') // 只加载session，不加载availability
     .order('start_ts', { ascending: true });
 
   if (startDate && endDate) {
@@ -141,6 +142,8 @@ export async function getCoachCalendarEventsForWeek(coachId: string, weekStart: 
 
 // Get coach's courses
 export async function getCoachCourses(coachId: string): Promise<CoachCourse[]> {
+  console.log('getCoachCourses: fetching courses for coachId', coachId);
+  
   const { data, error } = await supabase
     .from('course_detail')
     .select(`
@@ -161,13 +164,18 @@ export async function getCoachCourses(coachId: string): Promise<CoachCourse[]> {
     throw error;
   }
 
-  return data.map(course => ({
+  console.log('getCoachCourses: raw data from supabase', data);
+  
+  const result = data.map(course => ({
     id: course.id,
     title: course.summary || 'Untitled Course',
     description: course.about || '',
     sport_name: course.coach_sports?.[0]?.sports?.[0]?.name || '',
     training_modes: course.training_modes || []
   }));
+  
+  console.log('getCoachCourses: processed result', result);
+  return result;
 }
 
 // Get user's calendar events for a specific week (both as coach and as participant)

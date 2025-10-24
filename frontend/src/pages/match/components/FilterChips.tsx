@@ -102,13 +102,13 @@ export function FilterChips({
       <Badge
         key={`${String(key)}-${String(value)}`}
         variant="secondary"
-        className="h-7 px-2 cursor-pointer hover:bg-gray-200"
+        className="h-8 px-3 cursor-pointer hover:bg-gray-600/50 bg-gray-700/50 text-gray-300 border-gray-600 hover:border-gray-500 transition-all duration-200"
         onClick={() => onRemove(key)}
         role="button"
         aria-label={`Remove filter: ${getFieldLabel(key)}=${label}`}
       >
         {`${getFieldLabel(key)}: ${label}`}
-        <X className="ml-1 h-3 w-3" />
+        <X className="ml-2 h-3 w-3" />
       </Badge>
     );
   };
@@ -124,13 +124,13 @@ export function FilterChips({
           <Badge
             key={`${String(key)}-${value}`}
             variant="secondary"
-            className="h-7 px-2 cursor-pointer hover:bg-gray-200"
+            className="h-8 px-3 cursor-pointer hover:bg-gray-600/50 bg-gray-700/50 text-gray-300 border-gray-600 hover:border-gray-500 transition-all duration-200"
             onClick={() => onRemove(key, value)}
             role="button"
             aria-label={`Remove filter: ${getFieldLabel(key)}=${value}`}
           >
             {`${getFieldLabel(key)}: ${value}`}
-            <X className="ml-1 h-3 w-3" />
+            <X className="ml-2 h-3 w-3" />
           </Badge>
         ))}
         {remainingCount > 0 && (
@@ -138,24 +138,25 @@ export function FilterChips({
             <PopoverTrigger asChild>
               <Badge
                 variant="secondary"
-                className="h-7 px-2 cursor-pointer hover:bg-gray-200"
+                className="h-8 px-3 cursor-pointer hover:bg-gray-600/50 bg-gray-700/50 text-gray-300 border-gray-600 hover:border-gray-500 transition-all duration-200"
                 role="button"
                 aria-label={`Show more ${getFieldLabel(key)} options`}
               >
                 +{remainingCount}
               </Badge>
             </PopoverTrigger>
-            <PopoverContent className="w-64">
+            <PopoverContent className="w-64 bg-gray-800 border-gray-700">
               <ScrollArea className="h-[200px]">
                 <div className="space-y-2 p-2">
                   {values.slice(4).map((value) => (
                     <div key={value} className="flex items-center justify-between">
-                      <span className="text-sm">{value}</span>
+                      <span className="text-sm text-gray-300">{value}</span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => onRemove(key, value)}
                         aria-label={`Remove filter: ${getFieldLabel(key)}=${value}`}
+                        className="text-gray-400 hover:text-white hover:bg-gray-700"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -171,7 +172,8 @@ export function FilterChips({
   };
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
+    <div className="flex flex-wrap gap-3 items-center">
+      <div className="text-sm text-gray-400 font-medium">Active Filters:</div>
       {Object.entries(filters).map(([key, value]) => {
         // Skip empty values and ignored fields
         if (
@@ -196,10 +198,10 @@ export function FilterChips({
         variant="ghost"
         size="sm"
         onClick={onReset}
-        className="text-gray-500 hover:text-gray-900"
+        className="text-gray-400 hover:text-white hover:bg-gray-800/50 ml-2"
         aria-label="Clear all filters"
       >
-        Reset All
+        Clear All
       </Button>
     </div>
   );
