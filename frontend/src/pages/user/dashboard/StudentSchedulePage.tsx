@@ -30,8 +30,20 @@ function formatDateTimeLocal(date: Date): string {
 
 // Convert booking record to UI event format for calendar
 function convertBookingToUIEvent(booking: BookingRecord) {
-  const startDate = new Date(booking.startTs);
-  const endDate = new Date(booking.endTs);
+  // 确保时间字符串格式正确，处理不同的时间格式
+  let startStr = booking.startTs;
+  let endStr = booking.endTs;
+  
+  // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+  if (startStr && !startStr.endsWith('Z') && !startStr.includes('+')) {
+    startStr = startStr + 'Z';
+  }
+  if (endStr && !endStr.endsWith('Z') && !endStr.includes('+')) {
+    endStr = endStr + 'Z';
+  }
+  
+  const startDate = new Date(startStr);
+  const endDate = new Date(endStr);
   
   return {
     id: booking.sessionEventId,
@@ -48,8 +60,20 @@ function convertBookingToUIEvent(booking: BookingRecord) {
 
 // Convert waitlist record to UI event format for calendar
 function convertWaitlistToUIEvent(waitlist: WaitlistRecord) {
-  const startDate = new Date(waitlist.startTs);
-  const endDate = new Date(waitlist.endTs);
+  // 确保时间字符串格式正确，处理不同的时间格式
+  let startStr = waitlist.startTs;
+  let endStr = waitlist.endTs;
+  
+  // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+  if (startStr && !startStr.endsWith('Z') && !startStr.includes('+')) {
+    startStr = startStr + 'Z';
+  }
+  if (endStr && !endStr.endsWith('Z') && !endStr.includes('+')) {
+    endStr = endStr + 'Z';
+  }
+  
+  const startDate = new Date(startStr);
+  const endDate = new Date(endStr);
   
   return {
     id: waitlist.sessionEventId,
@@ -66,8 +90,20 @@ function convertWaitlistToUIEvent(waitlist: WaitlistRecord) {
 
 // Convert availability booking record to UI event format for calendar
 function convertAvailabilityBookingToUIEvent(booking: AvailabilityBookingRecord) {
-  const startDate = new Date(booking.bookedStartTime);
-  const endDate = new Date(booking.bookedEndTime);
+  // 确保时间字符串格式正确，处理不同的时间格式
+  let startStr = booking.bookedStartTime;
+  let endStr = booking.bookedEndTime;
+  
+  // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+  if (startStr && !startStr.endsWith('Z') && !startStr.includes('+')) {
+    startStr = startStr + 'Z';
+  }
+  if (endStr && !endStr.endsWith('Z') && !endStr.includes('+')) {
+    endStr = endStr + 'Z';
+  }
+  
+  const startDate = new Date(startStr);
+  const endDate = new Date(endStr);
   
   return {
     id: booking.availabilityEventId,
@@ -83,7 +119,15 @@ function convertAvailabilityBookingToUIEvent(booking: AvailabilityBookingRecord)
 }
 
 function formatDateTime(dateStr: string): string {
-  const date = new Date(dateStr);
+  // 确保时间字符串格式正确，处理不同的时间格式
+  let timeStr = dateStr;
+  
+  // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+  if (timeStr && !timeStr.endsWith('Z') && !timeStr.includes('+')) {
+    timeStr = timeStr + 'Z';
+  }
+  
+  const date = new Date(timeStr);
   return date.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -94,7 +138,15 @@ function formatDateTime(dateStr: string): string {
 }
 
 function formatTime(dateStr: string): string {
-  const date = new Date(dateStr);
+  // 确保时间字符串格式正确，处理不同的时间格式
+  let timeStr = dateStr;
+  
+  // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+  if (timeStr && !timeStr.endsWith('Z') && !timeStr.includes('+')) {
+    timeStr = timeStr + 'Z';
+  }
+  
+  const date = new Date(timeStr);
   return date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
@@ -102,8 +154,20 @@ function formatTime(dateStr: string): string {
 }
 
 function calculateDuration(startTs: string, endTs: string): string {
-  const start = new Date(startTs);
-  const end = new Date(endTs);
+  // 确保时间字符串格式正确，处理不同的时间格式
+  let startStr = startTs;
+  let endStr = endTs;
+  
+  // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+  if (startStr && !startStr.endsWith('Z') && !startStr.includes('+')) {
+    startStr = startStr + 'Z';
+  }
+  if (endStr && !endStr.endsWith('Z') && !endStr.includes('+')) {
+    endStr = endStr + 'Z';
+  }
+  
+  const start = new Date(startStr);
+  const end = new Date(endStr);
   const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
   
   if (durationMinutes < 60) {

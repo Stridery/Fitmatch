@@ -11,8 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,8 +35,8 @@ public class CoachCalendarService {
         validateTimeRange(request.getStartTs(), request.getEndTs());
         
         // 2. 检查时间冲突
-        LocalDateTime startTime = parseUtcTimeString(request.getStartTs());
-        LocalDateTime endTime = parseUtcTimeString(request.getEndTs());
+        Instant startTime = parseUtcTimeString(request.getStartTs());
+        Instant endTime = parseUtcTimeString(request.getEndTs());
         if (calendarEventRepository.hasTimeConflict(request.getCoachId(), startTime, endTime)) {
             throw new IllegalArgumentException("Time conflict detected. Please choose a different time slot.");
         }
@@ -49,8 +48,8 @@ public class CoachCalendarService {
         event.setCourseId(null); // availability的course_id设为null
         event.setTitle(request.getTitle());
         event.setLocation(request.getLocation());
-        event.setStartTs(startTime); // 转换为UTC LocalDateTime
-        event.setEndTs(endTime); // 转换为UTC LocalDateTime
+        event.setStartTs(startTime); // 直接使用Instant
+        event.setEndTs(endTime); // 直接使用Instant
         event.setCapacity(null); // availability不需要capacity
         event.setBookedCount(0);
         
@@ -92,8 +91,8 @@ public class CoachCalendarService {
         validateTimeRange(request.getStartTs(), request.getEndTs());
         
         // 5. 检查时间冲突（排除当前事件）
-        LocalDateTime startTime = parseUtcTimeString(request.getStartTs());
-        LocalDateTime endTime = parseUtcTimeString(request.getEndTs());
+        Instant startTime = parseUtcTimeString(request.getStartTs());
+        Instant endTime = parseUtcTimeString(request.getEndTs());
         if (calendarEventRepository.hasTimeConflict(request.getCoachId(), request.getAvailabilityId(), 
             startTime, endTime)) {
             throw new IllegalArgumentException("Time conflict detected. Please choose a different time slot.");
@@ -102,8 +101,8 @@ public class CoachCalendarService {
         // 6. 更新事件信息
         existingEvent.setTitle(request.getTitle());
         existingEvent.setLocation(request.getLocation());
-        existingEvent.setStartTs(startTime); // 转换为UTC LocalDateTime
-        existingEvent.setEndTs(endTime); // 转换为UTC LocalDateTime
+        existingEvent.setStartTs(startTime); // 直接使用Instant
+        existingEvent.setEndTs(endTime); // 直接使用Instant
         
         CoachCalendarEvent updatedEvent = calendarEventRepository.save(existingEvent);
         log.info("Updated calendar event: {}", updatedEvent.getId());
@@ -158,7 +157,7 @@ public class CoachCalendarService {
     /**
      * 获取教练的availability列表（按时间范围过滤）
      */
-    public List<CoachCalendarEvent> getCoachAvailabilities(UUID coachId, LocalDateTime startTime, LocalDateTime endTime) {
+    public List<CoachCalendarEvent> getCoachAvailabilities(UUID coachId, Instant startTime, Instant endTime) {
         return calendarEventRepository.findByCoachIdAndTimeRange(coachId, startTime, endTime)
             .stream()
             .filter(event -> "availability".equals(event.getKind()))
@@ -173,15 +172,12 @@ public class CoachCalendarService {
     }
     
     /**
-     * 解析UTC时间字符串为LocalDateTime（用于存储到数据库）
+     * 解析UTC时间字符串为Instant（用于存储到数据库）
      */
-    private LocalDateTime parseUtcTimeString(String utcTimeString) {
+    private Instant parseUtcTimeString(String utcTimeString) {
         try {
             // 直接解析UTC时间字符串，格式：2024-01-15T18:00:00.000Z
-            return LocalDateTime.ofInstant(
-                java.time.Instant.parse(utcTimeString),
-                ZoneOffset.UTC
-            );
+            return Instant.parse(utcTimeString);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid UTC time format: " + utcTimeString);
         }

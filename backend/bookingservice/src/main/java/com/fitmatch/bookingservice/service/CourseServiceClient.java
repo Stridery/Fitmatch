@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -27,27 +28,32 @@ public class CourseServiceClient {
             log.info("Fetching package price from course service: {}", packagePriceId);
             
             String url = courseServiceUrl + "/courses/packages/" + packagePriceId;
-            CoursePackagePriceDto result = restTemplate.getForObject(url, CoursePackagePriceDto.class);
             
-            if (result != null) {
-                log.info("Fetched package price: {} lessons", result.getLessonsCount());
-                return result;
+            // 使用 Map 接收响应，因为 Course Service 返回的 id 和 courseId 是 String 类型
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            
+            if (response != null) {
+                CoursePackagePriceDto dto = new CoursePackagePriceDto();
+                dto.setId(UUID.fromString((String) response.get("id")));
+                dto.setCourseId(UUID.fromString((String) response.get("courseId")));
+                dto.setLessonsCount((Integer) response.get("lessonsCount"));
+                dto.setLessonDurationMinutes((Integer) response.get("lessonDurationMinutes"));
+                dto.setPrice(new java.math.BigDecimal(response.get("price").toString()));
+                dto.setTrainingMode((String) response.get("trainingMode"));
+                
+                log.info("Fetched package price: {} lessons", dto.getLessonsCount());
+                return dto;
             } else {
                 log.warn("Course service returned null for package: {}", packagePriceId);
             }
             
         } catch (Exception e) {
-            log.warn("Course service unavailable, using default values: {}", e.getMessage());
+            log.error("Course service unavailable, error: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch package price from course service: " + e.getMessage(), e);
         }
         
-        // 返回默认值
-        CoursePackagePriceDto defaultPackage = new CoursePackagePriceDto();
-        defaultPackage.setId(packagePriceId);
-        defaultPackage.setLessonsCount(6); // 默认6节课
-        defaultPackage.setPrice(new java.math.BigDecimal("1000.00"));
-        defaultPackage.setTrainingMode("1v1");
-        defaultPackage.setLessonDurationMinutes(60);
-        log.info("Using default package values: 6 lessons for package: {}", packagePriceId);
-        return defaultPackage;
+        // 如果到这里说明没有返回数据，抛出异常
+        throw new RuntimeException("Course service returned null for package: " + packagePriceId);
     }
 }

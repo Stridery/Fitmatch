@@ -47,7 +47,15 @@ function convertDbEventToUI(dbEvent: any) {
   
   // 将UTC时间字符串转换为本地时间字符串，用于datetime-local输入
   const formatUtcToLocal = (utcString: string) => {
-    const date = new Date(utcString);
+    // 确保时间字符串格式正确，处理不同的时间格式
+    let timeStr = utcString;
+    
+    // 如果时间字符串没有Z后缀，添加Z表示UTC时间
+    if (timeStr && !timeStr.endsWith('Z') && !timeStr.includes('+')) {
+      timeStr = timeStr + 'Z';
+    }
+    
+    const date = new Date(timeStr);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -273,25 +281,26 @@ export default function ManageSessionsPage() {
     try {
       if (newDialogKind === 'availability') {
         // 对于availability，使用与session相同的时区转换逻辑
-        // 将datetime-local格式转换为UTC时间字符串，使用浏览器时区
-        
-        const startDate = new Date(eventData.startTime + ':00'); // 添加秒数
-        const endDate = new Date(eventData.endTime + ':00');     // 添加秒数
+        // 使用convertUIEventToDb统一处理时间转换
+        const dbEventData = convertUIEventToDb({
+          ...eventData,
+          kind: 'availability'
+        }, user.id);
         
         const availabilityRequest = {
           coachId: user.id,
-          title: eventData.title,
-          startTs: startDate.toISOString(), // 转换为UTC时间字符串，使用浏览器时区
-          endTs: endDate.toISOString(),     // 转换为UTC时间字符串，使用浏览器时区
-          location: eventData.location,
+          title: dbEventData.title,
+          startTs: dbEventData.start_ts, // 使用convertUIEventToDb转换后的UTC时间
+          endTs: dbEventData.end_ts,     // 使用convertUIEventToDb转换后的UTC时间
+          location: dbEventData.location,
           courseIds: eventData.courses || []
         };
         
         console.log('Availability time (Local -> UTC):', {
           localStart: eventData.startTime,
           localEnd: eventData.endTime,
-          utcStart: startDate.toISOString(),
-          utcEnd: endDate.toISOString(),
+          utcStart: dbEventData.start_ts,
+          utcEnd: dbEventData.end_ts,
           request: availabilityRequest
         });
         

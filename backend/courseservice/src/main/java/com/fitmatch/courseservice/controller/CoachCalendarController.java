@@ -16,8 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
 @Slf4j
 @RestController
@@ -45,12 +43,12 @@ public class CoachCalendarController {
             response.put("course_id", event.getCourseId());
             response.put("title", event.getTitle());
             response.put("location", event.getLocation());
-            response.put("start_ts", event.getStartTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
-            response.put("end_ts", event.getEndTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
+            response.put("start_ts", event.getStartTs().toString()); // Instant直接toString为ISO 8601格式
+            response.put("end_ts", event.getEndTs().toString()); // Instant直接toString为ISO 8601格式
             response.put("capacity", event.getCapacity());
             response.put("booked_count", event.getBookedCount());
-            response.put("created_at", event.getCreatedAt().toString() + "Z");
-            response.put("updated_at", event.getUpdatedAt().toString() + "Z");
+            response.put("created_at", event.getCreatedAt().toString());
+            response.put("updated_at", event.getUpdatedAt().toString());
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
@@ -81,12 +79,12 @@ public class CoachCalendarController {
             response.put("course_id", event.getCourseId());
             response.put("title", event.getTitle());
             response.put("location", event.getLocation());
-            response.put("start_ts", event.getStartTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
-            response.put("end_ts", event.getEndTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
+            response.put("start_ts", event.getStartTs().toString()); // Instant直接toString为ISO 8601格式
+            response.put("end_ts", event.getEndTs().toString()); // Instant直接toString为ISO 8601格式
             response.put("capacity", event.getCapacity());
             response.put("booked_count", event.getBookedCount());
-            response.put("created_at", event.getCreatedAt().toString() + "Z");
-            response.put("updated_at", event.getUpdatedAt().toString() + "Z");
+            response.put("created_at", event.getCreatedAt().toString());
+            response.put("updated_at", event.getUpdatedAt().toString());
             
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
@@ -137,10 +135,8 @@ public class CoachCalendarController {
             
             if (startDate != null && endDate != null) {
                 // 按时间范围过滤，直接解析UTC时间字符串
-                LocalDateTime startTime = LocalDateTime.ofInstant(
-                    java.time.Instant.parse(startDate), ZoneOffset.UTC);
-                LocalDateTime endTime = LocalDateTime.ofInstant(
-                    java.time.Instant.parse(endDate), ZoneOffset.UTC);
+                java.time.Instant startTime = java.time.Instant.parse(startDate);
+                java.time.Instant endTime = java.time.Instant.parse(endDate);
                 availabilities = calendarService.getCoachAvailabilities(coachId, startTime, endTime);
             } else {
                 // 获取所有availability
@@ -157,12 +153,12 @@ public class CoachCalendarController {
                     eventMap.put("course_id", event.getCourseId());
                     eventMap.put("title", event.getTitle());
                     eventMap.put("location", event.getLocation());
-                    eventMap.put("start_ts", event.getStartTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
-                    eventMap.put("end_ts", event.getEndTs().atZone(ZoneOffset.UTC).toInstant().toString()); // 直接返回UTC时间字符串
+                    eventMap.put("start_ts", event.getStartTs().toString()); // Instant直接toString为ISO 8601格式
+                    eventMap.put("end_ts", event.getEndTs().toString()); // Instant直接toString为ISO 8601格式
                     eventMap.put("capacity", event.getCapacity());
                     eventMap.put("booked_count", event.getBookedCount());
-                    eventMap.put("created_at", event.getCreatedAt().toString() + "Z");
-                    eventMap.put("updated_at", event.getUpdatedAt().toString() + "Z");
+                    eventMap.put("created_at", event.getCreatedAt().toString());
+                    eventMap.put("updated_at", event.getUpdatedAt().toString());
                     return eventMap;
                 })
                 .toList();

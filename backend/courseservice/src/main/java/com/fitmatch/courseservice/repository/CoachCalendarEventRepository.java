@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,8 +26,8 @@ public interface CoachCalendarEventRepository extends JpaRepository<CoachCalenda
            "ORDER BY cce.startTs ASC")
     List<CoachCalendarEvent> findByCoachIdAndTimeRange(
         @Param("coachId") UUID coachId,
-        @Param("startTime") LocalDateTime startTime,
-        @Param("endTime") LocalDateTime endTime
+        @Param("startTime") Instant startTime,
+        @Param("endTime") Instant endTime
     );
     
     /**
@@ -44,8 +44,8 @@ public interface CoachCalendarEventRepository extends JpaRepository<CoachCalenda
     boolean hasTimeConflict(
         @Param("coachId") UUID coachId,
         @Param("excludeId") UUID excludeId,
-        @Param("startTime") LocalDateTime startTime,
-        @Param("endTime") LocalDateTime endTime
+        @Param("startTime") Instant startTime,
+        @Param("endTime") Instant endTime
     );
     
     /**
@@ -55,8 +55,8 @@ public interface CoachCalendarEventRepository extends JpaRepository<CoachCalenda
            "AND ((cce.startTs < :endTime AND cce.endTs > :startTime))")
     boolean hasTimeConflict(
         @Param("coachId") UUID coachId,
-        @Param("startTime") LocalDateTime startTime,
-        @Param("endTime") LocalDateTime endTime
+        @Param("startTime") Instant startTime,
+        @Param("endTime") Instant endTime
     );
     
     /**
@@ -71,6 +71,6 @@ public interface CoachCalendarEventRepository extends JpaRepository<CoachCalenda
            "AND cce.startTs > :now ORDER BY cce.startTs ASC")
     List<CoachCalendarEvent> findFutureEventsByCoachId(
         @Param("coachId") UUID coachId,
-        @Param("now") LocalDateTime now
+        @Param("now") Instant now
     );
 }

@@ -7,7 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -38,10 +38,10 @@ public class CoachCalendarEvent {
     private String location;
     
     @Column(name = "start_ts", nullable = false)
-    private LocalDateTime startTs;
+    private Instant startTs;
     
     @Column(name = "end_ts", nullable = false)
-    private LocalDateTime endTs;
+    private Instant endTs;
     
     @Column(name = "capacity")
     private Integer capacity;
@@ -51,11 +51,11 @@ public class CoachCalendarEvent {
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
     
     @PrePersist
     protected void onCreate() {
