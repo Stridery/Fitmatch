@@ -23,6 +23,12 @@ import CourseEditorPage from "./pages/coach/CourseEditorPage";
 import SessionsPage from "./pages/coach/SessionsPage";
 import StudentSchedulePage from "./pages/user/dashboard/StudentSchedulePage";
 import ChatDock from "./pages/community/chatDock/ChatDock";
+import EventListPage from "./pages/events/EventListPage";
+import EventDetailPage from "./pages/events/EventDetailPage";
+import CreateEventPage from "./pages/events/CreateEventPage";
+import CreateSeriesPage from "./pages/events/CreateSeriesPage";
+import SeriesListPage from "./pages/events/SeriesListPage";
+import SeriesDetailPage from "./pages/events/SeriesDetailPage";
 //console.log("Rendering App...");
 
 function App() {
@@ -41,7 +47,16 @@ function App() {
           <Route path="/home" element={<HomePage />}> 
             <Route index element={<MatchPage />} />
             <Route path="match" element={<MatchPage />} />
-            <Route path="community" element={<CommunityPage />} />
+            <Route path="community" element={<CommunityPage />}>
+              <Route path="events" element={<EventListPage />} />
+              <Route path="events/new" element={<CreateEventPage />} />
+              <Route path="events/edit/:id" element={<CreateEventPage />} />
+              <Route path="events/series/new" element={<CreateSeriesPage />} />
+              <Route path="events/series/edit/:id" element={<CreateSeriesPage />} />
+              <Route path="events/:id" element={<EventDetailPage />} />
+              <Route path="series" element={<SeriesListPage />} />
+              <Route path="series/:id" element={<SeriesDetailPage />} />
+            </Route>
           </Route>
           
           

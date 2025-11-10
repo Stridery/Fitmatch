@@ -8,7 +8,7 @@ import {
 
 interface EventData {
   id: string;
-  kind: 'session' | 'availability';
+  kind: 'session' | 'availability' | 'event';
   title: string;
   course?: string;
   location?: string;
@@ -55,8 +55,16 @@ export default function UserScheduleWeekView({ weekStart, events }: UserSchedule
   };
 
   const getEventColor = (kind: string) => {
-    // 统一使用session的颜色，不区分session和availability
-    return 'bg-green-500';
+    switch (kind) {
+      case 'session':
+        return 'bg-green-500';
+      case 'availability':
+        return 'bg-green-500';
+      case 'event':
+        return 'bg-blue-500'; // Events use blue color
+      default:
+        return 'bg-green-500';
+    }
   };
 
   return (

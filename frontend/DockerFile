@@ -4,9 +4,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci                           # 用 ci 更可复现，且利用缓存
 COPY . .
-# 确保 .env.production 里有：
-# VITE_API_BASE=/api
-# VITE_SOCKET_URL=/socket.io
 RUN npm run build
 
 # 🔷 运行阶段

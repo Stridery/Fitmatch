@@ -3,7 +3,7 @@ import { io, Socket } from "socket.io-client";
 import { api } from "./api";
 import { supabase } from "@/lib/supabase";
 
-export type TabKey = "messages" | "contacts" | "posts";
+export type TabKey = "events" | "series";
 
 export interface CommunityUser {
   id: string;
@@ -96,7 +96,7 @@ const errorMessage = (e: unknown, fallback: string): string =>
 
 /** ---------- Store ---------- */
 export const useCommunityStore = createWithEqualityFn<CommunityState>()((set, get) => ({
-  currentTab: "messages",
+  currentTab: "events",
   setCurrentTab: (tab) => set({ currentTab: tab }),
 
   conversations: [],

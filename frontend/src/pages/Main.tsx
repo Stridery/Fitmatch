@@ -41,25 +41,22 @@ function MainPage() {
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto fade-in">
-          <Badge variant="secondary" className="mb-4 sm:mb-6 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium bg-gray-800 text-gray-300 border-gray-700 animate-slide-in-up">
-            Find Your Perfect Training Partner
-          </Badge>
           
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-4 sm:mb-6 leading-tight animate-slide-in-up" style={{animationDelay: '0.2s'}}>
             Welcome to <span className="bg-gradient-to-r from-white via-gray-300 to-gray-400 bg-clip-text text-transparent">SportaX</span>
           </h1>
           
           <p className="text-lg sm:text-xl md:text-2xl text-gray-400 max-w-3xl mb-8 sm:mb-12 leading-relaxed animate-slide-in-up" style={{animationDelay: '0.4s'}}>
-            Connect with certified coaches and training partners. Start your fitness journey with personalized guidance and motivation.
+            Join games, compete in series, and connect with your sports community. Find events, discover competitions, and meet fellow athletes.
           </p>
           
           <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 mb-12 sm:mb-16 animate-slide-in-up" style={{animationDelay: '0.6s'}}>
             <Button 
-              onClick={() => navigate("/home/match")} 
+              onClick={() => navigate("/home/community")} 
               size="lg"
               className="bg-white hover:bg-gray-100 text-black px-6 sm:px-8 py-3 sm:py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-semibold text-base sm:text-lg w-full sm:w-auto"
             >
-              Start Matching
+              Explore Community
             </Button>
             <Button 
               onClick={() => navigate("/about")} 
@@ -75,25 +72,25 @@ function MainPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mt-12 sm:mt-16">
             <Card className="bg-gray-800/80 backdrop-blur-sm border-gray-700/50 hover:shadow-lg transition-all duration-300 hover:scale-105 animate-slide-in-up" style={{animationDelay: '0.8s'}}>
               <CardContent className="p-4 sm:p-6 text-center">
-                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4 text-white font-bold">Coach</div>
-                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Expert Coaches</h3>
-                <p className="text-sm sm:text-base text-gray-400">Connect with certified fitness professionals who understand your goals.</p>
+                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4 text-white font-bold">Games</div>
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Join Games</h3>
+                <p className="text-sm sm:text-base text-gray-400">Discover and join sports events happening in your area. Connect with players and participate in games.</p>
               </CardContent>
             </Card>
             
             <Card className="bg-gray-800/80 backdrop-blur-sm border-gray-700/50 hover:shadow-lg transition-all duration-300 hover:scale-105 animate-slide-in-up" style={{animationDelay: '1s'}}>
               <CardContent className="p-4 sm:p-6 text-center">
-                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4 text-white font-bold">Match</div>
-                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Perfect Matching</h3>
-                <p className="text-sm sm:text-base text-gray-400">Our smart algorithm finds the ideal training partner for your needs.</p>
+                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4 text-white font-bold">Competitions</div>
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Competitions & Series</h3>
+                <p className="text-sm sm:text-base text-gray-400">Participate in organized competitions and series. Challenge yourself and compete with the community.</p>
               </CardContent>
             </Card>
             
             <Card className="bg-gray-800/80 backdrop-blur-sm border-gray-700/50 hover:shadow-lg transition-all duration-300 hover:scale-105 animate-slide-in-up" style={{animationDelay: '1.2s'}}>
               <CardContent className="p-4 sm:p-6 text-center">
-                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4 text-white font-bold">Track</div>
-                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Track Progress</h3>
-                <p className="text-sm sm:text-base text-gray-400">Monitor your fitness journey with detailed analytics and insights.</p>
+                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4 text-white font-bold">Coaches</div>
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Find Coaches</h3>
+                <p className="text-sm sm:text-base text-gray-400">Connect with certified coaches and training partners. Get personalized guidance for your fitness journey.</p>
               </CardContent>
             </Card>
           </div>

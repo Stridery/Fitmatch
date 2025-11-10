@@ -287,7 +287,7 @@ export default function AvailabilityBookingDialog({
       }
     } catch (error) {
       console.error('Purchase failed:', error);
-      alert(`购买失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      alert(`Purchase failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setPurchasing(false);
     }

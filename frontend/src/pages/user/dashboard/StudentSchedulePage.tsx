@@ -17,6 +17,8 @@ import { cancelAvailabilityBooking } from '@/api/availability';
 import type { BookingRecord, WaitlistRecord, AvailabilityBookingRecord } from '@/api/booking';
 import { supabase } from '@/lib/supabase';
 import UserScheduleWeekView from '@/components/user/UserScheduleWeekView';
+import { getUserRegisteredEvents, rpcCancelEvent } from '@/api/events';
+import type { EventDTO } from '@/types/events';
 
 // Helper function to format date for datetime-local input (keeps local timezone)
 function formatDateTimeLocal(date: Date): string {
@@ -118,6 +120,25 @@ function convertAvailabilityBookingToUIEvent(booking: AvailabilityBookingRecord)
   };
 }
 
+// Convert event DTO to UI event format for calendar
+function convertEventToUIEvent(event: EventDTO) {
+  // Events are stored in UTC, convert to local time
+  const startDate = new Date(event.start_at);
+  const endDate = new Date(event.end_at);
+  
+  return {
+    id: event.id,
+    kind: 'event' as const,
+    title: event.title,
+    course: event.sport?.name || 'Event',
+    location: event.location_text || '',
+    startTime: formatDateTimeLocal(startDate), // Convert UTC to local time
+    endTime: formatDateTimeLocal(endDate),
+    capacity: event.capacity_unit.toString(),
+    status: 'ENROLLED' as const
+  };
+}
+
 function formatDateTime(dateStr: string): string {
   // 确保时间字符串格式正确，处理不同的时间格式
   let timeStr = dateStr;
@@ -184,6 +205,7 @@ export default function StudentSchedulePage() {
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistRecord[]>([]);
   const [availabilityBookings, setAvailabilityBookings] = useState<AvailabilityBookingRecord[]>([]);
+  const [events, setEvents] = useState<EventDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string>('');
 
@@ -209,17 +231,24 @@ export default function StudentSchedulePage() {
       
       setLoading(true);
       try {
-        const [bookingsData, waitlistData, availabilityBookingsData] = await Promise.all([
-          getUserSchedule(),
-          getUserWaitlist(),
-          getUserAvailabilityBookings()
+        // Use Promise.allSettled to prevent one failure from blocking others
+        const [bookingsResult, waitlistResult, availabilityResult, eventsResult] = await Promise.allSettled([
+          getUserSchedule().catch(() => []),
+          getUserWaitlist().catch(() => []),
+          getUserAvailabilityBookings().catch(() => []),
+          getUserRegisteredEvents().catch(() => [])
         ]);
+        
+        const bookingsData = bookingsResult.status === 'fulfilled' ? bookingsResult.value : [];
+        const waitlistData = waitlistResult.status === 'fulfilled' ? waitlistResult.value : [];
+        const availabilityBookingsData = availabilityResult.status === 'fulfilled' ? availabilityResult.value : [];
+        const eventsData = eventsResult.status === 'fulfilled' ? eventsResult.value : [];
         
         setBookings(bookingsData);
         setWaitlist(waitlistData);
         setAvailabilityBookings(availabilityBookingsData);
+        setEvents(eventsData || []);
       } catch (error) {
-        console.error('Error loading schedule data:', error);
       } finally {
         setLoading(false);
       }
@@ -228,7 +257,7 @@ export default function StudentSchedulePage() {
     loadScheduleData();
   }, [userId]);
 
-  // Convert bookings and waitlist to calendar events (filter out cancelled bookings)
+  // Convert bookings, waitlist, and events to calendar events (filter out cancelled bookings)
   const calendarEvents = [
     ...bookings
       .filter(booking => booking.bookingStatus === 'CONFIRMED') // Only show confirmed bookings in calendar
@@ -236,7 +265,8 @@ export default function StudentSchedulePage() {
     ...waitlist.map(convertWaitlistToUIEvent),
     ...availabilityBookings
       .filter(booking => booking.bookingStatus === 'CONFIRMED') // Only show confirmed availability bookings
-      .map(convertAvailabilityBookingToUIEvent)
+      .map(convertAvailabilityBookingToUIEvent),
+    ...events.map(convertEventToUIEvent) // Add events to calendar
   ];
 
   const handlePrevWeek = () => {
@@ -264,7 +294,6 @@ export default function StudentSchedulePage() {
       setWaitlist(waitlistData);
       alert('Booking cancelled successfully!');
     } catch (error) {
-      console.error('Cancel booking error:', error);
       alert(`Booking cancellation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -282,7 +311,6 @@ export default function StudentSchedulePage() {
       setWaitlist(waitlistData);
       alert('Successfully exited waitlist!');
     } catch (error) {
-      console.error('Exit waitlist error:', error);
       alert(`Failed to exit waitlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -292,18 +320,53 @@ export default function StudentSchedulePage() {
     try {
       await cancelAvailabilityBooking(availabilityId, userId);
       // Refresh data
-      const [bookingsData, waitlistData, availabilityBookingsData] = await Promise.all([
+      const [bookingsData, waitlistData, availabilityBookingsData, eventsData] = await Promise.all([
         getUserSchedule(),
         getUserWaitlist(),
-        getUserAvailabilityBookings()
+        getUserAvailabilityBookings(),
+        getUserRegisteredEvents().catch(() => [])
       ]);
       setBookings(bookingsData);
       setWaitlist(waitlistData);
       setAvailabilityBookings(availabilityBookingsData);
+      setEvents(eventsData);
       alert('Availability booking cancelled successfully!');
     } catch (error) {
-      console.error('Cancel availability booking error:', error);
       alert(`Failed to cancel availability booking: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Handle cancel event registration
+  const handleCancelEvent = async (eventId: string) => {
+    if (!confirm('Are you sure you want to cancel your event registration?')) {
+      return;
+    }
+    try {
+      const result = await rpcCancelEvent(eventId);
+      
+      const [bookingsResult, waitlistResult, availabilityResult, eventsResult] = await Promise.allSettled([
+        getUserSchedule().catch(() => []),
+        getUserWaitlist().catch(() => []),
+        getUserAvailabilityBookings().catch(() => []),
+        getUserRegisteredEvents().catch(() => [])
+      ]);
+      
+      const bookingsData = bookingsResult.status === 'fulfilled' ? bookingsResult.value : [];
+      const waitlistData = waitlistResult.status === 'fulfilled' ? waitlistResult.value : [];
+      const availabilityBookingsData = availabilityResult.status === 'fulfilled' ? availabilityResult.value : [];
+      const eventsData = eventsResult.status === 'fulfilled' ? eventsResult.value : [];
+      
+      setBookings(bookingsData);
+      setWaitlist(waitlistData);
+      setAvailabilityBookings(availabilityBookingsData);
+      setEvents(eventsData || []);
+      
+      // Force a small delay to ensure state update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      alert('Event registration cancelled successfully!');
+    } catch (error) {
+      alert(`Failed to cancel event: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -406,7 +469,8 @@ export default function StudentSchedulePage() {
         </div>
 
         {/* Right: Session List */}
-        <div className="w-96 border-l border-gray-700 bg-gray-800 p-6 overflow-y-auto">
+        <div className="w-96 border-l border-gray-700 bg-gray-800 p-6 overflow-y-auto" style={{ maxHeight: '100%' }}>
+          {/* My Courses Section */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-white mb-2">
               My Courses
@@ -538,6 +602,106 @@ export default function StudentSchedulePage() {
               ))}
             </div>
           )}
+
+          {/* My Events Section */}
+          <div className="mt-8 pt-8 border-t border-gray-700">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                My Events
+              </h3>
+              <p className="text-sm text-gray-400">
+                Enrolled: {events.length}
+              </p>
+              {/* Debug info */}
+              {process.env.NODE_ENV === 'development' && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Debug: events state has {events.length} items
+                </p>
+              )}
+            </div>
+
+            {loading ? (
+              <div className="text-center py-8 text-gray-400">
+                Loading...
+              </div>
+            ) : events.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <p>No events</p>
+                <p className="text-sm mt-2">Go join some events!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {events.map((event) => {
+                  const startDate = new Date(event.start_at);
+                  const endDate = new Date(event.end_at);
+                  
+                  return (
+                    <Card 
+                      key={event.id}
+                      className="border-l-4 border-l-blue-500"
+                    >
+                      <CardContent className="pt-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-lg mb-2 text-blue-700">
+                              {event.title}
+                              <Badge variant="secondary" className="ml-2 bg-blue-200 text-blue-700">
+                                Event
+                              </Badge>
+                            </h4>
+                            
+                            <div className="space-y-2 text-sm text-gray-600">
+                              <div className="flex items-center">
+                                <Clock className="h-4 w-4 mr-2" />
+                                <span>{formatDateTime(event.start_at)} - {formatTime(event.end_at)}</span>
+                                <Badge variant="outline" className="ml-2">
+                                  {calculateDuration(event.start_at, event.end_at)}
+                                </Badge>
+                              </div>
+                              
+                              {event.sport && (
+                                <div className="flex items-center">
+                                  <span className="font-medium">Sport: </span>
+                                  <span className="ml-2">{event.sport.name}</span>
+                                </div>
+                              )}
+                              
+                              {event.location_text && (
+                                <div className="flex items-center">
+                                  <MapPin className="h-4 w-4 mr-2" />
+                                  <span>{event.location_text}</span>
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center">
+                                <Users className="h-4 w-4 mr-2" />
+                                <span>Capacity: {event.capacity_unit}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col items-end space-y-2">
+                            <Badge className="bg-blue-100 text-blue-800">
+                              Enrolled
+                            </Badge>
+                            
+                            <Button 
+                              size="sm"
+                              onClick={() => handleCancelEvent(event.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
